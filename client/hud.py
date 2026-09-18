@@ -24,8 +24,8 @@ def _am_build_window_class():
         default_windowID = 'EveJSAutoMiningSettings'
         default_caption = 'AutoMining'
         default_width = 660
-        default_height = 650
-        default_minSize = (620, 580)
+        default_height = 790
+        default_minSize = (620, 740)
         default_isStackable = False
         default_scope = C.SCOPE_INGAME
 
@@ -40,7 +40,7 @@ def _am_build_window_class():
             self._selected = set()
             Window.ApplyAttributes(self, attributes)
             main = self.content
-            self.statusLabel = EveLabelMedium(parent=main, align=C.TOTOP, height=46, text='Connecting to AutoMining...', maxLines=3)
+            self.statusLabel = EveLabelMedium(parent=main, align=C.TOTOP, autoFitToText=True, padBottom=8, text='Connecting to AutoMining...')
             actionRow = Container(parent=main, align=C.TOTOP, height=34)
             Button(parent=actionRow, align=C.TOPLEFT, width=120, label='Start / Resume', func=self.Start)
             Button(parent=actionRow, align=C.TOPLEFT, left=130, width=95, label='Stop', func=self.Stop)
@@ -53,15 +53,18 @@ def _am_build_window_class():
                     cell = Container(parent=row, align=C.TOLEFT_PROP, width=0.5)
                     self._toggles[key] = Checkbox(parent=cell, text=label, checked=False, callback=self.Changed)
             orderRow = Container(parent=main, align=C.TOTOP, height=34)
-            EveLabelMedium(parent=orderRow, align=C.CENTERLEFT, text='Target order')
-            self.orderEdit = Combo(parent=orderRow, align=C.TOPLEFT, left=145, width=190, options=[('Nearest first', 'nearest'), ('Furthest first', 'furthest')], select='nearest', callback=self.Changed)
+            EveLabelMedium(parent=orderRow, align=C.CENTERLEFT, text='Target priority')
+            self.orderEdit = Combo(parent=orderRow, align=C.TOPLEFT, left=145, width=240, options=[('Nearest first', 'nearest'), ('Furthest first', 'furthest'), ('Largest volume first', 'largest'), ('Smallest volume first', 'smallest')], select='nearest', callback=self.Changed)
+            self.scopeLabel = EveLabelMedium(parent=main, align=C.TOTOP, autoFitToText=True, padBottom=6, text='')
+            self.priorityHint = EveLabelSmall(parent=main, align=C.TOTOP, autoFitToText=True, padBottom=8, text='')
+            EveLabelSmall(parent=main, align=C.TOTOP, autoFitToText=True, padBottom=12, text='Range includes active mining boosts, per module. Your ore filter always applies.')
             timerRow = Container(parent=main, align=C.TOTOP, height=34)
             EveLabelMedium(parent=timerRow, align=C.CENTERLEFT, text='Survey seconds')
             self.timerEdit = SingleLineEditInteger(parent=timerRow, align=C.TOPLEFT, left=145, width=100, setvalue=60, minValue=6, maxValue=86400, OnChange=self.Changed)
             EveLabelSmall(parent=timerRow, align=C.CENTERLEFT, left=260, text='Default 60 | Minimum 6')
-            self.filterLabel = EveLabelMedium(parent=main, align=C.TOTOP, height=24, text='Ore filter: all compatible resources')
-            EveLabelSmall(parent=main, align=C.TOTOP, height=30, maxLines=2,
-                          text='Select ores, then use > to add or < to remove. Ctrl/Shift selects several.\nOre names also match their named variants.')
+            self.filterLabel = EveLabelMedium(parent=main, align=C.TOTOP, height=24, text='Resource filter: all compatible resources')
+            EveLabelSmall(parent=main, align=C.TOTOP, autoFitToText=True, padBottom=8,
+                          text=text('Select ore, ice or gas, then use > to add or < to remove.\nCtrl/Shift selects several. Ore names also match their named variants.'))
             footer = Container(parent=main, align=C.TOBOTTOM, height=64, padTop=8)
             self.notice = EveLabelSmall(parent=footer, align=C.TOTOP, height=28, maxLines=2, text='Changes are saved when you click Apply. Closing discards unsaved changes.')
             buttons = Container(parent=footer, align=C.TOALL)
@@ -72,17 +75,18 @@ def _am_build_window_class():
             leftHalf = Container(parent=picker, align=C.TOLEFT_PROP, width=0.5)
             arrows = Container(parent=leftHalf, align=C.TORIGHT, width=52)
             arrowButtons = Container(parent=arrows, align=C.CENTER, width=42, height=78)
-            Button(parent=arrowButtons, align=C.TOPLEFT, width=40, label='>', hint='Add selected ores to the filter', func=self.AddOres)
-            Button(parent=arrowButtons, align=C.TOPLEFT, top=42, width=40, label='<', hint='Remove selected ores from the filter', func=self.RemoveOres)
+            Button(parent=arrowButtons, align=C.TOPLEFT, width=40, label=text('>'), hint='Add selected ores to the filter', func=self.AddOres)
+            Button(parent=arrowButtons, align=C.TOPLEFT, top=42, width=40, label=text('<'), hint='Remove selected ores from the filter', func=self.RemoveOres)
             available = Container(parent=leftHalf, align=C.TOALL, padRight=6)
             selected = Container(parent=picker, align=C.TOALL)
             self.availableLabel = EveLabelMedium(parent=available, align=C.TOTOP, height=24, text='Available ores')
             self.selectedLabel = EveLabelMedium(parent=selected, align=C.TOTOP, height=24, text='Active filter')
-            self.availableSearch = SingleLineEditText(parent=available, align=C.TOTOP, height=28, padBottom=6, hint='Search available ores', OnChange=self.Search)
+            self.availableSearch = SingleLineEditText(parent=available, align=C.TOTOP, height=28, padBottom=6, hint='Search available ore, ice or gas', OnChange=self.Search)
             self.selectedSearch = SingleLineEditText(parent=selected, align=C.TOTOP, height=28, padBottom=6, hint='Search active filter', OnChange=self.Search)
             self.availableScroll = Scroll(parent=available, align=C.TOALL, multiSelect=True)
             self.selectedScroll = Scroll(parent=selected, align=C.TOALL, multiSelect=True)
             self._loading = False
+            self.UpdatePriorityHint()
             _am_uthread.new(self.Refresh, True)
             _am_uthread.new(self.Poll)
 
@@ -123,6 +127,7 @@ def _am_build_window_class():
                 self.timerEdit.SetValue(prefs['surveySeconds'], docallback=False)
                 self._loading = False
                 self._dirty = False
+                self.UpdatePriorityHint()
                 self.DrawLists()
 
         def Poll(self):
@@ -150,10 +155,27 @@ def _am_build_window_class():
 
         def Changed(self, *args):
             if not self._loading:
+                self.UpdatePriorityHint()
                 self._dirty = True
                 self._editSerial += 1
                 if hasattr(self, 'notice'):
                     self.notice.text = 'Unsaved changes. Click Apply, or Reload to discard.'
+
+        def UpdatePriorityHint(self):
+            if not hasattr(self, 'priorityHint'):
+                return
+            approach = bool(self._toggles['approach'].GetValue())
+            order = self.orderEdit.GetValue()
+            self.scopeLabel.text = 'Search area: ' + ('whole current belt' if approach else 'within mining range')
+            priority = {'nearest': 'nearest to furthest', 'furthest': 'furthest to nearest',
+                        'largest': 'largest to smallest remaining volume', 'smallest': 'smallest to largest remaining volume'}.get(order, 'nearest to furthest')
+            description = 'Select matching asteroids from %s.\n' % priority
+            description += ('Your ship may fly from one end of the current belt to the other to follow this order.' if approach
+                            else 'The mod will not move your ship. Asteroids outside effective mining range are ignored.')
+            if order in ('largest', 'smallest'):
+                description += '\nVolume means remaining cubic metres, not ISK value.'
+                description += '\nRequires an available Mining Surveyor or built-in equivalent. No scan required.'
+            self.priorityHint.text = description
 
         def Search(self, *args):
             if hasattr(self, 'selectedScroll'):
@@ -169,9 +191,9 @@ def _am_build_window_class():
                 entries = [GetFromClass(Generic, {'label': text(label), 'oreKey': key})
                            for key, label in sorted(rows, key=lambda row: row[1].lower()) if query in label.lower()]
                 scroll.Load(contentList=entries, noContentHint='No matching ores' if query else 'Empty - all compatible resources' if scroll is self.selectedScroll else 'No ores remaining')
-            self.availableLabel.text = 'Available ores (%s)' % len(available)
+            self.availableLabel.text = 'Available ore / ice / gas (%s)' % len(available)
             self.selectedLabel.text = 'Active filter (%s)' % len(active)
-            self.filterLabel.text = 'Ore filter: %s' % ('%s selected' % len(active) if active else 'all compatible resources')
+            self.filterLabel.text = 'Resource filter: %s' % ('%s selected' % len(active) if active else 'all compatible resources')
 
         def AddOres(self, *args):
             if self._busy:

@@ -2,7 +2,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
-const crypto = require("node:crypto");
 const { isMainThread } = require("node:worker_threads");
 const { createController } = require("./lib/controller");
 const commands = require("./lib/commands");
@@ -11,14 +10,13 @@ const bridge = require("./lib/bridge");
 const { createCompression } = require("./lib/compression");
 const { createCatalog } = require("./lib/catalog");
 const { installHUD } = require("./lib/hud");
-const SUPPORTED_HASH = "425b56f81bf398d79f67437f08f05b7746eca2f982e9a7c0ebc5b98a1307a8c0";
+const { SUPPORTED_HASH, supportsMiningSource, prepareMiningSource } = require("./lib/miningCompatibility");
 const key = Symbol.for("evejs.automining.loader.v1");
 function canonical(file) { return process.platform === "win32" ? path.resolve(file).toLowerCase() : path.resolve(file); }
 function install(root = path.resolve(__dirname, "../..")) {
   if (!isMainThread || globalThis[key]) return globalThis[key];
   const miningPath = path.join(root, "server/src/services/mining/miningRuntime.js");
-  const hash = text => crypto.createHash("sha256").update(text).digest("hex");
-  if (!fs.existsSync(miningPath) || hash(fs.readFileSync(miningPath)) !== SUPPORTED_HASH) {
+  if (!fs.existsSync(miningPath) || !supportsMiningSource(fs.readFileSync(miningPath))) {
     console.error("[AutoMining] Unsupported miningRuntime.js. Mod left inactive; server files unchanged.");
     return { active: false };
   }
@@ -35,7 +33,7 @@ function install(root = path.resolve(__dirname, "../..")) {
   const previousCompile = Module.prototype._compile;
   Module.prototype._compile = function(content, filename) {
     if (canonical(filename) === canonical(miningPath)) {
-      if (hash(content) === SUPPORTED_HASH) content += "\n" + bridge;
+      if (supportsMiningSource(content)) content = prepareMiningSource(content) + "\n" + bridge;
       else console.error("[AutoMining] Another mod changed the mining runtime; AutoMining bridge disabled.");
     }
     return previousCompile.call(this, content, filename);
@@ -69,7 +67,7 @@ function install(root = path.resolve(__dirname, "../..")) {
     return exports;
   };
   globalThis[key] = { active: true, controller };
-  console.log("[AutoMining] v1.0.5 loaded. /AutoMining on | off | ore,ore | clear | nearest | furthest");
+  console.log("[AutoMining] v1.0.6 loaded. /AutoMining on | off | ore,ore | clear | nearest | furthest | largest | smallest");
   return globalThis[key];
 }
 module.exports = { install, SUPPORTED_HASH };

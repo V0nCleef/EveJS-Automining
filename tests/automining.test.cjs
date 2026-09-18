@@ -42,8 +42,17 @@ function fixture({ count = 3, pending = false, cap = 10, deferred = false, compr
     followBall(_, id, range) { approaches.push([id, range]); ship.mode = "FOLLOW"; ship.targetEntityID = id; ship.followRange = range; return true; },
     stop() { ship.mode = "STOP"; },
   };
-  const stats = {discoveries:0, modules:0, lookups:0};
+  const stats = {discoveries:0, modules:0, lookups:0, surveySearches:0, surveyLookups:0};
   const api = {
+    surveyGrid: () => ship.grid || 'belt',
+    surveyResource: (_, __, previousID) => {
+      if (previousID) stats.surveyLookups++;
+      const present = r => r.quantity > 0 && (r.grid || 'belt') === (ship.grid || 'belt');
+      if (previousID && rocks.some(r => r.id === previousID && present(r))) return previousID;
+      stats.surveySearches++;
+      return rocks.find(present)?.id || null;
+    },
+    hasSurveyor: () => true,
     modules: () => {stats.modules++; return modules;},
     candidates: () => {stats.discoveries++;return rocks.filter(r => r.quantity > 0);},
     target: (_,__,id) => {stats.lookups++;return rocks.find(r=>r.id===id && r.quantity>0)||null;},
@@ -60,6 +69,204 @@ function fixture({ count = 3, pending = false, cap = 10, deferred = false, compr
     setShip(value) { spaceShip = value; }, setFree(value) { free = value; },
   };
 }
+
+function volumes(f) {
+  // Raw quantities intentionally disagree with m3 ranking.
+  for (const [i, r] of f.rocks.entries()) r.state = {
+    remainingQuantity: [100, 10, 5, 2][i], unitVolume: [0.1, 2, 10, 100][i],
+  };
+}
+
+test("volume sorting requires an available Surveyor, pauses on removal, and resumes on return", () => {
+  const f=fixture({count:1}); volumes(f); let available=false;
+  f.api.hasSurveyor=()=>available;
+  f.command('automining largest'); f.command('automining approach on'); f.command('automining on'); f.tick();
+  assert.equal(f.started.length,0); assert.equal(f.approaches.length,0);
+  assert.match(f.controller.snapshot(f.session).status,/needs an available Mining Surveyor/);
+  available=true; f.tick(); assert.equal(f.approaches.length,1);
+  available=false; f.tick(); assert.equal(f.ship.mode,'STOP');
+  f.command('automining nearest');f.command('automining approach off');f.tick();
+  assert.equal(f.started.length,1); assert.equal(f.scans.length,0);
+  f.command('automining smallest'); f.tick();
+  assert.equal(f.ship.activeModuleEffects.size,0);
+  available=true; f.tick(); assert.equal(f.ship.activeModuleEffects.size,1);
+  assert.equal(f.scans.length,0);
+});
+
+test("volume priorities use remaining m3, respect range/filter, and spread miners", () => {
+  const f = fixture({count:4}); volumes(f);
+  assert.deepEqual(parse('/AUTOMINING LARGEST'), {action:'largest'});
+  f.command('automining largest'); f.command('automining on'); f.tick();
+  assert.deepEqual(f.started.map(x=>x[1]), [13,12,11,13]);
+  assert.equal(f.approaches.length,0);
+  f.finish(); f.command('automining smallest'); f.tick();
+  assert.deepEqual(f.started.slice(4).map(x=>x[1]), [11,12,13,11]);
+  f.finish(); f.command('automining veldspar'); f.command('automining largest'); f.tick();
+  assert.deepEqual(f.started.slice(8).map(x=>x[1]), [12,11,12,12]);
+});
+
+test("Approach ranks the entire local belt even with lower-priority ore already reachable", () => {
+  const f = fixture({count:1}); volumes(f);
+  f.command('automining largest'); f.command('automining approach on'); f.command('automining on'); f.tick();
+  assert.deepEqual(f.approaches, [[14,90]]);
+  assert.equal(f.started.length,0);
+  for (let i=0;i<60;i++) f.tick();
+  assert.equal(f.stats.discoveries,1); assert.equal(f.approaches.length,1);
+  // Another pilot changing volume must not make us turn around mid-flight.
+  f.rocks[3].state.remainingQuantity=0.01;
+  f.tick(); assert.equal(f.approaches.length,1);
+  f.rocks[3].distance=85; f.tick();
+  // The committed primary target is retained through arrival.
+  assert.equal(f.ship.mode,'STOP');
+  assert.deepEqual(f.started, [[1,14]]);
+  f.finish(); f.rocks[3].quantity=0; f.tick();
+  assert.equal(f.started.at(-1)[1],13);
+});
+
+test("smallest and furthest priorities also determine the approach destination", () => {
+  for (const order of ['smallest','furthest']) {
+    const f=fixture({count:1}); volumes(f);
+    f.rocks[3].state.remainingQuantity=0.001;
+    f.command('automining '+order); f.command('automining approach on'); f.command('automining on'); f.tick();
+    assert.equal(f.approaches[0][0],14); assert.equal(f.started.length,0);
+  }
+});
+
+test("turning Approach off cancels travel and immediately selects only reachable ore", () => {
+  const f=fixture({count:1}); volumes(f);
+  f.command('automining largest'); f.command('automining approach on'); f.command('automining on'); f.tick();
+  f.command('automining approach off'); f.tick();
+  assert.equal(f.ship.mode,'STOP'); assert.deepEqual(f.started,[[1,13]]);
+});
+
+test("depleted approach target is replaced; filtered-out distant ore is never chased", () => {
+  const f=fixture({count:1}); volumes(f);
+  f.command('automining largest'); f.command('automining approach on'); f.command('automining on'); f.tick();
+  f.rocks[3].quantity=0; f.tick();
+  assert.equal(f.ship.mode,'STOP'); assert.deepEqual(f.started,[[1,13]]);
+  const g=fixture({count:1}); volumes(g);
+  g.command('automining veldspar'); g.command('automining largest'); g.command('automining approach on'); g.command('automining on'); g.tick();
+  assert.deepEqual(g.started,[[1,12]]); assert.equal(g.approaches.length,0);
+});
+
+test("new distant priority interrupts deferred cycles and approaches without waiting", () => {
+  const f=fixture({count:1,deferred:true}); volumes(f);
+  f.command('automining on'); f.tick();
+  f.command('automining largest'); f.command('automining approach on');
+  assert.deepEqual(f.removed,[11]); assert.deepEqual(f.stopped,[1]);
+  assert.equal(f.ship.activeModuleEffects.size,0);
+  f.tick(1);
+  assert.deepEqual(f.approaches,[[14,90]]); assert.equal(f.started.length,1);
+});
+
+test("every changed priority through chat or HUD unlocks and replans active miners immediately", () => {
+  const orders=['nearest','furthest','largest','smallest'];
+  const expected={nearest:11,furthest:13,largest:12,smallest:13};
+  for (const hud of [false,true]) for (const before of orders) for (const after of orders) {
+    if (before===after) continue;
+    const f=fixture({count:1,deferred:true}); volumes(f);
+    [20,50,10].forEach((volume,i)=>f.rocks[i].state={remainingQuantity:volume,unitVolume:1});
+    f.command('automining '+before); f.command('automining on'); f.tick();
+    const oldTarget=f.started[0][1];
+    // Unrelated combat targets and effects must survive the mining reset.
+    f.ship.lockedTargets.set(99,{});
+    const combat={targetID:99};f.ship.activeModuleEffects.set(99,combat);
+    if (hud) {
+      const state=f.controller.snapshot(f.session);
+      f.controller.applySettings(f.session,JSON.stringify({revision:state.revision,settings:{...state.settings,order:after}}));
+    } else f.command('automining '+after);
+    assert.deepEqual(f.removed,[oldTarget]);
+    assert.deepEqual(f.stopped,[1]);
+    assert(!f.ship.activeModuleEffects.has(1));
+    assert.equal(f.ship.activeModuleEffects.get(99),combat);assert(f.ship.lockedTargets.has(99));
+    f.tick(1); assert.equal(f.started.at(-1)[1],expected[after]);
+    const searches=f.stats.discoveries, starts=f.started.length;
+    for (let i=0;i<10;i++) f.tick();
+    assert.equal(f.stats.discoveries,searches);assert.equal(f.started.length,starts);
+  }
+});
+
+test("priority change cancels pending locks and an old approach; same priority leaves mining alone", () => {
+  const f=fixture({count:1,pending:true});
+  f.command('automining on');f.tick();assert(f.ship.pendingTargetLocks.has(11));
+  f.command('automining furthest');assert.equal(f.ship.pendingTargetLocks.size,0);
+  f.tick(1);assert(f.ship.pendingTargetLocks.has(13));
+  f.lock();f.tick();
+  const starts=f.started.length,removed=f.removed.length;
+  f.command('automining furthest');f.tick();
+  assert.equal(f.started.length,starts);assert.equal(f.removed.length,removed);assert.equal(f.stopped.length,0);
+  const g=fixture({count:1});volumes(g);
+  g.command('automining largest');g.command('automining approach on');g.command('automining on');g.tick();
+  assert.equal(g.ship.mode,'FOLLOW');
+  g.command('automining smallest');assert.equal(g.ship.mode,'STOP');g.tick(1);
+  assert.deepEqual(g.started,[[1,11]]);
+});
+
+test("priority changes while off or docked only save the choice", () => {
+  const f=fixture({count:1});
+  f.ship.lockedTargets.set(11,{});f.ship.activeModuleEffects.set(1,{targetID:11});
+  f.command('automining largest');
+  assert(f.ship.activeModuleEffects.has(1));assert.equal(f.removed.length,0);
+  f.setShip(null);f.command('automining on');f.command('automining smallest');
+  assert.equal(f.controller.snapshot(f.session).settings.order,'smallest');
+  assert.equal(f.stopped.length,0);assert.equal(f.removed.length,0);
+});
+
+function boostedFixture(options={}) {
+  const f=fixture(options); let boost=1;
+  const originalModules=f.api.modules;
+  f.api.modules=()=>originalModules().map(m=>({...m, range:m.range*boost, snapshot:{maxRangeMeters:m.snapshot.maxRangeMeters*boost}}));
+  f.api.boostSignature=()=>String(boost);
+  f.setBoost=value=>{boost=value;};
+  return f;
+}
+
+test("boosted effective range includes distant ore without moving; expiry excludes it", () => {
+  const f=boostedFixture({count:1}); volumes(f); f.setBoost(2);
+  f.command('automining largest'); f.command('automining on'); f.tick();
+  assert.deepEqual(f.started,[[1,14]]); assert.equal(f.approaches.length,0);
+  f.setBoost(1); f.tick();
+  assert.deepEqual(f.stopped,[1]); assert.equal(f.started.at(-1)[1],13);
+  assert.equal(f.approaches.length,0);
+});
+
+test("boost gain wakes a backed-off idle miner before the five-second retry", () => {
+  const f=boostedFixture({count:1}); f.rocks.forEach(r=>r.distance+=120);
+  f.command('automining on'); f.tick(); assert.equal(f.started.length,0);
+  f.setBoost(2); f.tick(); assert.equal(f.started.length,1);
+});
+
+test("approach range updates on boosts, honours the shortest compatible miner and stops once reachable", () => {
+  const f=boostedFixture({count:2}); volumes(f);
+  f.modules[0].range=50; f.modules[0].snapshot.maxRangeMeters=50;
+  f.command('automining largest'); f.command('automining approach on'); f.command('automining on'); f.tick();
+  assert.deepEqual(f.approaches,[[14,45]]);
+  f.setBoost(2); f.tick(); assert.deepEqual(f.approaches.at(-1),[14,90]);
+  f.setBoost(4); f.tick(); assert.equal(f.ship.mode,'STOP');
+  assert.equal(f.started.length,2); assert(f.started.some(x=>x[1]===14));
+});
+
+test("volume ties break by distance then stable ID", () => {
+  const {compareTargets}=require('../lib/targets');
+  const rows=[{id:3,distance:10},{id:2,distance:10},{id:1,distance:20}].map(r=>({...r,state:{remainingQuantity:5,unitVolume:2}}));
+  for (const order of ['largest','smallest']) assert.deepEqual([...rows].sort(compareTargets(order)).map(r=>r.id),[2,3,1]);
+});
+
+test("volume settings persist through HUD, character reload and Launcher presets", () => {
+  const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+  const {createPreferences}=require('../lib/preferences');
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'automining-volume-'));
+  try {
+    const filename=path.join(dir,'prefs.json');
+    const f=fixture({preferences:createPreferences(filename)});
+    const before=f.controller.snapshot(f.session);
+    f.controller.applySettings(f.session,JSON.stringify({revision:before.revision,settings:{...before.settings,order:'largest',approach:true}}));
+    assert.equal(createPreferences(filename).get(42).order,'largest');
+    assert.equal(createPreferences(filename).get(43).order,'nearest');
+    f.controller.applyProfile(f.session,JSON.stringify({apply:true,ores:'',order:'smallest',approach:false,lock:true,survey:false}));
+    assert.equal(createPreferences(filename).get(42).order,'smallest');
+  } finally {fs.rmSync(dir,{recursive:true,force:true});}
+});
 
 test("case-insensitive slash, exclamation and plain commands; only exact command name", () => {
   for (const p of ["/", "!", ""]) assert.deepEqual(parse(`${p}AuToMiNiNg ON`), { action: "on" });
@@ -242,6 +449,111 @@ test("survey waits for client handshake and pauses during warp", () => {
   f.controller.surveyAck(f.session, false, "not in space");
   assert.match(f.command("automining"), /Survey waiting: not in space/);
 });
+
+test("warp request interrupts deferred cycles and pending locks without cancelling warp or changing saved On", () => {
+  const saved=[];const f=fixture({count:1,deferred:true,preferences:{get:()=>({}),save:(_,s)=>saved.push(s.enabled)}});
+  f.command('automining on');f.tick();
+  f.ship.lockedTargets.set(99,{});
+  f.ship.pendingWarp={};f.tick(1);
+  assert.deepEqual(f.removed,[11]);assert.equal(f.ship.activeModuleEffects.size,0);
+  assert(f.ship.lockedTargets.has(99));assert(f.ship.pendingWarp);
+  assert.equal(f.controller.snapshot(f.session).enabled,true);assert.deepEqual(saved,[true]);
+  const builds=f.stats.modules;
+  for(let i=0;i<10;i++)f.tick();
+  assert.equal(f.stats.modules,builds);assert.equal(f.stopped.length,1);
+  const g=fixture({count:1,pending:true});g.command('automining on');g.tick();
+  g.ship.pendingWarp={};g.tick(1);assert.equal(g.ship.pendingTargetLocks.size,0);
+});
+
+test("cancelled warp resumes mining automatically at the current site; Stop during warp stays off", () => {
+  const f=fixture({count:1,deferred:true});f.command('automining on');f.tick();
+  f.ship.pendingWarp={};f.tick(1);assert.equal(f.started.length,1);
+  f.ship.pendingWarp=null;f.tick();assert.equal(f.started.length,2);
+  assert.equal(f.controller.snapshot(f.session).enabled,true);
+  f.ship.pendingWarp={};f.tick();f.command('automining off');f.ship.pendingWarp=null;
+  f.tick(60000);assert.equal(f.started.length,2);assert.equal(f.controller.snapshot(f.session).enabled,false);
+});
+
+test("cancelling warp never enables a pilot whose AutoMining was already off", () => {
+  const f=fixture();
+  f.command('automining off');
+  f.ship.pendingWarp={};f.tick();f.ship.pendingWarp=null;f.tick();
+  assert.equal(f.controller.snapshot(f.session).enabled,false);
+  assert.equal(f.started.length,0);assert.equal(f.stopped.length,0);assert.equal(f.removed.length,0);
+  assert.equal(f.stats.discoveries,0);assert.equal(f.stats.surveySearches,0);
+  f.ship.mode='WARP';f.tick();f.ship.mode='STOP';f.tick();
+  assert.equal(f.controller.snapshot(f.session).enabled,false);assert.equal(f.started.length,0);
+});
+
+test("warp pauses approach without Stop; arrival waits outside mining sites and resumes at a gas site", () => {
+  let compression=0;
+  const f=fixture({count:1,compress:()=>{compression++;return 'Compressed.';}});
+  f.modules[0].family='gas';f.rocks.splice(0,f.rocks.length,{id:77,name:'Fullerite-C50',family:'gas',quantity:10,distance:150,grid:'belt'});
+  f.command('automining approach on');f.command('automining survey on');f.command('automining compress on');
+  f.controller.clientReady(f.session);f.command('automining on');f.tick();assert.equal(f.ship.mode,'FOLLOW');
+  f.scene.stop=()=>assert.fail('AutoMining must not cancel the pilot warp');
+  f.ship.pendingWarp={};f.tick(1);assert.equal(f.ship.mode,'FOLLOW');
+  f.ship.mode='WARP';f.tick();f.ship.pendingWarp=null;f.ship.mode='STOP';f.ship.grid='station';f.tick();
+  const scans=f.scans.length,compressions=compression,searches=f.stats.surveySearches;
+  for(let i=0;i<20;i++)f.tick();
+  assert.equal(f.scans.length,scans);assert.equal(compression,compressions);assert.equal(f.started.length,0);
+  assert.equal(f.stats.surveySearches-searches,4);
+  f.ship.grid='belt';f.rocks[0].distance=40;f.tick();
+  assert.deepEqual(f.started,[[1,77]]);assert.equal(f.scans.length,scans+1);
+});
+
+test("gas filter selects matching clouds for gas harvesters; ore lasers cannot harvest them", () => {
+  const f=fixture({count:3});
+  f.modules[0].family='gas';f.modules[1].family='gas';
+  f.rocks.splice(0,f.rocks.length,
+    {id:71,name:'Fullerite-C50',family:'gas',quantity:10,distance:10},
+    {id:72,name:'Fullerite-C50',family:'gas',quantity:10,distance:20},
+    {id:73,name:'Fullerite-C60',family:'gas',quantity:10,distance:5});
+  f.command('automining Fullerite-C50');f.command('automining on');f.tick();
+  assert.deepEqual(f.started,[[1,71],[2,72]]);
+  f.command('automining Fullerite-C60');f.tick();
+  assert.deepEqual(f.started.slice(2),[[1,73],[2,73]]);
+});
+
+test("survey waits outside mining grids and scans on landing even before the old interval expires", () => {
+  const f=fixture();f.ship.grid='station';
+  f.command('automining survey 180');f.command('automining survey on');
+  f.controller.clientReady(f.session);f.command('automining on');
+  for(let i=0;i<60;i++)f.tick();
+  assert.equal(f.scans.length,0);assert.equal(f.stats.surveySearches,12);
+  f.ship.mode='WARP';f.ship.grid='belt';f.tick();assert.equal(f.scans.length,0);
+  f.ship.mode='STOP';f.tick();assert.deepEqual(f.scans,[62000]);
+  f.ship.mode='WARP';f.tick();f.ship.mode='STOP';f.ship.grid='station';f.tick();
+  f.tick(10000);assert.equal(f.scans.length,1);
+  f.ship.grid='belt';f.tick();assert.deepEqual(f.scans,[62000,75000]);
+  f.tick(179000);assert.equal(f.scans.length,2);
+  f.tick();assert.equal(f.scans.length,3);
+});
+
+test("survey recognises ore anomalies, ice and gas independently of mining filters and module range", () => {
+  for(const family of ['ore','ice','gas']) {
+    const f=fixture();f.rocks.splice(0,f.rocks.length,{id:77,name:'Site resource',family,grid:'anomaly',distance:9999,quantity:10});
+    f.ship.grid='anomaly';f.command('automining veldspar');
+    f.command('automining survey on');f.controller.clientReady(f.session);f.command('automining on');
+    for(let i=0;i<120;i++)f.tick();
+    assert.deepEqual(f.scans,[1000,61000]);assert.equal(f.started.length,0);
+    assert.equal(f.stats.surveySearches,1);
+    f.rocks[0].quantity=0;f.tick();assert.equal(f.scans.length,2);
+    f.tick(60000);assert.equal(f.scans.length,2);
+    f.rocks[0].quantity=10;f.tick(5000);assert.equal(f.scans.length,3);
+  }
+});
+
+test("fast grid transitions respect survey rate limits and survey off does no site checks", () => {
+  const f=fixture();f.command('automining on');f.controller.clientReady(f.session);f.tick();
+  assert.equal(f.stats.surveySearches,0);assert.equal(f.stats.surveyLookups,0);
+  f.command('automining survey on');f.tick();assert.deepEqual(f.scans,[2000]);
+  f.ship.mode='WARP';f.tick();f.ship.mode='STOP';f.tick();
+  assert.equal(f.scans.length,1);
+  f.tick(4000);assert.deepEqual(f.scans,[2000,8000]);
+  f.command('automining survey off');const searches=f.stats.surveySearches,lookups=f.stats.surveyLookups;
+  f.tick(60000);assert.equal(f.stats.surveySearches,searches);assert.equal(f.stats.surveyLookups,lookups);
+});
 test("changing filter unlocks excluded rocks immediately even for deferred mining cycles", () => {
   const f = fixture({ deferred: true }); f.ship.lockedTargets.set(99, {});
   f.command("automining on"); f.tick();
@@ -349,12 +661,13 @@ test("working modules and successive valid cycles reuse targets without rescanni
   f.finish();f.rocks[0].quantity=0;f.tick();assert.equal(f.stats.discoveries,2);
   f.command("automining scordite");f.tick();assert(f.stats.discoveries>2);
 });
-test("an empty scene backs off discovery; survey remains independent and defaults off",()=>{
+test("an empty scene backs off discovery and survey waits for resources",()=>{
   const f=fixture();f.rocks.forEach(r=>r.quantity=0);f.controller.clientReady(f.session);
   f.command("automining on");for(let i=0;i<60;i++)f.tick();
   assert.equal(f.stats.discoveries,12);assert.equal(f.scans.length,0);
   f.command("automining survey 6");f.command("automining survey on");f.tick();f.tick(6000);
-  assert.equal(f.scans.length,2);
+  assert.equal(f.scans.length,0);
+  assert.match(f.controller.snapshot(f.session).status,/Survey waiting: no ore, ice or gas/);
 });
 test("HUD settings validate atomically, preserve main state, and reject stale drafts",()=>{
   const f=fixture();const before=f.controller.snapshot(f.session);

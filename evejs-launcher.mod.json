@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "id": "automining",
   "displayName": "AutoMining",
-  "version": "1.0.5",
-  "description": "Automatic mining with an in-game settings window, ore filters, nearest/furthest targeting and saved per-character On/Off. Optional approach, survey and compression. Open with /AutoMining.",
+  "version": "1.0.6",
+  "description": "Automatic mining with an in-game HUD, ore filters, distance/volume priority and saved per-character settings. Optional whole-belt approach, survey and compression. Open with /AutoMining.",
   "kind": "loader",
   "supportedBackends": [
     "native",
@@ -20,7 +20,7 @@
   },
   "launcherApi": {
     "version": 1,
-    "minLauncherVersion": "1.0.56",
+    "minLauncherVersion": "1.0.57",
     "helper": {
       "runtime": "node",
       "path": "helper.js"
@@ -79,10 +79,10 @@
       },
       {
         "id": "order",
-        "label": "Start with",
+        "label": "Target priority",
         "type": "choice",
         "default": "nearest",
-        "description": "Choose the nearest or furthest compatible asteroid in reach.",
+        "description": "Approach on: rank the whole current belt. Approach off: rank only ore within each mining module's effective range, including boosts. Volume means remaining cubic metres. Volume priorities require an available Mining Surveyor or built-in equivalent; no scan is required.",
         "file": "prefs",
         "key": [
           "order"
@@ -96,6 +96,14 @@
           {
             "value": "furthest",
             "label": "Furthest first"
+          },
+          {
+            "value": "largest",
+            "label": "Largest volume first"
+          },
+          {
+            "value": "smallest",
+            "label": "Smallest volume first"
           }
         ]
       },
@@ -104,7 +112,7 @@
         "label": "Approach out-of-range resources",
         "type": "boolean",
         "default": false,
-        "description": "Fly toward matching resources in this scene when none are in reach.",
+        "description": "On: select across the whole current belt and travel to follow your target priority, possibly from one end to the other. Off: only select within effective mining range.",
         "file": "prefs",
         "key": [
           "approach"
@@ -128,7 +136,7 @@
         "label": "Use Mining Surveyor automatically",
         "type": "boolean",
         "default": false,
-        "description": "Activate the built-in Mining Surveyor while AutoMining is on.",
+        "description": "Activate the built-in Mining Surveyor while AutoMining is on and undepleted ore, ice or gas is present on the current grid. Waits outside mining locations and resumes after landing at one.",
         "file": "prefs",
         "key": [
           "survey"

@@ -1,0 +1,92 @@
+--- a/server/src/services/mining/miningRuntime.js
++++ b/server/src/services/mining/miningRuntime.js
+@@ -123,13 +123,8 @@
+   return Math.max(0, Math.min(1, numericValue));
+ }
+ 
+-// Modulated Strip Miners (and Modulated Deep Core Strip Miners) load mining
+-// crystals: their type declares a chargeSize and a crystal chargeGroup. EVE
+-// parity: crystal/modulated mining modules CANNOT be short-cycled — a manual
+-// stop completes the current cycle. Basic mining lasers, strip miners, deep
+-// core lasers, and gas harvesters carry no crystal and may be short-cycled
+-// (proportional yield on a manual mid-cycle stop). Ice is the other exception —
+-// see miningModuleCanShortCycle.
++// Detect crystal-capable modules independently of manual-stop eligibility.
++// Ore miners can short-cycle whether or not they use a mining crystal.
+ function miningModuleUsesCrystals(moduleTypeID) {
+   const typeID = toInt(moduleTypeID, 0);
+   if (typeID <= 0) {
+@@ -175,22 +170,12 @@
+   return resolveMiningFamily(moduleItem, effectRecord);
+ }
+ 
+-// EVE parity gate for short-cycling a running mining module on a manual stop.
+-// Two families refuse it:
+-//   * crystal/modulated strip miners (see miningModuleUsesCrystals), and
+-//   * ice harvesters and ice mining lasers. EVE University, Mining yield:
+-//     "Short-cycling is equally useful when harvesting gas, but should never be
+-//     used while ice harvesting (as ice mining lasers/harvesters only harvest 1
+-//     unit of ice per complete cycle; short-cycle your ice harvester, and you
+-//     mine nothing)." (https://wiki.eveuniversity.org/Mining_yield)
+-// None of the six published ice types declares a crystal charge, so the crystal
+-// test alone lets them through; the family is the discriminator, not the typeID.
+-// If the family cannot be resolved at all we return true, which preserves the
+-// pre-existing behaviour for ore and gas rather than silently deferring them.
++// Ore and gas miners can settle elapsed yield on a manual stop, including
++// modulated strip miners and deep core miners that use mining crystals.
++// https://wiki.eveuniversity.org/Mining_yield#Short-cycling
++// Keep the existing ice policy separate: its whole-unit settlement is outside
++// this ore-miner fix. Unknown families retain the existing permissive fallback.
+ function miningModuleCanShortCycle(entity, effectState) {
+-  if (miningModuleUsesCrystals(effectState && effectState.typeID)) {
+-    return false;
+-  }
+   return resolveMiningFamilyForEffectState(entity, effectState) !== "ice";
+ }
+ 
+--- a/server/src/space/runtime.js
++++ b/server/src/space/runtime.js
+@@ -37392,23 +37392,10 @@
+       options.deferUntilCycle !== false &&
+       reason === "manual";
+ 
+-    // EVE parity: basic mining lasers / strip miners can be short-cycled — a
+-    // manual mid-cycle stop interrupts the cycle immediately and deposits ore
+-    // proportional to the elapsed time. Modulated Strip Miners load crystals
+-    // and CANNOT be short-cycled, so they fall through to the deferred boundary
+-    // stop below (and deliver the full final-cycle yield via the tick path).
+-    //
+-    // Ice harvesters and ice mining lasers fall through the same way, and for a
+-    // different reason — they carry no crystal, so the crystal test alone lets
+-    // them through. EVE University is explicit: "Short-cycling is equally
+-    // useful when harvesting gas, but should never be used while ice harvesting
+-    // (as ice mining lasers/harvesters only harvest 1 unit of ice per complete
+-    // cycle; short-cycle your ice harvester, and you mine nothing)"
+-    // (https://wiki.eveuniversity.org/Mining_yield). One ice cycle is 1000 m³
+-    // against a 1000 m³ ice unit, so a pro-rata stop is a fraction of a unit
+-    // that randomizedRound coin-flips into a whole unit EVE never grants — and
+-    // depletes the field by it. miningModuleCanShortCycle gates on the resolved
+-    // mining family, not a typeID list.
++    // Ore mining lasers and strip miners, including crystal-using modulated
++    // miners, settle proportional yield immediately on a manual mid-cycle stop.
++    // miningModuleCanShortCycle keeps the existing ice policy separate; do not
++    // route fractional ice units through the ore/gas randomized-rounding path.
+     //
+     // Gas cloud scoops and harvesters DO short-cycle, despite being the only
+     // mining modules that declare disallowEarlyDeactivation (906). That
+@@ -48658,12 +48645,9 @@
+           // is finalized after the effect is applied, and the stop cycle does
+           // not charge capacitor/fuel for the next (non-existent) cycle. This
+           // covers:
+-          //   - crystal-based (Modulated) Strip Miners, which cannot be
+-          //     short-cycled and must deliver their full final-cycle yield (ore
+-          //     only lands when a cycle completes). Basic mining lasers
+-          //     short-cycle immediately in deactivateGenericModule and never set
+-          //     deactivateAtMs, so only modulated miners reach this branch among
+-          //     mining effects; and
++          //   - mining effects with a deferred stop (currently ice under the
++          //     existing policy). Ore and gas miners, including crystal-using
++          //     miners, short-cycle in deactivateGenericModule instead; and
+           //   - end-of-cycle local-cycle repairers (armor, hull/structure, and
+           //     ancillary armor repairers), whose final repair tick lands at the
+           //     cycle end.
