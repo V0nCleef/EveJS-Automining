@@ -421,3 +421,33 @@ test("HUD RPCs isolate characters, return structured errors and load the catalog
   assert.equal(rpc("AutoMiningSetSettings",["bad JSON"]).success,false);
   assert.equal(rpc("AutoMiningGetState",[],{}).success,false);
 });
+
+test("HUD client text representations save 180 seconds and start/stop while docked",()=>{
+  const {installHUD}=require("../lib/hud");
+  for (const encode of [value=>value, value=>Buffer.from(value), ...["wstring","token","rawstr"].map(type=>value=>({type,value}))]) {
+    const records=new Map(),preferences={get:id=>records.get(id)||{},save:(id,s)=>records.set(id,{enabled:s.enabled,surveySeconds:s.surveySeconds,ores:[...s.ores]})};
+    const f=fixture({preferences});f.setShip(null);
+    class Service {}
+    installHUD(Service,f.controller,()=>[]);
+    const svc=new Service(),rpc=(name,value)=>JSON.parse(svc['Handle_'+name]([encode(value)],f.session));
+    const before=f.controller.snapshot(f.session);
+    const saved=rpc("AutoMiningSetSettings",JSON.stringify({revision:before.revision,settings:{...before.settings,surveySeconds:180}}));
+    assert.equal(saved.success,true,saved.message);assert.equal(saved.settings.surveySeconds,180);
+    assert.equal(records.get(42).surveySeconds,180);assert.equal(saved.enabled,false);
+    const started=rpc("AutoMiningControl","on");assert.equal(started.success,true,started.message);assert.equal(started.enabled,true);
+    assert.equal(records.get(42).enabled,true);assert.equal(started.settings.surveySeconds,180);
+    const stopped=rpc("AutoMiningControl","off");assert.equal(stopped.success,true,stopped.message);assert.equal(stopped.enabled,false);
+    assert.equal(records.get(42).enabled,false);assert.equal(stopped.settings.surveySeconds,180);
+  }
+});
+
+test("HUD rejects malformed, oversized and stale client requests without overwriting settings",()=>{
+  const f=fixture(),{installHUD}=require("../lib/hud");class Service {}
+  installHUD(Service,f.controller,()=>[]);const svc=new Service(),before=f.controller.snapshot(f.session);
+  for (const invalid of [null,123,{},[],{value:"{}"},{type:"wstring",value:123},Buffer.alloc(100001,32),Buffer.from("bad JSON")]) {
+    const reply=JSON.parse(svc.Handle_AutoMiningSetSettings([invalid],f.session));assert.equal(reply.success,false);
+    assert.deepEqual(f.controller.snapshot(f.session),before);
+  }
+  const reply=JSON.parse(svc.Handle_AutoMiningSetSettings([Buffer.from(JSON.stringify({revision:"stale",settings:{...before.settings,surveySeconds:180}}))],f.session));
+  assert.equal(reply.success,false);assert.match(reply.message,/changed elsewhere/);assert.deepEqual(f.controller.snapshot(f.session),before);
+});

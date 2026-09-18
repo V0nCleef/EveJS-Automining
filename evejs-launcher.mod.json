@@ -2,11 +2,12 @@
   "schemaVersion": 3,
   "id": "automining",
   "displayName": "AutoMining",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Automatic mining with an in-game settings window, ore filters, nearest/furthest targeting and saved per-character On/Off. Optional approach, survey and compression. Open with /AutoMining.",
   "kind": "loader",
   "supportedBackends": [
-    "native"
+    "native",
+    "docker"
   ],
   "activation": {
     "strategy": "loader_rename"

@@ -1,6 +1,16 @@
-# AutoMining 1.0.4 verification
+# AutoMining 1.0.5 verification
 
 Checked locally on 18 September 2026. First public release approved after the Mining Surveyor command was confirmed working and the compressed-resource picker was corrected.
+
+## Settings-window correction
+
+Version 1.0.5 normalizes client text at the HUD RPC boundary. Byte-buffer requests previously produced `Invalid AutoMining settings request`, preventing both Apply and Start / Resume. The same normalization handles Start/Stop control strings. Two new regression tests reproduced the failure before the fix and pass afterward: saving 180 seconds and starting/stopping while docked across supported text representations, plus malformed/oversized/stale request rejection. Five focused HUD tests passed after the change. The user confirmed the Save button works in game after installing 1.0.5. Start/Stop with client text representations passed automated checks.
+
+## Docker support
+
+The manifest supports Native and Launcher-managed Docker. Production Launcher tests using the Docker backend passed helper install/verify/profile preparation/update/restore, separate character profiles and settings preservation. The generated preload uses `/app/mods/<folder>/loader.js`; the standard EveJS Compose configuration binds the host `config` directory to `/app/config`.
+
+Disposable Node 24 Linux containers loaded the mod and its bridge into the actual supported mining source, with other native dependencies isolated. HUD requests saved 180 seconds and enabled automation while docked. A replacement container recovered the same settings from the bind mount. All 45 Node tests passed in Linux. No live server, client, game database or named volume was mounted. Full Docker gameplay has not been exercised.
 
 ## Ore picker correction
 
@@ -8,7 +18,7 @@ Version 1.0.4 excludes the 62 legacy Batch Compressed entries which slipped thro
 
 ## Automated coverage
 
-- 43 focused Node tests (including the compressed-resource catalog regression): commands, filtering, distinct targets/sharing, ranges, nearest/furthest, immediate filter and full-hold unlock including deferred cycles and pending locks, normal stopping, approach, compression, survey timing, persistence, old-profile preservation, HUD validation, character isolation, direct feedback and target reuse.
+- 45 focused Node tests (including catalog and client-text regressions; all pass in Linux Docker): commands, filtering, distinct targets/sharing, ranges, nearest/furthest, immediate filter and full-hold unlock including deferred cycles and pending locks, normal stopping, approach, compression, survey timing, persistence, old-profile preservation, HUD validation, character isolation, direct feedback and target reuse.
 - Actual EveJS 0.12.8 mining source with isolated dependencies: injected bridge uses native module selection, surface range, resource compatibility, destination hold capacity and depletion. Direct target lookup and non-resource handling checked.
 - Actual static data and native resource classification: 240 published raw ore/ice/gas entries; unique valid names, cached once, compressed products excluded.
 - Client companion with isolated Python services: native CmdMiningScan, preserved command-service handlers, handshake, profile delivery and warp/dock/busy/unavailable guards.

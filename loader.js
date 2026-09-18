@@ -69,7 +69,7 @@ function install(root = path.resolve(__dirname, "../..")) {
     return exports;
   };
   globalThis[key] = { active: true, controller };
-  console.log("[AutoMining] v1.0.4 loaded. /AutoMining on | off | ore,ore | clear | nearest | furthest");
+  console.log("[AutoMining] v1.0.5 loaded. /AutoMining on | off | ore,ore | clear | nearest | furthest");
   return globalThis[key];
 }
 module.exports = { install, SUPPORTED_HASH };

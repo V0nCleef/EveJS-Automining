@@ -4,13 +4,13 @@ Automatic mining with an in-game settings window. **EveJS Launcher only.**
 
 Your modules choose separate asteroids where possible. When there aren't enough suitable targets in reach, they share. Normal range, crystals, target limits, capacitor and hold capacity still apply.
 
-**First public release: v1.0.4.**
+**Current release: v1.0.5.**
 
 ![AutoMining settings window with target controls, survey timer and ore filter](docs/automining-window.png)
 
 ## Install
 
-Requires **EveJS Launcher 1.0.56 or newer**, **EveJS 0.12.8**, **Native server mode**, and the supported copied **EVE client build 3396210**.
+Requires **EveJS Launcher 1.0.56 or newer**, **EveJS 0.12.8**, **Native or Launcher-managed Docker mode**, and the supported copied **EVE client build 3396210**.
 
 1. Download `AutoMining-<version>.zip` from [Releases](https://github.com/V0nCleef/EveJS-Automining/releases). Choose the mod ZIP, not GitHub's Source code download.
 2. Close all EVE clients and stop the EveJS server.
@@ -20,6 +20,10 @@ Requires **EveJS Launcher 1.0.56 or newer**, **EveJS 0.12.8**, **Native server m
 6. Type `/automining` in chat to open settings. Choose your settings and click **Start / Resume**.
 
 Undock with online mining modules and suitable resources nearby. The mod handles locking and mining. Use **Stop** in the window to turn it off.
+
+Both **Native** and **Launcher-managed Docker** are supported from version 1.0.5. Choose the backend in the Launcher and install the mod through the same Mods page. For Docker, let the Launcher apply its mod mounts and recreate the server when prompted. The container must contain the supported EveJS 0.12.8 mining runtime; rebuild an outdated server image through the Launcher if needed. Connect-only Docker cannot install or change mods. The client companion is installed in your copied Windows client for either backend.
+
+Settings live in the installation's `config` folder, mounted into the Docker server, so replacing the container or updating the mod keeps them. Separate EveJS installations keep separate settings.
 
 ## The settings window
 
