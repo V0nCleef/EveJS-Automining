@@ -6,6 +6,8 @@ Your modules choose separate asteroids where possible. When there aren't enough 
 
 **First public release: v1.0.4.**
 
+![AutoMining settings window with target controls, survey timer and ore filter](docs/automining-window.png)
+
 ## Install
 
 Requires **EveJS Launcher 1.0.56 or newer**, **EveJS 0.12.8**, **Native server mode**, and the supported copied **EVE client build 3396210**.
@@ -96,6 +98,8 @@ You only need `/automining` to use the window. These shortcuts remain available,
 | `/automining survey on` / `off` | Toggle survey |
 | `/automining survey 30` | Set a 30-second interval |
 | `/automining compress on` / `off` | Toggle compression |
+
+Aliases: `/automining closest` means nearest, `/automining farthest` means furthest, and `/automining survey interval 30` is the same as `/automining survey 30`. Replace `30` with your chosen whole number of seconds (6–86,400).
 
 Settings commands leave the main On / Off choice unchanged. Commands provide a direct in-game notification as well as the chat acknowledgement when available.
 
