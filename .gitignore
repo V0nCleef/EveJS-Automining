@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.zip
+*.update.json
+.automining/
+client-state/
+preferences.json
+*.log

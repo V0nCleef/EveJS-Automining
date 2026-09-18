@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 3,
+  "id": "automining",
+  "displayName": "AutoMining",
+  "version": "1.0.4",
+  "description": "Automatic mining with an in-game settings window, ore filters, nearest/furthest targeting and saved per-character On/Off. Optional approach, survey and compression. Open with /AutoMining.",
+  "kind": "loader",
+  "supportedBackends": [
+    "native"
+  ],
+  "activation": {
+    "strategy": "loader_rename"
+  },
+  "restart": "game_server",
+  "compatibility": {
+    "evejsVersions": [
+      "0.12.8"
+    ]
+  },
+  "launcherApi": {
+    "version": 1,
+    "minLauncherVersion": "1.0.56",
+    "helper": {
+      "runtime": "node",
+      "path": "helper.js"
+    },
+    "capabilities": [
+      "install",
+      "verify",
+      "prepare_profile",
+      "prepare_disable",
+      "prepare_remove",
+      "recover"
+    ]
+  },
+  "updates": {
+    "provider": "github",
+    "repository": "V0nCleef/EveJS-Automining",
+    "asset": "AutoMining-{version}.zip",
+    "channel": "stable",
+    "tagPrefix": "v"
+  },
+  "settings": {
+    "schemaVersion": 1,
+    "files": [
+      {
+        "id": "prefs",
+        "base": "profile",
+        "path": "preferences.json",
+        "format": "json"
+      }
+    ],
+    "fields": [
+      {
+        "id": "apply",
+        "label": "Apply Launcher settings",
+        "type": "boolean",
+        "default": false,
+        "description": "Apply changed settings at the next login. In-game changes stay saved until you change these Launcher settings again.",
+        "file": "prefs",
+        "key": [
+          "apply"
+        ],
+        "restart": "client"
+      },
+      {
+        "id": "ores",
+        "label": "Ore filter",
+        "type": "string",
+        "default": "",
+        "description": "Separate ores with commas, for example veldspar,scordite. Leave empty to mine all compatible resources.",
+        "file": "prefs",
+        "key": [
+          "ores"
+        ],
+        "restart": "client",
+        "maxLength": 2048
+      },
+      {
+        "id": "order",
+        "label": "Start with",
+        "type": "choice",
+        "default": "nearest",
+        "description": "Choose the nearest or furthest compatible asteroid in reach.",
+        "file": "prefs",
+        "key": [
+          "order"
+        ],
+        "restart": "client",
+        "choices": [
+          {
+            "value": "nearest",
+            "label": "Nearest first"
+          },
+          {
+            "value": "furthest",
+            "label": "Furthest first"
+          }
+        ]
+      },
+      {
+        "id": "approach",
+        "label": "Approach out-of-range resources",
+        "type": "boolean",
+        "default": false,
+        "description": "Fly toward matching resources in this scene when none are in reach.",
+        "file": "prefs",
+        "key": [
+          "approach"
+        ],
+        "restart": "client"
+      },
+      {
+        "id": "lock",
+        "label": "Lock targets automatically",
+        "type": "boolean",
+        "default": true,
+        "description": "Turn off to use only targets you have locked yourself.",
+        "file": "prefs",
+        "key": [
+          "lock"
+        ],
+        "restart": "client"
+      },
+      {
+        "id": "survey",
+        "label": "Use Mining Surveyor automatically",
+        "type": "boolean",
+        "default": false,
+        "description": "Activate the built-in Mining Surveyor while AutoMining is on.",
+        "file": "prefs",
+        "key": [
+          "survey"
+        ],
+        "restart": "client"
+      },
+      {
+        "id": "surveySeconds",
+        "label": "Survey interval (seconds)",
+        "description": "Seconds between automatic surveys. Default 60. The client permits at most ten detailed scans per minute; an ongoing scan is never interrupted.",
+        "type": "integer",
+        "default": 60,
+        "minimum": 6,
+        "maximum": 86400,
+        "step": 1,
+        "file": "prefs",
+        "key": [
+          "surveySeconds"
+        ],
+        "restart": "client"
+      },
+      {
+        "id": "compress",
+        "label": "Compress resources automatically",
+        "description": "Compress resources aboard using an active compressor the pilot can access in range. Normal fleet and resource restrictions apply.",
+        "type": "boolean",
+        "default": false,
+        "file": "prefs",
+        "key": [
+          "compress"
+        ],
+        "restart": "client"
+      }
+    ]
+  }
+}
