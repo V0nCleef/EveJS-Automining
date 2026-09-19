@@ -91,6 +91,10 @@ def _am_build_window_class():
             _am_uthread.new(self.Poll)
 
         def ValidCharacter(self):
+            if not globals().get('_am_is_active', lambda: True)():
+                if not self.destroyed:
+                    self.Close()
+                return False
             if self.destroyed:
                 return False
             if session.charid != self._character:

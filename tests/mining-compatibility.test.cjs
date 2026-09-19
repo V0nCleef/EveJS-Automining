@@ -28,6 +28,7 @@ function load(diskSource) {
       if (id === 'node:module') return Module;
       if (id === 'node:worker_threads') return { isMainThread: true };
       if (id === './lib/miningCompatibility') return compat;
+      if (id === './lib/loginDelivery') return { supportsRoot: () => false };
       if (id === './lib/bridge') return bridge;
       if (id === './lib/controller') return { createController: () => ({}) };
       if (id === './lib/preferences') return { createPreferences: () => ({}) };

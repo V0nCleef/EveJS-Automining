@@ -4,19 +4,22 @@ Automatic mining with an in-game settings window. **EveJS Launcher only.**
 
 Your modules choose separate asteroids where possible. When there aren't enough suitable targets in reach, they share. Normal range, crystals, target limits, capacitor and hold capacity still apply.
 
-**Current release: v1.0.6.**
+**Current release: v1.0.7. Requires Launcher 1.0.61 or newer.**
+
+The final paired update passed local Native in-game acceptance. See
+[release validation](RELEASE-VALIDATION.md) for exact package hashes and coverage.
 
 ![AutoMining settings window with target controls, survey timer and ore filter](docs/automining-window.png)
 
 ## Update
 
-Existing users: close your clients and stop the game server, then click **Update** for AutoMining in the Launcher's Mods page. Start the server and client again afterward. Saved settings are retained.
+Existing users: update the Launcher to **1.0.61 or newer** first. Close your clients and stop the game server, then click **Update** for AutoMining in the Launcher's Mods page. Start the server and client again afterward. Saved settings are retained. The 1.0.7 transition uses this same Update action: the old helper restores its own archive entry, and the new helper configures login delivery on the reviewed native server. No extra migration button or settings reset is required.
 
 Version 1.0.6 supports the reviewed original EveJS 0.12.8 mining runtime and the same runtime with the crystal-miner cancellation fix. On the original runtime, the included fix is applied in memory. On the patched runtime, the native fix is used without applying it twice. Both LF and CRLF source files are recognized. Unknown source changes remain blocked until reviewed; this does not promise compatibility with every future EveJS release. Ice cancellation behavior is unchanged.
 
 ## Install
 
-Requires **EveJS Launcher 1.0.57 or newer**, **EveJS 0.12.8**, **Native or Launcher-managed Docker mode**, and the supported copied **EVE client build 3396210**.
+Requires **EveJS Launcher 1.0.61 or newer**, **EveJS 0.12.8**, **Native or Launcher-managed Docker mode**, and the supported copied **EVE client build 3396210**.
 
 1. Download `AutoMining-<version>.zip` from [Releases](https://github.com/V0nCleef/EveJS-Automining/releases). Choose the mod ZIP, not GitHub's Source code download.
 2. Close all EVE clients and stop the EveJS server.
@@ -27,7 +30,7 @@ Requires **EveJS Launcher 1.0.57 or newer**, **EveJS 0.12.8**, **Native or Launc
 
 Undock with online mining modules and suitable resources nearby. The mod handles locking and mining. Use **Stop** in the window to turn it off.
 
-Both **Native** and **Launcher-managed Docker** are supported from version 1.0.5. Choose the backend in the Launcher and install the mod through the same Mods page. For Docker, let the Launcher apply its mod mounts and recreate the server when prompted. The container must contain the supported EveJS 0.12.8 mining runtime; rebuild an outdated server image through the Launcher if needed. Connect-only Docker cannot install or change mods. The client companion is installed in your copied Windows client for either backend.
+Both **Native** and **Launcher-managed Docker** are supported from version 1.0.5. Choose the backend in the Launcher and install the mod through the same Mods page. For Docker, let the Launcher apply its mod mounts and recreate the server when prompted. The container must contain the supported EveJS 0.12.8 mining runtime; rebuild an outdated server image through the Launcher if needed. Connect-only Docker cannot install or change mods. This release uses login delivery on the reviewed native handshake build. Docker and unreviewed handshake builds retain the existing archive companion. A leftover legacy companion is detected so both methods cannot actively handle the same events. When a supported setup needs a missing legacy companion, Launcher 1.0.61 installs it automatically before preparing the profile. Close running clients before switching a shared installation; healthy additional client launches do not reinstall it. Compatibility enrollment includes AutoMining 1.0.6 in other server folders using the updated Launcher.
 
 Settings live in the installation's `config` folder, mounted into the Docker server, so replacing the container or updating the mod keeps them. Separate EveJS installations keep separate settings.
 
@@ -102,7 +105,7 @@ To preconfigure a character, use **Mods > AutoMining > Configure**, choose its L
 
 **Survey:** uses the same native Mining Surveyor action as the ship HUD button. Your ship must support it; Mining Survey chipsets keep their usual effects. With both AutoMining and survey on, scans run only when undepleted ore, ice or gas is present on your current grid. This covers asteroid belts, ice belts, gas sites and ore anomalies. Outside mining locations, or once a field is depleted, the HUD shows that survey is waiting. Landing at a mining location starts a new scan schedule, followed by your chosen interval. This presence check ignores your ore filter and laser range; the native Surveyor keeps its own result and range rules.
 
-Allowed intervals are whole seconds from 6 to 86,400. Six seconds is the minimum because detailed scans have a native ten-per-minute limit; rapid arrivals or toggles cannot bypass that minimum. Busy scans are skipped, and scanning pauses during travel. Changing the timer alone does not turn scanning on. Manual use of the Surveyor button is unchanged.
+Allowed intervals are whole seconds from 6 to 86,400. Six seconds is the minimum because detailed scans have a native ten-per-minute limit; rapid arrivals or toggles cannot bypass that minimum. If the client is still finishing warp, entering space or running a survey, a rejected attempt is retried at that minimum instead of consuming the full interval. Arrival scanning can follow locking/mining by a few seconds. A successful attempt returns to the saved interval. Scanning pauses during travel. Changing the timer alone does not turn scanning on. Manual use of the Surveyor button is unchanged.
 
 **Approach:** stays within the current scene; it does not travel to another belt or system. Manual steering switches automatic approach off.
 
@@ -143,7 +146,7 @@ The Launcher checks [this repository](https://github.com/V0nCleef/EveJS-Automini
 
 Close EVE clients and stop the server before updating, disabling or removing AutoMining. Install updates through the Launcher, then restart the server and clients. Your settings remain saved. The Launcher offers updates; it does not interrupt a running game to install them.
 
-Disabling or removing the mod restores its original client module from backup. Preferences remain available if you reinstall.
+Disabling or removing an archive-based installation restores its original client module from backup. Login delivery has no new client archive patch to remove; stopping the server and client unloads the companion. Preferences remain available if you reinstall.
 
 ## Troubleshooting
 

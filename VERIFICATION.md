@@ -1,3 +1,25 @@
+# Current 1.0.7 candidate verification — unreleased
+
+Local user acceptance passed: HUD/settings, automatic locking/mining, survey, arrival retry, Stop and fresh Launcher relaunch with saved settings and Off preserved. The small arrival delay was confirmed after the client finished warp.
+
+The paired Launcher 1.0.61 candidate now supplies opt-in automatic client preparation. All 28 synthetic helper/Launcher cases pass, including the three formerly failing shared-client/backend paths and older-Launcher update rejection before cleanup. Generic Launcher tests additionally cover exact version/source/client scope, one repair attempt, corrupt records, malformed replies, failed repairs and running-client refusal. This is synthetic coverage, not live Docker acceptance. The final packaged pair still needs manual validation.
+
+The author guide update is staged separately in eight languages. Nothing is published. The historical checkpoints below describe prior builds and must not be read as the current candidate's release status.
+
+---
+
+# Unreleased 1.0.7 login-delivery candidate
+
+- 79 Node tests pass: existing mining behavior, original/patched core compatibility, payload composition, returned-result preservation and scoped readiness.
+- 11 authored Python lifecycle tests pass with simulated services under Python 3. No claim of a live Python 2.7 client test.
+- 16 migration/Launcher tests pass using synthetic ZIP archives. Actual helper archive I/O and Launcher update/rollback/profile preparation run against fixtures. The rollback fixture substitutes a tiny synthetic bytecode patcher because no vendor client data is used.
+- Two native mining-bridge checks pass against the preserved original and patched EveJS server source with simulated dependencies.
+- The local Launcher API source snapshot labels itself 1.0.56. Tests simulate its version field at the existing minimum 1.0.57; this is not a test of the installed Launcher executable.
+- No live installation, running game, public release, or author guide changed.
+- Release gates: actual client upgrade/launch, native settings window and survey, reconnect/character switching, other active mods and shared-client installations. Confirm companion installation errors and a mod-off server cannot leave active handlers in a reused client process.
+
+The older sections below record prior versions, not validation of this new delivery path.
+
 # AutoMining 1.0.6 verification
 
 Earlier-version verification is retained below as historical evidence. New native rendering and complete live gameplay are not asserted. This release does not add a new Docker gameplay verification.

@@ -11,6 +11,7 @@ const { createCompression } = require("./lib/compression");
 const { createCatalog } = require("./lib/catalog");
 const { installHUD } = require("./lib/hud");
 const { SUPPORTED_HASH, supportsMiningSource, prepareMiningSource } = require("./lib/miningCompatibility");
+const loginDelivery = require("./lib/loginDelivery");
 const key = Symbol.for("evejs.automining.loader.v1");
 function canonical(file) { return process.platform === "win32" ? path.resolve(file).toLowerCase() : path.resolve(file); }
 function install(root = path.resolve(__dirname, "../..")) {
@@ -19,6 +20,13 @@ function install(root = path.resolve(__dirname, "../..")) {
   if (!fs.existsSync(miningPath) || !supportsMiningSource(fs.readFileSync(miningPath))) {
     console.error("[AutoMining] Unsupported miningRuntime.js. Mod left inactive; server files unchanged.");
     return { active: false };
+  }
+  const handshakePath = path.join(root, "server/src/network/tcp/handshake.js");
+  let delivery = null;
+  try {
+    if (loginDelivery.supportsRoot(root)) delivery = loginDelivery.createDelivery(__dirname);
+  } catch (error) {
+    console.error("[AutoMining] Login companion could not be prepared; server startup preserved.");
   }
   let mining = null;
   const preferences = createPreferences(path.join(root, "config/autoMining.players.json"));
@@ -36,6 +44,10 @@ function install(root = path.resolve(__dirname, "../..")) {
       if (supportsMiningSource(content)) content = prepareMiningSource(content) + "\n" + bridge;
       else console.error("[AutoMining] Another mod changed the mining runtime; AutoMining bridge disabled.");
     }
+    if (delivery && canonical(filename) === canonical(handshakePath)) {
+      if (loginDelivery.supportsSource(content)) content = loginDelivery.extendSource(content);
+      else console.error("[AutoMining] Login source changed by another mod; original handshake preserved.");
+    }
     return previousCompile.call(this, content, filename);
   };
   const previousLoad = Module._load;
@@ -46,6 +58,7 @@ function install(root = path.resolve(__dirname, "../..")) {
     try { target = targets.get(canonical(Module._resolveFilename(request, parent, isMain))); } catch { return exports; }
     if (!target || seen.has(exports)) return exports;
     if (target === "scanService" && exports.prototype?.Handle_perform_scan) {
+      if (delivery) exports.prototype.Handle_AutoMiningLoginReady = function(args, session) { return delivery.ready(args, session, controller); };
       exports.prototype.Handle_AutoMiningClientReady = function(args, session) { return controller.clientReady(session, args?.[1]); };
       exports.prototype.Handle_AutoMiningSurveyAck = function(args, session) { return controller.surveyAck(session, args?.[0] === true || args?.[0] === 1, args?.[1]); };
       exports.prototype.Handle_AutoMiningProfile = function(args, session) { return controller.applyProfile(session, args?.[0]); };
@@ -66,8 +79,8 @@ function install(root = path.resolve(__dirname, "../..")) {
     seen.add(exports);
     return exports;
   };
-  globalThis[key] = { active: true, controller };
-  console.log("[AutoMining] v1.0.6 loaded. /AutoMining on | off | ore,ore | clear | nearest | furthest | largest | smallest");
+  globalThis[key] = { active: true, controller, delivery };
+  console.log("[AutoMining] v1.0.7 loaded. /AutoMining on | off | ore,ore | clear | nearest | furthest | largest | smallest");
   return globalThis[key];
 }
 module.exports = { install, SUPPORTED_HASH };

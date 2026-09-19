@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "id": "automining",
   "displayName": "AutoMining",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Automatic mining with an in-game HUD, ore filters, distance/volume priority and saved per-character settings. Optional whole-belt approach, survey and compression. Open with /AutoMining.",
   "kind": "loader",
   "supportedBackends": [
@@ -20,7 +20,7 @@
   },
   "launcherApi": {
     "version": 1,
-    "minLauncherVersion": "1.0.57",
+    "minLauncherVersion": "1.0.61",
     "helper": {
       "runtime": "node",
       "path": "helper.js"

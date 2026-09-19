@@ -450,6 +450,45 @@ test("survey waits for client handshake and pauses during warp", () => {
   assert.match(f.command("automining"), /Survey waiting: not in space/);
 });
 
+test('arrival survey rejected by the client retries at the rate limit, then resumes the saved interval', () => {
+  for (const reason of ['ship is warping', 'not in space', 'a survey is already running']) {
+    const f=fixture();
+    f.command('automining survey 180'); f.command('automining survey on');
+    f.controller.clientReady(f.session); f.command('automining on'); f.tick();
+    assert.deepEqual(f.scans,[1000]);
+    f.controller.surveyAck(f.session,false,Buffer.from(reason));
+    f.tick(5000); assert.deepEqual(f.scans,[1000]);
+    f.tick(); assert.deepEqual(f.scans,[1000,7000]);
+    f.controller.surveyAck(f.session,false,{type:'wstring',value:reason});
+    f.tick(5000); assert.equal(f.scans.length,2);
+    f.tick(); assert.deepEqual(f.scans,[1000,7000,13000]);
+    f.controller.surveyAck(f.session,true,'');
+    f.tick(179000); assert.equal(f.scans.length,3);
+    f.tick(); assert.deepEqual(f.scans,[1000,7000,13000,193000]);
+    assert.equal(f.controller.snapshot(f.session).settings.surveySeconds,180);
+  }
+});
+
+test('pending arrival survey retry respects Stop, survey off, warp and docking', () => {
+  for (const pause of [f=>f.command('automining off'), f=>f.command('automining survey off'),
+    f=>{f.ship.pendingWarp={};}, f=>f.setShip(null)]) {
+    const f=fixture(); f.command('automining survey 180'); f.command('automining survey on');
+    f.controller.clientReady(f.session); f.command('automining on'); f.tick();
+    f.controller.surveyAck(f.session,false,'ship is warping'); pause(f);
+    f.tick(6000); f.tick(180000); assert.deepEqual(f.scans,[1000]);
+  }
+});
+
+test('permanent survey errors keep the configured interval rather than repeatedly retrying', () => {
+  for (const reason of ['Mining Surveyor is unavailable on this ship','Mining Surveyor command failed','unknown failure']) {
+    const f=fixture(); f.command('automining survey 180'); f.command('automining survey on');
+    f.controller.clientReady(f.session); f.command('automining on'); f.tick();
+    f.controller.surveyAck(f.session,false,Buffer.from(reason));
+    f.tick(6000); assert.deepEqual(f.scans,[1000]);
+    f.tick(174000); assert.deepEqual(f.scans,[1000,181000]);
+  }
+});
+
 test("warp request interrupts deferred cycles and pending locks without cancelling warp or changing saved On", () => {
   const saved=[];const f=fixture({count:1,deferred:true,preferences:{get:()=>({}),save:(_,s)=>saved.push(s.enabled)}});
   f.command('automining on');f.tick();
