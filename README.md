@@ -1,6 +1,6 @@
 # AutoMining for EveJS
 
-Automatic mining with an in-game settings window. **EveJS Launcher only.**
+Automatic mining with an in-game settings window. Requires the **[EveJS Launcher](https://github.com/V0nCleef/evejs-launcher)**.
 
 Your modules choose separate asteroids where possible. When there aren't enough suitable targets in reach, they share. Normal range, crystals, target limits, capacitor and hold capacity still apply.
 
