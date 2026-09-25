@@ -1,0 +1,141 @@
+{
+  "patterns": [
+    {
+      "regex": "Armed - waiting for ore hold to reach (\\d+)%.",
+      "source": "Armed - waiting for ore hold to reach %s%%."
+    },
+    {
+      "regex": "(\\d+) mining drone\\(s\\) have orders\\.",
+      "source": "%s mining drone(s) have orders."
+    },
+    {
+      "regex": "Mining orders sent to (\\d+) drone\\(s\\) \\((spread|focus)\\)\\.",
+      "source": "Mining orders sent to %s drone(s) (%s)."
+    },
+    {
+      "regex": "Waiting (\\d+)s after arrival before boosting\\.",
+      "source": "Waiting %ss after arrival before boosting."
+    },
+    {
+      "regex": "(\\d+) mining boost module\\(s\\) active\\.",
+      "source": "%s mining boost module(s) active."
+    },
+    {
+      "regex": "(\\d+)/(\\d+) mining boost module\\(s\\) active\\.",
+      "source": "%s/%s mining boost module(s) active."
+    },
+    {
+      "regex": "(\\d+)/(\\d+) nearby AutoMining pilot\\(s\\) in this fleet\\.",
+      "source": "%s/%s nearby AutoMining pilot(s) in this fleet."
+    },
+    {
+      "regex": "Rats detected; waiting for (\\d+) mining drone\\(s\\) to return\\.",
+      "source": "Rats detected; waiting for %s mining drone(s) to return."
+    },
+    {
+      "regex": "Rats gone; recalling (\\d+) AutoMining fighter\\(s\\)\\.",
+      "source": "Rats gone; recalling %s AutoMining fighter(s)."
+    },
+    {
+      "regex": "Mining with (\\d+) module\\(s\\)\\.",
+      "source": "Mining with %s module(s)."
+    },
+    {
+      "regex": "Mining Surveyor refreshed; repeats every (\\d+) seconds\\.",
+      "source": "Mining Surveyor refreshed; repeats every %s seconds."
+    }
+  ],
+  "translations": {
+    "de": [
+      "Bereit: Warten, bis der Erzraum zu %s%% gefüllt ist.",
+      "%s Bergbaudrohne(n) haben Befehle.",
+      "Bergbau-Befehle an %s Drohne(n) gesendet (%s).",
+      "Warte %ss nach Ankunft vor Aktivierung.",
+      "%s Bergbau-Boost-Modul(e) aktiv.",
+      "%s/%s Bergbau-Boost-Modul(e) aktiv.",
+      "In dieser Flotte: %s/%s nahegelegene Piloten mit dem Mod.",
+      "Feindliche NPC-Schiffe entdeckt; warte auf die Rückkehr von %s Bergbaudrohnen.",
+      "Feindliche NPC-Schiffe verschwunden; rufe %s Kampfdrohnen zurück.",
+      "Bergbau mit %s Modul(en).",
+      "Bergbau-Scanner aktualisiert; Wiederholung alle %s Sekunden."
+    ],
+    "fr": [
+      "Prêt : attente que la soute à minerai atteigne %s%%.",
+      "%s drone(s) de minage ont des ordres.",
+      "Ordres de minage envoyés à %s drone(s) (%s).",
+      "En attente de %ss après l'arrivée avant de booster.",
+      "%s module(s) de boost de minage actif(s).",
+      "%s/%s module(s) de boost de minage actif(s).",
+      "Dans cette flotte : %s/%s pilotes proches utilisent le mod.",
+      "PNJ hostiles détectés ; attente du retour de %s drones de minage.",
+      "PNJ hostiles partis ; rappel de %s drones de combat.",
+      "Minage avec %s module(s).",
+      "Scanner minier actualisé ; nouveau balayage toutes les %s secondes."
+    ],
+    "es": [
+      "Preparado: esperando a que la bodega de mineral alcance el %s%%.",
+      "%s dron(es) de minería tienen órdenes.",
+      "Órdenes de minería enviadas a %s dron(es) (%s).",
+      "Esperando %ss después de la llegada antes de activar potenciadores.",
+      "%s módulo(s) de potenciador de minería activo(s).",
+      "%s/%s módulo(s) de potenciador de minería activo(s).",
+      "En esta flota: %s/%s pilotos cercanos usan el mod.",
+      "PNJ hostiles detectados; esperando el regreso de %s drones de minería.",
+      "PNJ hostiles desaparecidos; recuperando %s drones de combate.",
+      "Minando con %s módulo(s).",
+      "Escáner minero actualizado; repetición cada %s segundos."
+    ],
+    "it": [
+      "Pronto: in attesa che la stiva mineraria raggiunga il %s%%.",
+      "%s drone minerario/i hanno ordini.",
+      "Ordini minerari inviati a %s drone/i (%s).",
+      "In attesa di %ss dopo l'arrivo prima di potenziare.",
+      "%s modulo/i di potenziamento minerario attivo/i.",
+      "%s/%s modulo/i di potenziamento minerario attivo/i.",
+      "In questa flotta: %s/%s piloti vicini usano la mod.",
+      "NPC ostili rilevati; in attesa del ritorno di %s droni minerari.",
+      "NPC ostili scomparsi; richiamo di %s droni da combattimento.",
+      "Moduli minerari attivi: %s.",
+      "Scanner minerario aggiornato; ripetizione ogni %s secondi."
+    ],
+    "ru": [
+      "Готово: ожидание заполнения рудного трюма до %s%%.",
+      "У %s горнодобывающего дрона(ов) есть задания.",
+      "Задания отправлены %s горнодобывающему дрону(ам) (%s).",
+      "Ожидание %ss после прибытия перед усилением.",
+      "%s модуль(ей) усиления добычи активен(ы).",
+      "%s/%s модуль(ей) усиления добычи активен(ы).",
+      "В этом флоте: %s/%s пилотов поблизости используют мод.",
+      "Обнаружены враждебные NPC; ожидается возвращение %s добывающих дронов.",
+      "Враждебные NPC исчезли; отзыв %s боевых дронов.",
+      "Активных добывающих модулей: %s.",
+      "Сканер руды обновлён; повтор каждые %s секунд."
+    ],
+    "ja": [
+      "準備完了：鉱石ホールドが %s%% に達するまで待機中。",
+      "%s 台の採掘ドローンに指令を送信中。",
+      "%s 台のドローン（%s）に採掘指令を送信しました。",
+      "到着後 %s 秒待ってからブーストします。",
+      "%s 個の採掘ブーストモジュールが有効です。",
+      "%s/%s 個の採掘ブーストモジュールが有効です。",
+      "この艦隊の近くの対応パイロット：%s/%s 人。",
+      "敵艦を検知；%s 台の採掘ドローンが帰還するのを待機中。",
+      "敵艦がいなくなりました。%s 機の戦闘ドローンを回収中。",
+      "%s 個のモジュールで採掘中。",
+      "採掘スキャナーを更新しました。%s 秒ごとに再実行します。"
+    ],
+    "ko": [
+      "준비됨: 광석 적재함이 %s%% 찰 때까지 대기 중.",
+      "%s개의 광물 채굴 드론에 명령이 전달되었습니다.",
+      "%s개의 드론(%s)에 채굴 명령을 보냈습니다.",
+      "도착 후 부스트 전에 %s초 대기 중.",
+      "%s개의 채굴 부스트 모듈이 활성화되었습니다.",
+      "%s/%s개의 채굴 부스트 모듈이 활성화되었습니다.",
+      "이 함대의 주변 자동 채굴 사용자: %s/%s명.",
+      "적 NPC 함선 감지; %s개의 채굴 드론이 돌아올 때까지 대기 중.",
+      "적 NPC 함선이 사라졌습니다. 전투 드론 %s개를 회수 중입니다.",
+      "%s개의 모듈로 채굴 중.",
+      "채굴 스캐너가 갱신되었습니다. %s초마다 다시 스캔합니다."
+    ]
+  }
+}

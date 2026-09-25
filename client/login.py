@@ -3,6 +3,7 @@
 try:
     import __builtin__ as _am_builtins
     import base64 as _am_base64
+    import zlib as _am_zlib
     import os as _am_os
     import json as _am_json
     import uthread as _am_uthread
@@ -14,7 +15,7 @@ try:
         _am_previous.dispose()
 
     class _AutoMiningLogin(object):
-        __notifyevents__ = ['OnSessionChanged', 'OnAutoMiningSurvey', 'OnAutoMiningOpen', 'OnAutoMiningFeedback']
+        __notifyevents__ = ['OnSessionChanged', 'OnAutoMiningSurvey', 'OnAutoMiningOpen', 'OnAutoMiningFeedback', 'OnAutoMiningHaul', 'OnAutoMiningLaunchDrones', 'OnAutoMiningRatGroups', 'OnAutoMiningFleetReady']
 
         def __init__(self):
             self.active = True
@@ -43,6 +44,9 @@ try:
                     pass
 
         def dispose(self):
+            job = (self.namespace or {}).get('_am_haul_job')
+            if job is not None:
+                job.cancelled = True
             self.active = False
             self.ready = False
             self.generation += 1
@@ -131,7 +135,7 @@ try:
                                 pass
                         namespace = {'__builtins__': _am_builtins, '__name__': 'evejs_automining_companion', 'EveCommandService': _Adapter,
                                      'sm': self.sm, 'session': self.session, '_am_is_active': self.usable}
-                        eval(compile(_am_base64.b64decode(_am_source64), '<automining-companion>', 'exec'), namespace)
+                        eval(compile(_am_zlib.decompress(_am_base64.b64decode(_am_source64)), '<automining-companion>', 'exec'), namespace)
                         self.namespace = namespace
                     profile = _am_os.environ.get('AUTOMINING_PROFILE_SETTINGS', '')
                     if profile and getattr(self, '_profile_character', None) != self.character:
@@ -147,6 +151,15 @@ try:
                         self.dispose()
                         return
                     self.ready = True
+                    try:
+                        self.namespace['_am_drones_ready']()
+                    except Exception:
+                        print('AUTOMINING_DRONES:NOT_READY')
+                    if self.namespace.get('_am_haul_ready'):
+                        try:
+                            self.namespace['_am_haul_ready']()
+                        except Exception:
+                            print('AUTOMINING_HAUL:NOT_READY')
                     print('AUTOMINING_LOGIN:READY:' + _am_version)
                     return
                 except Exception:
@@ -166,6 +179,22 @@ try:
         def OnAutoMiningFeedback(self, message):
             if self.usable():
                 self.namespace['_am_feedback'](self, message)
+
+        def OnAutoMiningHaul(self, message):
+            if self.usable():
+                self.namespace['_am_haul'](self, message)
+
+        def OnAutoMiningLaunchDrones(self, message):
+            if self.usable():
+                self.namespace['_am_launch_drones'](self, message)
+
+        def OnAutoMiningRatGroups(self, message):
+            if self.usable():
+                self.namespace['_am_rat_groups'](self, message)
+
+        def OnAutoMiningFleetReady(self, fleetID):
+            if self.usable():
+                self.namespace['_am_fleet_ready'](self, fleetID)
 
     if _am_os.environ.get('AUTOMINING_CLIENT_DELIVERY') != 'legacy':
         _am_handler = _AutoMiningLogin()

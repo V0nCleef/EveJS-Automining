@@ -23,6 +23,16 @@ def _am_connect(self):
                     remote.AutoMiningProfile(profile)
                 self._automining_profile_char = session.charid
             remote.AutoMiningClientReady('1.0.3', 1)
+            if globals().get('_am_drones_ready'):
+                try:
+                    _am_drones_ready()
+                except Exception:
+                    print('AUTOMINING_DRONES:NOT_READY')
+            if globals().get('_am_haul_ready') and not (_am_haul_job and _am_haul_job.valid()):
+                try:
+                    _am_haul_ready()
+                except Exception:
+                    print('AUTOMINING_HAUL:NOT_READY')
             return
         except Exception:
             pass

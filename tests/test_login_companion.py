@@ -8,13 +8,15 @@ import builtins
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 import types
 import unittest
+import zlib
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = '\n'.join((ROOT / 'client' / name).read_text(encoding='utf-8') for name in ['companion.py', 'hud.py'])
+SOURCE = subprocess.check_output(['node', '-e', "process.stdout.write(require('./lib/clientSource').buildClientSource(process.cwd()))"], cwd=ROOT).decode('utf-8')
 BOOTSTRAP = (ROOT / 'client/login.py').read_text(encoding='utf-8')
 
 
@@ -32,6 +34,7 @@ class Fixture:
                                         RemoteSvc=lambda _: self, GetService=lambda _: self)
         self.builtins.session = self.session
         self.builtins.sm = self.sm
+        self.builtins.settings = types.SimpleNamespace(char=types.SimpleNamespace(ui=types.SimpleNamespace(Get=lambda *args: None, Set=lambda *args: None)))
         self.real_commands = type('RealCommands', (), {'__notifyevents__': ['ExistingEvent'], 'Run': lambda self: None})
         self.modules = {'__builtin__': self.builtins,
                         'uthread': types.SimpleNamespace(new=lambda fn, *args: self.queue.append((fn, args))),
@@ -59,6 +62,14 @@ class Fixture:
     def AutoMiningProfile(self, profile):
         self.requests.append(('profile', json.loads(profile)))
 
+    def AutoMiningHaulReady(self):
+        self.requests.append(('hauling-ready',))
+        return json.dumps(dict(success=True))
+
+    def AutoMiningDronesReady(self):
+        self.requests.append(('drones-ready',))
+        return json.dumps(dict(success=True))
+
     def AutoMiningSurveyAck(self, success, reason):
         self.requests.append(('survey', success, reason))
 
@@ -67,7 +78,7 @@ class Fixture:
 
     def install(self, token='server-A'):
         namespace = {'__builtins__': vars(builtins), '_am_context': {}, '_am_token': token,
-                     '_am_version': '1.0.7', '_am_source64': base64.b64encode(SOURCE.encode()).decode()}
+                     '_am_version': '1.0.8', '_am_source64': base64.b64encode(zlib.compress(SOURCE.encode())).decode()}
         with patch.dict(sys.modules, self.modules):
             exec(compile(BOOTSTRAP, '<authored-bootstrap>', 'exec'), namespace)
         return getattr(self.builtins, '_evejs_automining_login_v1', None)
@@ -104,6 +115,18 @@ class LoginTests(unittest.TestCase):
             h.OnAutoMiningSurvey()
         self.assertEqual(f.scans, 1)
         self.assertIn(('survey', True, ''), f.requests)
+
+    def test_rat_group_notification_reaches_the_active_companion(self):
+        f = Fixture(); f.session.charid = 42
+        h = f.install(); f.drain()
+        self.assertIn(h, f.listeners['OnAutoMiningRatGroups'])
+        received = []
+        h.namespace['_am_rat_groups'] = lambda handler, message: received.append((handler, message))
+        h.OnAutoMiningRatGroups('group-request')
+        self.assertEqual(received, [(h, 'group-request')])
+        h.dispose()
+        h.OnAutoMiningRatGroups('stale-request')
+        self.assertEqual(len(received), 1)
 
     def test_repeated_login_replaces_handlers_and_pending_work(self):
         f = Fixture(); f.session.charid = 42

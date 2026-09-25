@@ -86,7 +86,7 @@ function execute(request) {
     }
     reply.message="AutoMining client companion verified.";
   } else if(request.action==="install" || request.action==="recover") {
-    const source=["companion.py","hud.py"].map(name=>fs.readFileSync(path.join(modRoot,"client",name),"utf8")).join("\n");
+    const source=require("./lib/clientSource").buildClientSource(modRoot);
     const sourceHash=hash(Buffer.from(source));
     if(isActive && receipt.companionHash===sourceHash) reply.message="AutoMining client companion is already installed.";
     else {

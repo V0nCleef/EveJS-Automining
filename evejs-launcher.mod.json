@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "id": "automining",
   "displayName": "AutoMining",
-  "version": "1.0.7",
-  "description": "Automatic mining with an in-game HUD, ore filters, distance/volume priority and saved per-character settings. Optional whole-belt approach, survey and compression. Open with /AutoMining.",
+  "version": "1.0.8",
+  "description": "Automatic mining with fleet mining boosts, optional mining and combat drone orders, ordered ore filters and ore-hold hauling.",
   "kind": "loader",
   "supportedBackends": [
     "native",
@@ -15,7 +15,8 @@
   "restart": "game_server",
   "compatibility": {
     "evejsVersions": [
-      "0.12.8"
+      "0.12.8",
+      "0.12.9"
     ]
   },
   "launcherApi": {
@@ -82,7 +83,7 @@
         "label": "Target priority",
         "type": "choice",
         "default": "nearest",
-        "description": "Approach on: rank the whole current belt. Approach off: rank only ore within each mining module's effective range, including boosts. Volume means remaining cubic metres. Volume priorities require an available Mining Surveyor or built-in equivalent; no scan is required.",
+        "description": "Ore filter order and grade come first. Within one grade, Approach on ranks the whole current belt; Approach off ranks only ore within each module's effective range. Volume priorities require an available Mining Surveyor or built-in equivalent; no scan is required.",
         "file": "prefs",
         "key": [
           "order"

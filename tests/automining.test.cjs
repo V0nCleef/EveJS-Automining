@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { parse, matchesOre, installChat, installPlainChat } = require("../lib/commands");
 const { createController } = require("../lib/controller");
 
-function fixture({ count = 3, pending = false, cap = 10, deferred = false, compress = null, preferences = null } = {}) {
+function fixture({ count = 3, pending = false, cap = 10, deferred = false, compress = null, preferences = null, crystals = null } = {}) {
   const session = { characterID: 42 };
   const ship = { kind: "ship", itemID: 100, activeModuleEffects: new Map(), lockedTargets: new Map(), pendingTargetLocks: new Map() };
   const modules = Array.from({ length: count }, (_, i) => ({ item: { itemID: i + 1 }, effect: { name: "miningLaser" }, range: 100, snapshot: { maxRangeMeters: 100 } }));
@@ -60,7 +60,7 @@ function fixture({ count = 3, pending = false, cap = 10, deferred = false, compr
     compatible: (_, __, module, rock, now, ignoreRange) => free && (ignoreRange || rock.distance <= module.range) && rock.family === (module.family || "ore"),
   };
   session.sendNotification = (event, scope, args) => { assert.equal(event, "OnAutoMiningSurvey"); assert.equal(scope, "clientID"); assert.deepEqual(args, []); scans.push(now); };
-  const controller = createController(() => api, () => ({ getSceneForSession: () => spaceShip ? scene : null }), e => errors.push(e), preferences, compress);
+  const controller = createController(() => api, () => ({ getSceneForSession: () => spaceShip ? scene : null }), e => errors.push(e), preferences, compress, null, crystals);
   return { session, ship, modules, rocks, scene, started, stopped, removed, errors, controller, approaches, scans, stats, api,
     command: text => controller.command(session, parse(text)),
     tick(elapsed = 1000) { now += elapsed; controller.tick(scene, now); assert.deepEqual(errors, []); },
@@ -76,6 +76,106 @@ function volumes(f) {
     remainingQuantity: [100, 10, 5, 2][i], unitVolume: [0.1, 2, 10, 100][i],
   };
 }
+
+test("barges arriving together claim separate local rocks, then share if only one remains", () => {
+  const pilots = [{characterID: 41}, {characterID: 42}];
+  const ships = new Map(pilots.map((pilot, index) => [pilot, {
+    kind: "ship", itemID: 100 + index, activeModuleEffects: new Map(),
+    lockedTargets: new Map(), pendingTargetLocks: new Map(),
+  }]));
+  const rocks = [11, 12].map(id => ({id, name: "Veldspar", distance: id, quantity: 10, family: "ore"}));
+  const started = [];
+  const scene = {
+    sessions: new Map(pilots.map(pilot => [pilot.characterID, pilot])),
+    getShipEntityForSession: pilot => ships.get(pilot),
+    getTargets: pilot => [...ships.get(pilot).lockedTargets.keys()],
+    addTarget(pilot, id) { ships.get(pilot).lockedTargets.set(id, {}); return {success: true, data: {pending: false}}; },
+    activateGenericModule(pilot, item, effect, options) {
+      const ship = ships.get(pilot), cycle = {targetID: options.targetID};
+      ship.activeModuleEffects.set(item.itemID, cycle);
+      started.push([pilot.characterID, options.targetID]);
+      return {success: true};
+    },
+    deactivateGenericModule(pilot, id) { ships.get(pilot).activeModuleEffects.delete(id); return {success: true}; },
+    removeTarget(pilot, id) { ships.get(pilot).lockedTargets.delete(id); },
+  };
+  const api = {
+    modules: ship => [{item: {itemID: ship.itemID + 100}, effect: {name: "miningLaser"}, snapshot: {maxRangeMeters: 100}}],
+    candidates: () => rocks.filter(rock => rock.quantity > 0),
+    target: (_, ship, id) => rocks.find(rock => rock.id === id && rock.quantity > 0) || null,
+    compatible: (_, ship, module, rock) => rock.quantity > 0,
+    hasSurveyor: () => true,
+  };
+  const errors = [];
+  const controller = createController(() => api, () => ({getSceneForSession: () => scene}), error => errors.push(error));
+  for (const pilot of pilots) controller.command(pilot, parse("automining on"));
+  controller.tick(scene, 1000);
+  assert.deepEqual(started, [[41, 11], [42, 12]]);
+  for (const pilot of pilots) ships.get(pilot).activeModuleEffects.clear();
+  rocks[1].quantity = 0;
+  controller.tick(scene, 2000);
+  assert.deepEqual(started.slice(2), [[41, 11], [42, 11]], "Sharing remains available when only one rock is mineable");
+  assert.deepEqual(errors, []);
+});
+
+test("ordered groups mine highest grade first, then the next grade and next added ore", () => {
+  const f = fixture({count: 1});
+  f.rocks.splice(0, f.rocks.length,
+    {id: 11, name: "Scordite IV-Grade", distance: 5, quantity: 10, family: "ore"},
+    {id: 12, name: "Veldspar", distance: 10, quantity: 10, family: "ore"},
+    {id: 13, name: "Veldspar II-Grade", distance: 30, quantity: 10, family: "ore"},
+    {id: 14, name: "Veldspar IV-Grade", distance: 90, quantity: 10, family: "ore"});
+  f.command("automining veldspar,scordite"); f.command("automining on"); f.tick();
+  assert.deepEqual(f.started, [[1, 14]], "First added group and its top grade win over distance");
+  for (const id of [14, 13, 12]) {
+    f.finish(); f.rocks.find(rock => rock.id === id).quantity = 0; f.tick();
+  }
+  assert.deepEqual(f.started.map(([, id]) => id), [14, 13, 12, 11]);
+  const g = fixture({count: 1});
+  g.rocks.splice(0, g.rocks.length,
+    {id: 11, name: "Scordite", distance: 50, quantity: 10, family: "ore"},
+    {id: 12, name: "Veldspar IV-Grade", distance: 5, quantity: 10, family: "ore"});
+  g.command("automining scordite,veldspar"); g.command("automining on"); g.tick();
+  assert.deepEqual(g.started, [[1, 11]], "Reversing saved entries changes the actual target");
+});
+
+test("approach and crystal preparation use the ordered filter before distance", () => {
+  let crystalOrder;
+  const f = fixture({count: 1, crystals: ({rocks}) => { crystalOrder = rocks.map(rock => rock.id); return false; }});
+  f.rocks.splice(0, f.rocks.length,
+    {id: 11, name: "Scordite", distance: 10, quantity: 10, family: "ore"},
+    {id: 12, name: "Veldspar II-Grade", distance: 40, quantity: 10, family: "ore"},
+    {id: 13, name: "Veldspar IV-Grade", distance: 150, quantity: 10, family: "ore"});
+  f.command("automining veldspar,scordite"); f.command("automining approach on");
+  f.command("automining on"); f.tick();
+  assert.deepEqual(crystalOrder, [13, 12, 11]);
+  assert.deepEqual(f.approaches, [[13, 90]]);
+});
+
+test("changing to Hedbergite replaces or unloads an incompatible crystal before mining resumes", () => {
+  for (const haveCrystal of [true, false]) {
+    const { createCrystalManager } = require('../lib/crystals');
+    let loaded = {itemID:70,typeID:7}, pending = false;
+    const changes=[];
+    const crystals=createCrystalManager(()=>({pending:()=>pending,
+      load(){changes.push('load');pending=true;}, unload(){changes.push('unload');loaded=null;}}));
+    const f=fixture({count:1,deferred:true,crystals});
+    f.rocks[2].name='Hedbergite';
+    const compatible=f.api.compatible;
+    f.api.compatible=(...args)=>compatible(...args) && (!loaded || (loaded.typeID===7 ? args[3].id!==13 : args[3].id===13));
+    f.api.loadedCrystal=()=>loaded;
+    f.api.crystalPlan=(_,__,m,rocks)=>loaded?.typeID===7 && rocks.length && rocks.every(r=>r.id===13)
+      ? {loadedID:70,chargeID:haveCrystal ? 80 : 0,chargeTypeID:8} : null;
+    f.command('automining veldspar');f.command('automining on');f.tick();
+    assert.equal(f.ship.activeModuleEffects.get(1).targetID,11);
+    f.command('automining hedbergite');f.tick();
+    assert.deepEqual(changes,[haveCrystal?'load':'unload']);
+    assert.equal(f.ship.activeModuleEffects.size,0);
+    if(haveCrystal){f.tick();assert.equal(changes.length,1);loaded={itemID:80,typeID:8};pending=false;}
+    f.tick();assert.equal(f.ship.activeModuleEffects.get(1).targetID,13);
+    f.command('automining off');f.tick();assert.equal(changes.length,1);
+  }
+});
 
 test("volume sorting requires an available Surveyor, pauses on removal, and resumes on return", () => {
   const f=fixture({count:1}); volumes(f); let available=false;
@@ -277,6 +377,10 @@ test("case-insensitive slash, exclamation and plain commands; only exact command
 });
 test("whole-word ore families include variants without accidental substring matches", () => {
   assert(matchesOre("Dense Veldspar", ["veldspar"]));
+  assert(matchesOre("Veldspar 0-Grade", ["veldspar"]));
+  assert(matchesOre("Veldspar II-Grade", ["veldspar"]));
+  assert(matchesOre("Veldspar 0-Grade", ["veldspar 0-grade"]));
+  assert(!matchesOre("Veldspar II-Grade", ["veldspar 0-grade"]));
   assert(!matchesOre("Veldspar", ["spar"]));
   assert(matchesOre("Scordite", []));
 });
@@ -381,7 +485,12 @@ test("preferences survive a new store/login without enabling automation", () => 
     const store = createPreferences(file);
     const controller = createController(() => null, () => null, console.error, store);
     assert.match(controller.command({ characterID: 42 }, parse("automining")), /OFF, furthest, filter: veldspar, scordite/);
-    assert.deepEqual(store.get(43), { enabled: false, order: "nearest", ores: [], approach: false, compress: false, lock: true, survey: false, surveySeconds: 60 });
+    assert.deepEqual(store.get(43), { enabled: false, order: "nearest", ores: [], approach: false, compress: false, lock: true, survey: false, surveySeconds: 60,
+      haulEnabled: false, haulThreshold: 95, stationID: 0, storageKey: "personal", haulInterrupted: false,
+      defenseEnabled: false, defenseShieldEnabled: true, defenseShieldThreshold: 30, defenseArmorEnabled: false, defenseArmorThreshold: 30,
+      recallDrones: true, launchDrones: false, droneGroupKey: "",
+      mineDrones: false, mineDroneOrder: "nearest", mineDroneMode: "spread",
+      autoBoost: false, inviteFleet: false, ratDefenseEnabled: false, ratMiningGroupKey: "", ratFighterGroupKey: "" });
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 test("mixed crystal eligibility finds separate rocks when a greedy assignment would share", () => {
@@ -717,6 +826,25 @@ test("HUD settings validate atomically, preserve main state, and reject stale dr
   assert.match(f.controller.applySettings(f.session,JSON.stringify({revision:before.revision,settings:{...before.settings,ores:["scordite"],survey:true,surveySeconds:30}})),/applied/);
   assert.equal(f.controller.snapshot(f.session).enabled,true);assert.deepEqual(f.removed,[11,12]);
   assert.throws(()=>f.controller.applySettings(f.session,JSON.stringify({revision:before.revision,settings:before.settings})),/changed elsewhere/);
+});
+test("haul trigger is configurable per character and rejects invalid percentages", () => {
+  const fs = require("node:fs"), path = require("node:path");
+  const { createPreferences } = require("../lib/preferences");
+  const root = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "automining-threshold-"));
+  try {
+    const file = path.join(root, "prefs.json"), f = fixture({preferences: createPreferences(file)});
+    const before = f.controller.snapshot(f.session);
+    assert.equal(before.settings.haulThreshold, 95);
+    for (const invalid of [0, 101, 80.5, "80"]) {
+      assert.throws(() => f.controller.applySettings(f.session, JSON.stringify({revision: before.revision,
+        settings: {...before.settings, haulThreshold: invalid}})), /Invalid return-to-station/);
+    }
+    f.controller.applySettings(f.session, JSON.stringify({revision: before.revision,
+      settings: {...before.settings, haulThreshold: 80}}));
+    assert.equal(f.controller.snapshot(f.session).settings.haulThreshold, 80);
+    const restored = fixture({preferences: createPreferences(file)});
+    assert.equal(restored.controller.snapshot(restored.session).settings.haulThreshold, 80);
+  } finally { fs.rmSync(root, {recursive: true, force: true}); }
 });
 test("bare command opens HUD only when the client advertises support; status remains a shortcut",()=>{
   const f=fixture(),events=[];f.session.sendNotification=(...args)=>events.push(args);

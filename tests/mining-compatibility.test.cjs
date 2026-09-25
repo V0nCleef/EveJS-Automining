@@ -30,11 +30,14 @@ function load(diskSource) {
       if (id === './lib/miningCompatibility') return compat;
       if (id === './lib/loginDelivery') return { supportsRoot: () => false };
       if (id === './lib/bridge') return bridge;
-      if (id === './lib/controller') return { createController: () => ({}) };
+      if (id === './lib/controller') return { createController: () => ({ setDepartureGuard() {} }) };
       if (id === './lib/preferences') return { createPreferences: () => ({}) };
       if (id === './lib/compression') return { createCompression: () => ({}) };
+      if (id === './lib/crystals') return { createCrystalManager: () => ({}), nativeCrystalOperations: () => ({}) };
       if (id === './lib/catalog') return { createCatalog: () => ({}) };
       if (id === './lib/hud') return { installHUD() {} };
+      if (id === './lib/haulDestinations') return { createHaulDestinations: () => ({}) };
+      if (id === './lib/departure') return { createNativeDeparture: () => ({}), installNavigation() {} };
       if (id === './lib/commands') return {};
       throw Error(`Unexpected dependency ${id}`);
     },
@@ -108,3 +111,22 @@ test('both reviewed baselines work with LF and CRLF line endings', () => {
     assert.equal(f.state.errors.length, 0);
   }
 });
+
+test('0.12.9 keeps its native short-cycle implementation and accepts only the reviewed beta',
+  { skip: !process.env.EVEJS_BETA_TEST_ROOT }, () => {
+    const beta = fs.readFileSync(path.join(process.env.EVEJS_BETA_TEST_ROOT,
+      'server/src/services/mining/miningRuntime.js'), 'utf8');
+    for (const newline of ['\n', '\r\n']) {
+      const source = beta.replace(/\r\n/g, '\n').replace(/\n/g, newline);
+      assert.equal(compat.supportsMiningSource(source), true);
+      assert.equal(compat.prepareMiningSource(source), source, 'Do not apply the 0.12.8 core fix to the beta');
+      const f = load(source);
+      assert.equal(f.hooked, true);
+      f.compile(source);
+      assert.equal(f.state.compiled[0], source + '\n' + bridge);
+      assert.equal(f.state.errors.length, 0);
+      const changed = source + '\n// an unreviewed beta change';
+      assert.equal(compat.supportsMiningSource(changed), false);
+      assert.throws(() => compat.prepareMiningSource(changed), /Unsupported/);
+    }
+  });

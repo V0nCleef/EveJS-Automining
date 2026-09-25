@@ -8,8 +8,11 @@ const commands = require("./lib/commands");
 const { createPreferences } = require("./lib/preferences");
 const bridge = require("./lib/bridge");
 const { createCompression } = require("./lib/compression");
+const { createCrystalManager, nativeCrystalOperations } = require("./lib/crystals");
 const { createCatalog } = require("./lib/catalog");
 const { installHUD } = require("./lib/hud");
+const { createHaulDestinations } = require("./lib/haulDestinations");
+const { createNativeDeparture, installNavigation } = require("./lib/departure");
 const { SUPPORTED_HASH, supportsMiningSource, prepareMiningSource } = require("./lib/miningCompatibility");
 const loginDelivery = require("./lib/loginDelivery");
 const key = Symbol.for("evejs.automining.loader.v1");
@@ -30,12 +33,17 @@ function install(root = path.resolve(__dirname, "../..")) {
   }
   let mining = null;
   const preferences = createPreferences(path.join(root, "config/autoMining.players.json"));
-  const controller = createController(() => mining?.__autoMiningBridge, () => require(path.join(root, "server/src/space/runtime.js")), console.error, preferences, createCompression(root));
+  const destinations = createHaulDestinations(root);
+  const controller = createController(() => mining?.__autoMiningBridge, () => require(path.join(root, "server/src/space/runtime.js")), console.error, preferences, createCompression(root), destinations,
+    createCrystalManager(nativeCrystalOperations(root)), root);
+  const departure = createNativeDeparture(root, controller);
+  controller.setDepartureGuard(departure);
   const targets = new Map([
     [canonical(miningPath), "mining"],
     [canonical(path.join(root, "server/src/services/chat/chatCommands.js")), "commands"],
     [canonical(path.join(root, "server/src/_secondary/chat/chatRuntime.js")), "plain"],
     [canonical(path.join(root, "server/src/services/mining/miningScanMgrService.js")), "scanService"],
+    [canonical(path.join(root, "server/src/services/ship/beyonceService.js")), "movement"],
   ]);
   const seen = new WeakSet();
   const previousCompile = Module.prototype._compile;
@@ -55,14 +63,19 @@ function install(root = path.resolve(__dirname, "../..")) {
     const exports = previousLoad.apply(this, arguments);
     if (!exports || !["object", "function"].includes(typeof exports) || Module.isBuiltin(request)) return exports;
     let target;
-    try { target = targets.get(canonical(Module._resolveFilename(request, parent, isMain))); } catch { return exports; }
+    try {
+      const loadedPath = canonical(Module._resolveFilename(request, parent, isMain));
+      target = targets.get(loadedPath);
+    } catch { return exports; }
     if (!target || seen.has(exports)) return exports;
     if (target === "scanService" && exports.prototype?.Handle_perform_scan) {
       if (delivery) exports.prototype.Handle_AutoMiningLoginReady = function(args, session) { return delivery.ready(args, session, controller); };
       exports.prototype.Handle_AutoMiningClientReady = function(args, session) { return controller.clientReady(session, args?.[1]); };
       exports.prototype.Handle_AutoMiningSurveyAck = function(args, session) { return controller.surveyAck(session, args?.[0] === true || args?.[0] === 1, args?.[1]); };
       exports.prototype.Handle_AutoMiningProfile = function(args, session) { return controller.applyProfile(session, args?.[0]); };
-      installHUD(exports, controller, createCatalog(root));
+      installHUD(exports, controller, createCatalog(root), destinations);
+    } else if (target === "movement" && exports.prototype?.Handle_CmdGotoDirection) {
+      installNavigation(exports, controller, departure);
     } else if (target === "mining" && exports.__autoMiningBridge) {
       mining = exports;
       const original = exports.tickScene;
@@ -80,7 +93,7 @@ function install(root = path.resolve(__dirname, "../..")) {
     return exports;
   };
   globalThis[key] = { active: true, controller, delivery };
-  console.log("[AutoMining] v1.0.7 loaded. /AutoMining on | off | ore,ore | clear | nearest | furthest | largest | smallest");
+  console.log(`[AutoMining] v${require("./evejs-launcher.mod.json").version} loaded. !AutoMining on | off | ore,ore | clear | nearest | furthest | largest | smallest (GM clients can also use /AutoMining)`);
   return globalThis[key];
 }
 module.exports = { install, SUPPORTED_HASH };
