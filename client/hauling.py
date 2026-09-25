@@ -2,6 +2,10 @@
 _am_haul_job = None
 
 
+def _am_docked_location_id():
+    return int(getattr(session, 'structureid', None) or getattr(session, 'stationid', None) or 0)
+
+
 class _AutoMiningHaul(object):
     def __init__(self, trip):
         self.id = trip['id']
@@ -75,7 +79,7 @@ class _AutoMiningHaul(object):
             return
         if self.autoOwned and self.route_is_owned():
             sm.GetService('autoPilot').SetOff()
-        if self.undockOwned and getattr(session, 'stationid', None):
+        if self.undockOwned and _am_docked_location_id():
             undocking = sm.GetService('undocking')
             if not undocking.PastUndockPointOfNoReturn():
                 undocking.AbortUndock()
@@ -93,7 +97,7 @@ class _AutoMiningHaul(object):
                 station = trip['station']['stationID']
                 origin = trip['origin']['systemID']
                 if self.ownedRoute is not None:
-                    arrived = (self.routeArrived or self.ownedRoute == [station] and getattr(session, 'stationid', None) == station or
+                    arrived = (self.routeArrived or self.ownedRoute == [station] and _am_docked_location_id() == station or
                                self.ownedRoute == [origin] and getattr(session, 'solarsystemid', None) == origin)
                     self.check_route(arrived, self.stage == phase and phase in ('outbound', 'inbound'))
                 if phase != self.stage:
@@ -104,7 +108,7 @@ class _AutoMiningHaul(object):
                         self.routeArrived = True
                         if self.autoOwned:
                             sm.GetService('autoPilot').SetOff()
-                        if getattr(session, 'stationid', None) != station:
+                        if _am_docked_location_id() != station:
                             raise RuntimeError('Not docked at the selected station.')
                         dest = trip['storage']
                         cache = sm.GetService('invCache')

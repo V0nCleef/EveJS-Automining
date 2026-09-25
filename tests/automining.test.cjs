@@ -481,12 +481,13 @@ test("preferences survive a new store/login without enabling automation", () => 
   const root = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "automining-prefs-"));
   try {
     const file = path.join(root, "prefs.json");
-    createPreferences(file).save(42, { order: "furthest", ores: ["veldspar", "scordite"] });
+    createPreferences(file).save(42, { order: "furthest", ores: ["veldspar", "scordite"], miningAnchor: { systemID: 30, x: 100, y: 200, z: 300 } });
     const store = createPreferences(file);
+    assert.deepEqual(store.get(42).miningAnchor, { systemID: 30, x: 100, y: 200, z: 300 });
     const controller = createController(() => null, () => null, console.error, store);
     assert.match(controller.command({ characterID: 42 }, parse("automining")), /OFF, furthest, filter: veldspar, scordite/);
     assert.deepEqual(store.get(43), { enabled: false, order: "nearest", ores: [], approach: false, compress: false, lock: true, survey: false, surveySeconds: 60,
-      haulEnabled: false, haulThreshold: 95, stationID: 0, storageKey: "personal", haulInterrupted: false,
+      haulEnabled: false, haulThreshold: 95, stationID: 0, storageKey: "personal", haulInterrupted: false, miningAnchor: null,
       defenseEnabled: false, defenseShieldEnabled: true, defenseShieldThreshold: 30, defenseArmorEnabled: false, defenseArmorThreshold: 30,
       recallDrones: true, launchDrones: false, droneGroupKey: "",
       mineDrones: false, mineDroneOrder: "nearest", mineDroneMode: "spread",

@@ -400,7 +400,10 @@ def _am_build_window_class():
             if not row:
                 return row
             result = dict(row)
-            result['name'] = self.LocalizedStationName(row['stationID'], row['name'])
+            # Upwell names are player-defined. NPC station formatting must not
+            # replace one with a static location name (or fail on its item ID).
+            if row.get('kind') != 'structure':
+                result['name'] = self.LocalizedStationName(row['stationID'], row['name'])
             result['systemName'] = self.LocalizedLocationName(row['systemID'], row['systemName'])
             result['regionName'] = self.LocalizedLocationName(row['regionID'], row['regionName'])
             return result
@@ -414,7 +417,7 @@ def _am_build_window_class():
                 from eveui.autocomplete.location.provider import StationNameCache
                 cache = StationNameCache.instance()
                 candidates = cache.query(query)
-            except ImportError:
+            except Exception:
                 from carbon.common.script.util.commonutils import StripTags
                 cache = None
                 candidates = ((station.stationID, StripTags(cfg.evelocations.Get(station.stationID).locationName)) for station in cfg.stations)
@@ -524,7 +527,7 @@ def _am_build_window_class():
         def UseCurrentStationWork(self):
             if self._busy or not self.ValidCharacter():
                 return
-            stationID = int(getattr(session, 'stationid', None) or 0)
+            stationID = int(getattr(session, 'structureid', None) or getattr(session, 'stationid', None) or 0)
             if stationID <= 0:
                 self.SetNotice(_am_tr('Dock at a station to use your current station.'))
                 return
@@ -533,7 +536,7 @@ def _am_build_window_class():
             row = None
             try:
                 response = self.Request('AutoMiningResolveStations', _am_json.dumps([stationID]))
-                if serial == self._destinationSerial and int(getattr(session, 'stationid', None) or 0) == stationID:
+                if serial == self._destinationSerial and int(getattr(session, 'structureid', None) or getattr(session, 'stationid', None) or 0) == stationID:
                     rows = response.get('stations') or []
                     if rows and rows[0]['stationID'] == stationID:
                         row = self.LocalizeStationRow(rows[0])

@@ -11,15 +11,16 @@ SOURCE = (Path(__file__).resolve().parents[1] / 'client/hauling.py').read_text()
 
 
 class Fixture:
-    def __init__(self, problem=None, same_system=False, storage='personal'):
+    def __init__(self, problem=None, same_system=False, storage='personal', structure=False):
         self.problem = problem
         self.same_system = same_system
+        self.structure = structure
         self.events = []
         self.route = [999]
         self.autopilot = 0
         self.saved = {}
-        self.session = NS(charid=42, shipid=10, stationid=None, solarsystemid=30)
-        self.trip = dict(id='one', phase='outbound', shipID=10, station=dict(stationID=600),
+        self.session = NS(charid=42, shipid=10, stationid=None, structureid=None, solarsystemid=30)
+        self.trip = dict(id='one', phase='outbound', shipID=10, station=dict(stationID=9001 if structure else 600),
                          origin=dict(systemID=30), storage=dict(kind=storage, locationID=777, flagID=116 if storage == 'corporation' else 4),
                          items=[dict(itemID=9)], flagID=134)
         self.sleeps = 0
@@ -84,7 +85,7 @@ class Fixture:
         return self
 
     def MultiAdd(self, items, source, **kwargs):
-        assert self.session.stationid == 600
+        assert (self.session.structureid if self.structure else self.session.stationid) == (9001 if self.structure else 600)
         self.events.append(('transfer', items, source, kwargs))
         if self.problem == 'unload':
             raise RuntimeError('Destination full or access denied')
@@ -93,6 +94,7 @@ class Fixture:
         assert ('rpc', 'unloaded') in self.events
         self.events.append('undock')
         self.session.stationid = None
+        self.session.structureid = None
         self.session.solarsystemid = 30 if self.same_system else 31
         self.trip['phase'] = 'returning' if self.same_system else 'inbound'
 
@@ -112,7 +114,10 @@ class Fixture:
             if self.problem == 'manual-stop':
                 self.autopilot = 0
                 return
-            self.session.stationid = 600
+            if self.structure:
+                self.session.structureid = 9001
+            else:
+                self.session.stationid = 600
             self.session.solarsystemid = None
             self.route = []
             self.autopilot = 0
@@ -131,6 +136,14 @@ class Fixture:
 
 
 class ClientTests(unittest.TestCase):
+    def test_upwell_trip_uses_structure_location_for_route_and_unload(self):
+        f = Fixture(structure=True)
+        f.run()
+        self.assertIn(('route', [9001]), f.events)
+        self.assertIn(('rpc', 'complete'), f.events)
+        self.assertIn('undock', f.events)
+        self.assertEqual(f.route, [999])
+
     def test_round_trip_uses_native_apis_and_restores_waypoints(self):
         for same_system in (False, True):
             for storage in ('personal', 'corporation', 'container'):

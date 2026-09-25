@@ -9,8 +9,8 @@ function fixture() {
   let now = 0, remaining = [{ itemID: 9, typeID: 100, quantity: 500 }], deposited = 20, available = true;
   const notifications = [], moves = [], saved = [];
   const session = { characterID: 42, shipID: 10, sendNotification: (...args) => notifications.push(args) };
-  const ship = { itemID: 10, kind: "ship", mode: "STOP", position: { x: 100, y: 200, z: 300 } };
-  const scene = { systemID: 30, getShipEntityForSession: () => session.stationID ? null : ship, stop: () => { ship.mode = "STOP"; moves.push("stop"); } };
+  const ship = { itemID: 10, kind: "ship", mode: "STOP", position: { x: 100, y: 200, z: 300 }, velocity: { x: 0, y: 0, z: 0 } };
+  const scene = { systemID: 30, getShipEntityForSession: () => session.stationID ? null : ship, stop: () => { ship.mode = "STOP"; moves.push("stop"); return true; } };
   const space = { getSceneForSession: () => session.stationID ? null : scene,
     warpToPoint: (_, point) => { moves.push(["warp", point]); ship.mode = "WARP"; return { success: true }; },
     gotoPoint: (_, point) => { moves.push(["approach", point]); ship.mode = "GOTO"; ship.targetPoint = point; return true; } };
@@ -51,6 +51,11 @@ test("full cycle requires confirmed dock and deposit before undock, then exact o
   assert.equal(f.moves.at(-1)[0], "approach");
   assert.throws(() => f.action("complete"), /not been reached/);
   f.ship.position = { x: 100, y: 200, z: 300 };
+  f.ship.velocity = { x: 3, y: 0, z: 0 };
+  assert.equal(f.action("position").atOrigin, undefined);
+  f.ship.velocity = { x: 0, y: 0, z: 0 };
+  assert.equal(f.action("position").atOrigin, undefined);
+  f.advance(2100);
   assert.equal(f.action("position").atOrigin, true);
   f.action("complete"); assert.equal(f.s.haul, null); assert.equal(f.s.enabled, true); assert.equal(f.s.haulInterrupted, false);
 });
@@ -65,6 +70,16 @@ test("Defense retreats without a full hold, unloads, and remains docked with Aut
   assert.equal(f.s.haul, null); assert.equal(f.s.enabled, false);
   assert.match(f.s.defenseStatus, /Ore unloaded/);
   assert.equal(f.moves.includes("undock"), false);
+});
+
+test("Upwell docking is recognized through structureID before unloading", () => {
+  const f = fixture();
+  f.begin();
+  f.session.structureID = 600;
+  f.action("poll");
+  assert.equal(f.s.haul.phase, "unloading");
+  f.deposit(); f.action("unloaded");
+  assert.equal(f.s.haul.phase, "undocking");
 });
 
 test("Defense with no ore docks and stops; unconfirmed ore never authorizes undock", () => {
@@ -112,6 +127,25 @@ test("return warp is requested under gate cloak; only native landing readiness i
   f.ship.mode = "STOP"; f.s.haul.moving = null;
   f.space.warpToPoint = () => ({ success: false, errorMsg: "WARP_BLOCKED_BY_CLOAK" });
   assert.throws(() => f.action("position"), /WARP_BLOCKED_BY_CLOAK/);
+});
+
+test("return keeps one belt anchor across trips and refuses to resume while drifting", () => {
+  const f = fixture(); f.begin();
+  const anchor = { ...f.s.haul.origin };
+  f.dock(); f.action("poll"); f.deposit(); f.action("unloaded");
+  f.session.stationID = 0; f.advance(100); f.action("poll"); f.advance(3500); f.action("poll");
+  f.action("poll");
+  f.ship.position = { x: anchor.x + 8, y: anchor.y, z: anchor.z };
+  f.ship.velocity = { x: 2, y: 0, z: 0 };
+  assert.equal(f.action("position").atOrigin, undefined);
+  assert.throws(() => f.action("complete"), /not been reached/);
+  f.ship.velocity = { x: 0, y: 0, z: 0 };
+  f.action("position"); f.action("position"); f.advance(2100);
+  assert.equal(f.action("position").atOrigin, true);
+  f.action("complete");
+  f.ship.position = { x: anchor.x + 8, y: anchor.y, z: anchor.z };
+  f.begin();
+  assert.deepEqual(f.s.haul.origin, anchor);
 });
 
 test("stale tokens, different ships, timeouts and cancellation never resume mining", () => {
@@ -168,6 +202,11 @@ test("destination discovery scopes personal containers and corporation divisions
     "corporationRuntimeState.js": { getCorporationOffices: () => office ? [office] : [], getCorporationDivisionNames: () => ({ 2: "Ore" }) },
     "invBrokerService.js": Broker, "itemTypeRegistry.js": { resolveItemByTypeID: () => ({ name: "Ore box" }) },
     "cargoContainerRuntime.js": { isCargoContainerType: () => true },
+    "structureState.js": {
+      getStructureByID: id => id === 9001 ? { structureID: 9001, itemName: "Home Upwell", solarSystemID: 30 } : null,
+      listDockableStructuresForCharacter: session => session.characterID === 42 ? [{ structureID: 9001 }] : [],
+      canCharacterDockAtStructure: session => ({ success: session.characterID === 42 }),
+    },
   };
   const d = createHaulDestinations("fixture", file => modules[require("node:path").basename(file)]);
   const session = { characterID: 42, corporationID: 99 };
@@ -182,4 +221,11 @@ test("destination discovery scopes personal containers and corporation divisions
   assert.throws(() => d.storage(session, 600, "corp:777:116"), /no longer available/);
   assert.throws(() => d.storage(session, 600, "container:8"), /no longer available/);
   assert.throws(() => d.station(999), /existing station/);
+  assert.equal(d.search("Home Upwell", session).stations[0].kind, "structure");
+  assert.equal(d.resolveStationIDs([9001], session).stations[0].stationID, 9001);
+  assert.deepEqual(d.storages(session, 9001).map(x => x.key), ["personal"]);
+  office = { officeID: 888, stationID: 9001 };
+  assert.deepEqual(d.storages(session, 9001).map(x => x.key), ["personal", "corp:888:116"]);
+  assert.equal(d.search("Home Upwell", { characterID: 43 }).stations.length, 0);
+  assert.throws(() => d.resolveStationIDs([9001], { characterID: 43 }), /existing station/);
 });

@@ -74,11 +74,13 @@ class Remote:
     def AutoMiningFindStations(self,query):
         calls.append(('find',query))
         row=dict(stationID=600,name=station_names['EN'],systemID=30,systemName='Penirgman',regionID=1,regionName='Domain')
-        matches=[row] if query.lower() in row['name'].lower() else []
+        structure=dict(stationID=9001,kind='structure',name='Home Upwell',systemID=30,systemName='Penirgman',regionID=1,regionName='Domain')
+        matches=[candidate for candidate in (row,structure) if query.lower() in candidate['name'].lower()]
         return json.dumps(dict(success=True,stations=matches,moreStations=False))
     def AutoMiningResolveStations(self,raw):
         ids=json.loads(raw);calls.append(('resolve',ids))
         rows=[dict(stationID=600,name=station_names['EN'],systemID=30,systemName='Penirgman',regionID=1,regionName='Domain') for item in ids if item==600]
+        rows += [dict(stationID=9001,kind='structure',name='Home Upwell',systemID=30,systemName='Penirgman',regionID=1,regionName='Domain') for item in ids if item==9001]
         return json.dumps(dict(success=True,stations=rows))
     def AutoMiningStorages(self,stationID):
         calls.append(('storages',stationID))
@@ -281,6 +283,15 @@ assert ('resolve',[600]) in calls
 quick.storageEdit.LoadOptions([('Corporation - Ore','corp:777:116')],select='corp:777:116')
 quick.UseCurrentStationWork()
 assert quick.storageEdit.GetValue()=='corp:777:116'
+session.structureid=9001;session.stationid=0
+quick.UseCurrentStationWork()
+assert quick._stationID==9001 and quick.stationEdit.GetValue()=='Home Upwell'
+assert quick.storageEdit.GetValue()=='personal'
+quick.stationEdit.SetValue('Home Upwell');quick.StationChanged();quick.FindStationsWork()
+assert quick._stationRows[0]['stationID']==9001
+assert quick._stationRows[0]['name']=='Home Upwell'
+quick.SelectStation(ns(sr=ns(node=ns(station=quick._stationRows[0]))))
+quick.storageEdit.LoadOptions([('Personal item hangar','personal')],select='personal')
 quick._toggles['defenseEnabled'].SetChecked(True)
 quick._toggles['defenseShieldEnabled'].SetChecked(True)
 quick._toggles['defenseArmorEnabled'].SetChecked(True)
@@ -289,7 +300,7 @@ quick.defenseArmorEdit.SetValue(25)
 quick.Changed();quick.Save()
 assert state['settings']['defenseEnabled'] and state['settings']['defenseArmorThreshold']==25
 assert state['settings']['defenseShieldThreshold']==30
-session.stationid=0
+session.stationid=0;session.structureid=0
 quick.UseCurrentStationWork()
 assert 'Dock at a station' in quick.notice.text
 print('PASS: current-station selection preserves storage and Defense settings save independently.')
