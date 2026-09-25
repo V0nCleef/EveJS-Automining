@@ -1,3 +1,20 @@
+# AutoMining 1.0.10 recall compatibility
+
+The published 1.0.9 loader loses its manual warp, dock and autopilot recall
+wrappers when autopilotJumpZero compiles the movement service directly. The
+new compatibility gate reproduces that failure against the 1.0.9 release ZIP.
+
+Version 1.0.10 attaches the guard after the service compiles and reports a
+startup error if required travel handlers are missing. Read-only native loads
+pass on EveJS 0.12.8 and official 0.12.9; the 0.12.9 check passes with
+autopilotJumpZero loaded both before and after AutoMining. The 15 focused
+departure tests pass. No stress fixture or performance checker is packaged.
+
+The user confirmed the same loader fix in game on local AutoMining 1.2.11.
+The 1.0.10 public ZIP has not received a separate in-game test.
+
+---
+
 # Release acceptance — 2026-09-19
 
 The user installed the final Launcher 1.0.61 and AutoMining 1.0.7 pair and

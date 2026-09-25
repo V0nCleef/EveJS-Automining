@@ -4,12 +4,14 @@ AutoMining mines ore, manages drones and fleet boosts, and can unload at an NPC 
 
 **Works with EveJS 0.12.8 and 0.12.9**, EVE client build 3396210, and [EveJS Launcher](https://github.com/V0nCleef/evejs-launcher) 1.0.61 or newer. Native and Launcher-managed Docker are supported.
 
+Version 1.0.10 keeps drone recall active for manual warp, docking and autopilot when another mod loads the travel service through its own loader. If the required travel handlers change, AutoMining reports the incompatibility at startup.
+
 The HUD follows your EVE client's language setting. It supports English, Simplified Chinese, German, French, Spanish, Italian, Russian, Japanese, and Korean. Station search accepts translated station names too.
 
 ## Install or update
 
 1. Close your EVE clients and stop the EveJS server.
-2. In the Launcher, use **Mods > AutoMining > Update**. For a new install, download [AutoMining-1.0.9.zip](https://github.com/V0nCleef/EveJS-Automining/releases/download/v1.0.9/AutoMining-1.0.9.zip) and use **Mods > Add ZIP**.
+2. In the Launcher, use **Mods > AutoMining > Update**. For a new install, download [AutoMining-1.0.10.zip](https://github.com/V0nCleef/EveJS-Automining/releases/download/v1.0.10/AutoMining-1.0.10.zip) and use **Mods > Add ZIP**.
 3. Restart the server and clients. Type `!automining` in chat to open the HUD. `/automining` also works for GM characters.
 
 ## What you can set

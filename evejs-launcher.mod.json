@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "id": "automining",
   "displayName": "AutoMining",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Automatic mining with fleet mining boosts, optional mining and combat drone orders, ordered ore filters and ore-hold hauling.",
   "kind": "loader",
   "supportedBackends": [

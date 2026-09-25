@@ -46,6 +46,15 @@ function install(root = path.resolve(__dirname, "../..")) {
     [canonical(path.join(root, "server/src/services/ship/beyonceService.js")), "movement"],
   ]);
   const seen = new WeakSet();
+  function installMovement(exports) {
+    if (seen.has(exports)) return;
+    const required = ["Handle_CmdGotoDirection", "Handle_CmdWarpToStuff", "Handle_CmdDock", "Handle_CmdWarpToStuffAutopilot"];
+    const missing = required.filter(name => typeof exports?.prototype?.[name] !== "function");
+    if (missing.length) throw Error(`[AutoMining] Drone recall guard cannot attach: missing ${missing.join(", ")}`);
+    installNavigation(exports, controller, departure);
+    seen.add(exports);
+    console.log("[AutoMining] Drone recall guard attached to warp and dock handlers.");
+  }
   const previousCompile = Module.prototype._compile;
   Module.prototype._compile = function(content, filename) {
     if (canonical(filename) === canonical(miningPath)) {
@@ -56,7 +65,13 @@ function install(root = path.resolve(__dirname, "../..")) {
       if (loginDelivery.supportsSource(content)) content = loginDelivery.extendSource(content);
       else console.error("[AutoMining] Login source changed by another mod; original handshake preserved.");
     }
-    return previousCompile.call(this, content, filename);
+    const result = previousCompile.call(this, content, filename);
+    // Another loader may compile this service directly and bypass Module._load.
+    // Compilation still passes through this hook, so attach recall here too.
+    if (canonical(filename) === canonical(path.join(root, "server/src/services/ship/beyonceService.js"))) {
+      installMovement(this.exports);
+    }
+    return result;
   };
   const previousLoad = Module._load;
   Module._load = function(request, parent, isMain) {
@@ -74,8 +89,8 @@ function install(root = path.resolve(__dirname, "../..")) {
       exports.prototype.Handle_AutoMiningSurveyAck = function(args, session) { return controller.surveyAck(session, args?.[0] === true || args?.[0] === 1, args?.[1]); };
       exports.prototype.Handle_AutoMiningProfile = function(args, session) { return controller.applyProfile(session, args?.[0]); };
       installHUD(exports, controller, createCatalog(root), destinations);
-    } else if (target === "movement" && exports.prototype?.Handle_CmdGotoDirection) {
-      installNavigation(exports, controller, departure);
+    } else if (target === "movement" && typeof exports === "function") {
+      installMovement(exports);
     } else if (target === "mining" && exports.__autoMiningBridge) {
       mining = exports;
       const original = exports.tickScene;
