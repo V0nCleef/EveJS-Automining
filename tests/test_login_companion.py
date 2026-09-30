@@ -16,29 +16,39 @@ import zlib
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = subprocess.check_output(['node', '-e', "process.stdout.write(require('./lib/clientSource').buildClientSource(process.cwd()))"], cwd=ROOT).decode('utf-8')
-BOOTSTRAP = (ROOT / 'client/login.py').read_text(encoding='utf-8')
+DELIVERIES = {}
+
+
+def delivery_expression(token):
+    if token not in DELIVERIES:
+        # Use the exact bounded, encoded production payload and its native envelope.
+        script = "const a=require('./lib/loginDelivery');const b=Buffer.from('None');const h=Buffer.alloc(5);h[0]=0x74;h.writeUInt32LE(b.length,1);process.stdout.write(a.createDelivery(process.cwd(),{token:process.argv[1]}).compose(Buffer.concat([h,b])).subarray(5));"
+        DELIVERIES[token] = subprocess.check_output(['node', '-e', script, token], cwd=ROOT).decode('ascii')
+    return DELIVERIES[token]
 
 
 class Fixture:
     def __init__(self):
         self.queue = []
+        self.background = []
         self.listeners = {}
         self.requests = []
+        self.services = []
+        self.sleep_hook = None
         self.scans = 0
         self.session = types.SimpleNamespace(charid=None, shipid=10, solarsystemid=20)
         self.builtins = types.ModuleType('__builtin__')
         self.builtins.__dict__.update(vars(builtins))
         self.builtins.unicode = str
         self.sm = types.SimpleNamespace(RegisterForNotifyEvent=self.register, UnregisterForNotifyEvent=self.unregister,
-                                        RemoteSvc=lambda _: self, GetService=lambda _: self)
+                                        RemoteSvc=lambda _: self, GetService=self.get_service)
         self.builtins.session = self.session
         self.builtins.sm = self.sm
         self.builtins.settings = types.SimpleNamespace(char=types.SimpleNamespace(ui=types.SimpleNamespace(Get=lambda *args: None, Set=lambda *args: None)))
         self.real_commands = type('RealCommands', (), {'__notifyevents__': ['ExistingEvent'], 'Run': lambda self: None})
         self.modules = {'__builtin__': self.builtins,
                         'uthread': types.SimpleNamespace(new=lambda fn, *args: self.queue.append((fn, args))),
-                        'blue': types.SimpleNamespace(pyos=types.SimpleNamespace(synchro=types.SimpleNamespace(SleepWallclock=lambda _: None))),
+                        'blue': types.SimpleNamespace(pyos=types.SimpleNamespace(synchro=types.SimpleNamespace(SleepWallclock=self.sleep))),
                         'eve.client.script.ui.eveCommands': types.SimpleNamespace(EveCommandService=self.real_commands),
                         'mining.client': types.SimpleNamespace(mining_util=types.SimpleNamespace(has_current_ship_integrated_mining_scanner=lambda: True)),
                         'mining.client.mining_overlay_controller': types.SimpleNamespace(MiningOverlayController=types.SimpleNamespace(
@@ -46,6 +56,17 @@ class Fixture:
                         'eve.client.script.remote.michelle': types.SimpleNamespace(GetMichelle=lambda: types.SimpleNamespace(InWarp=lambda: False))}
         self.accept_token = 'server-A'
         self.fail_ready = False
+        self.fail_drones_ready = False
+        self.fail_transport_ready = 0
+        self.transport_job = None
+
+    def get_service(self, name):
+        self.services.append(name)
+        return self
+
+    def sleep(self, duration):
+        if self.sleep_hook:
+            self.sleep_hook(duration)
 
     def register(self, handler, event):
         self.listeners.setdefault(event, []).append(handler)
@@ -68,7 +89,29 @@ class Fixture:
 
     def AutoMiningDronesReady(self):
         self.requests.append(('drones-ready',))
+        if self.fail_drones_ready:
+            raise RuntimeError('drone readiness unavailable')
         return json.dumps(dict(success=True))
+
+    def AutoMiningTransportReady(self):
+        self.requests.append(('transport-ready',))
+        if self.fail_transport_ready:
+            self.fail_transport_ready -= 1
+            raise RuntimeError('transport readiness unavailable')
+        return json.dumps(dict(success=True))
+
+    def AutoMiningFleetReady(self):
+        self.requests.append(('fleet-ready',))
+        return json.dumps(dict(success=True))
+
+    def AutoMiningPVEReady(self):
+        self.requests.append(('pve-ready',))
+        return json.dumps(dict(success=True))
+
+    def AutoMiningTransportAction(self, job_id, action, raw):
+        values = json.loads(raw)
+        self.requests.append(('transport-action', job_id, action, values))
+        return json.dumps(dict(success=True, transport=dict(job=self.transport_job)))
 
     def AutoMiningSurveyAck(self, success, reason):
         self.requests.append(('survey', success, reason))
@@ -77,10 +120,9 @@ class Fixture:
         self.scans += 1
 
     def install(self, token='server-A'):
-        namespace = {'__builtins__': vars(builtins), '_am_context': {}, '_am_token': token,
-                     '_am_version': '1.0.8', '_am_source64': base64.b64encode(zlib.compress(SOURCE.encode())).decode()}
+        namespace = {'__builtins__': self.builtins, 'sm': self.sm, 'session': self.session}
         with patch.dict(sys.modules, self.modules):
-            exec(compile(BOOTSTRAP, '<authored-bootstrap>', 'exec'), namespace)
+            eval(compile(delivery_expression(token), '<encoded-native-login>', 'eval'), namespace)
         return getattr(self.builtins, '_evejs_automining_login_v1', None)
 
     def drain(self):
@@ -89,6 +131,9 @@ class Fixture:
                 if not self.queue:
                     return
                 fn, args = self.queue.pop(0)
+                if fn.__name__ in ('_am_transport_idle', '_am_fleet_management_poll', '_am_pve_idle'):
+                    self.background.append((fn, args))
+                    continue
                 fn(*args)
         raise AssertionError('unbounded background work')
 
@@ -127,6 +172,75 @@ class LoginTests(unittest.TestCase):
         h.dispose()
         h.OnAutoMiningRatGroups('stale-request')
         self.assertEqual(len(received), 1)
+
+    def test_encoded_docked_login_starts_transport_and_dispatches_real_joining_worker(self):
+        f = Fixture(); f.session.charid = 42; f.session.stationid = 600; f.session.solarsystemid = None
+        h = f.install(); f.drain()
+        self.assertIn(('transport-ready',), f.requests)
+        self.assertIn(('pve-ready',), f.requests)
+        self.assertEqual([fn.__name__ for fn, _ in f.background],
+                         ['_am_transport_idle', '_am_fleet_management_poll', '_am_pve_idle'])
+        self.assertIn(h, f.listeners['OnAutoMiningTransport'])
+        f.transport_job = dict(id='pickup', nonce='join-token', shipID=10, phase='joining')
+        for handler in list(f.listeners['OnAutoMiningTransport']):
+            handler.OnAutoMiningTransport(json.dumps(f.transport_job))
+        worker = h.namespace['_am_transport_job']
+        self.assertIsInstance(worker, h.namespace['_AutoMiningTransport'])
+        def stop_after_joining_poll(duration):
+            if duration == 1000:
+                worker.cancelled = True
+        f.sleep_hook = stop_after_joining_poll
+        f.drain()
+        self.assertEqual([r[2] for r in f.requests if r[0] == 'transport-action'], ['poll'])
+        self.assertTrue(worker.cleaned)
+        self.assertFalse(set(f.services) & {'undocking', 'michelle', 'starmap', 'autoPilot', 'invCache'})
+
+    def test_sibling_readiness_failure_is_isolated_and_transport_heartbeat_retries(self):
+        f = Fixture(); f.session.charid = 42; f.fail_drones_ready = True; f.fail_transport_ready = 1
+        h = f.install(); f.drain()
+        self.assertTrue(h.usable()); self.assertIn(('hauling-ready',), f.requests); self.assertIn(('pve-ready',), f.requests)
+        background = [(fn, args) for fn, args in f.background if fn.__name__ == '_am_transport_idle']
+        self.assertEqual(len(background), 1)
+        h.OnSessionChanged(); f.drain()
+        self.assertEqual(len(f.background), 3, 'an unchanged session does not duplicate readiness workers')
+        sleeps = []
+        def bounded_heartbeat(duration):
+            sleeps.append(duration)
+            if len(sleeps) == 2:
+                h.ready = False
+        f.sleep_hook = bounded_heartbeat
+        with patch.dict(sys.modules, f.modules):
+            background[0][0](*background[0][1])
+        self.assertEqual(sleeps, [5000, 5000]); self.assertEqual(f.requests.count(('transport-ready',)), 2)
+        self.assertIsNone(h.namespace['_am_transport_heartbeat'])
+
+    def test_readiness_does_not_start_sibling_jobs_after_session_generation_changes(self):
+        f = Fixture(); f.session.charid = 42
+        h = f.install()
+        def changed_during_transport_ready():
+            f.requests.append(('transport-ready',)); h.generation += 1; h.ready = False
+            return json.dumps(dict(success=True))
+        f.AutoMiningTransportReady = changed_during_transport_ready
+        f.drain()
+        self.assertFalse(h.usable()); self.assertNotIn(('pve-ready',), f.requests)
+        self.assertEqual([fn.__name__ for fn, _ in f.background], ['_am_transport_idle'])
+
+    def test_new_notification_bindings_reject_replaced_and_disconnected_login_owners(self):
+        f = Fixture(); f.session.charid = 42
+        first = f.install(); f.drain(); received = []
+        for event, function in [('OnAutoMiningPVE', '_am_pve'), ('OnAutoMiningActivity', '_am_activity_receive')]:
+            self.assertIn(first, f.listeners[event])
+            first.namespace[function] = lambda handler, raw, event=event: received.append((event, handler, raw))
+            getattr(first, event)('active')
+        self.assertEqual(len(received), 2)
+        second = f.install(); f.drain()
+        for event in ['OnAutoMiningTransport', 'OnAutoMiningPVE', 'OnAutoMiningActivity']:
+            self.assertEqual(f.listeners[event], [second])
+            getattr(first, event)('stale')
+        self.assertEqual(len(received), 2)
+        f.change(None)
+        second.OnAutoMiningTransport(json.dumps(dict(id='stale', nonce='n', shipID=10, phase='joining')))
+        self.assertIsNone(second.namespace['_am_transport_job'])
 
     def test_repeated_login_replaces_handlers_and_pending_work(self):
         f = Fixture(); f.session.charid = 42

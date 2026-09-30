@@ -33,6 +33,17 @@ def _am_connect(self):
                     _am_haul_ready()
                 except Exception:
                     print('AUTOMINING_HAUL:NOT_READY')
+            if globals().get('_am_transport_ready'):
+                try:
+                    _am_transport_ready()
+                except Exception:
+                    print('AUTOMINING_TRANSPORT:NOT_READY')
+            for ready_name in ('_am_fleet_management_ready', '_am_pve_ready'):
+                if globals().get(ready_name):
+                    try:
+                        globals()[ready_name]()
+                    except Exception:
+                        print('AUTOMINING_JOB:NOT_READY')
             return
         except Exception:
             pass

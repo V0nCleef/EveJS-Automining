@@ -15,7 +15,7 @@ try:
         _am_previous.dispose()
 
     class _AutoMiningLogin(object):
-        __notifyevents__ = ['OnSessionChanged', 'OnAutoMiningSurvey', 'OnAutoMiningOpen', 'OnAutoMiningFeedback', 'OnAutoMiningHaul', 'OnAutoMiningLaunchDrones', 'OnAutoMiningRatGroups', 'OnAutoMiningFleetReady']
+        __notifyevents__ = ['OnSessionChanged', 'OnAutoMiningSurvey', 'OnAutoMiningOpen', 'OnAutoMiningFeedback', 'OnAutoMiningHaul', 'OnAutoMiningTransport', 'OnAutoMiningPVE', 'OnAutoMiningActivity', 'OnAutoMiningLaunchDrones', 'OnAutoMiningRatGroups', 'OnAutoMiningFleetReady']
 
         def __init__(self):
             self.active = True
@@ -151,15 +151,16 @@ try:
                         self.dispose()
                         return
                     self.ready = True
-                    try:
-                        self.namespace['_am_drones_ready']()
-                    except Exception:
-                        print('AUTOMINING_DRONES:NOT_READY')
-                    if self.namespace.get('_am_haul_ready'):
+                    for name in ('_am_drones_ready', '_am_haul_ready', '_am_transport_ready', '_am_fleet_management_ready', '_am_pve_ready'):
+                        if not self.usable() or generation != self.generation:
+                            return
+                        ready = self.namespace.get(name)
+                        if not ready:
+                            continue
                         try:
-                            self.namespace['_am_haul_ready']()
+                            ready()
                         except Exception:
-                            print('AUTOMINING_HAUL:NOT_READY')
+                            print('AUTOMINING_JOB:NOT_READY')
                     print('AUTOMINING_LOGIN:READY:' + _am_version)
                     return
                 except Exception:
@@ -183,6 +184,18 @@ try:
         def OnAutoMiningHaul(self, message):
             if self.usable():
                 self.namespace['_am_haul'](self, message)
+
+        def OnAutoMiningTransport(self, message):
+            if self.usable():
+                self.namespace['_am_transport'](self, message)
+
+        def OnAutoMiningPVE(self, message):
+            if self.usable():
+                self.namespace['_am_pve'](self, message)
+
+        def OnAutoMiningActivity(self, message):
+            if self.usable():
+                self.namespace['_am_activity_receive'](self, message)
 
         def OnAutoMiningLaunchDrones(self, message):
             if self.usable():

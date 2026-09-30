@@ -162,3 +162,40 @@ test("same-grid fleet mates reuse rat discovery while removals remain immediate"
   assert.equal(defense.ratsPresent(scene, { grid: "belt" }), false);
   assert.equal(enumerations, 2);
 });
+
+test("compression pause sends only owned mining drones home and preserves manual return orders", () => {
+ const orders = [], drone = {itemID:21,ownerID:42,controllerID:100,droneCommand:"MINE"};
+ const manager=createMiningDrones("",{getAPI:()=>null,pendingDeparture:()=>false,
+ native:{isDroneEntity:d=>!!d,DRONE_COMMAND_RETURN_HOME:"RETURN_HOME",DRONE_COMMAND_RETURN_BAY:"RETURN_BAY",commandReturnHome:(session,ids)=>{
+   orders.push(ids);drone.droneCommand="RETURN_HOME";return {type:"dict",entries:[]};}},logError:()=>{}});
+ const s={characterID:42,miningDroneIDs:new Set([21,22,23,24]),mineAssignments:new Map([[21,9]])};
+ const entities=new Map([[21,drone],[22,{itemID:22,ownerID:43,controllerID:100}],
+   [23,{itemID:23,ownerID:42,controllerID:100,droneCommand:"RETURN_BAY"}],[24,{itemID:24,ownerID:42,controllerID:100,droneCommand:"RETURN_HOME"}]]);
+ const scene={getEntityByID:id=>entities.get(id)};
+ manager.pause({characterID:42},s,scene,{itemID:100});
+ assert.deepEqual(orders,[[21]]); assert.equal(s.miningDroneIDs.size,4);
+ assert.deepEqual([...s.mineCompressionResumeIDs],[21]); assert.equal(s.mineAssignments.size,0);
+});
+
+test("compression pause resumes only native confirmed returns and rejects void or mixed failures",()=>{
+ for(const result of [{type:"dict",entries:[[22,"Denied"]]},undefined,{type:"dict",entries:[[99,"Unknown ID"]]}]) {
+  const entities=new Map([21,22].map(itemID=>[itemID,{itemID,ownerID:42,controllerID:100,droneCommand:"MINE"}]));
+  const manager=createMiningDrones("",{getAPI:()=>null,pendingDeparture:()=>false,native:{isDroneEntity:d=>!!d,
+    DRONE_COMMAND_RETURN_HOME:"RETURN_HOME",DRONE_COMMAND_RETURN_BAY:"RETURN_BAY",commandReturnHome(){
+      entities.get(21).droneCommand="RETURN_HOME";return result;}}});
+  const s={characterID:42,miningDroneIDs:new Set([21,22])};manager.pause({characterID:42},s,{getEntityByID:id=>entities.get(id)},{itemID:100});
+  assert.deepEqual([...s.mineCompressionResumeIDs],result?.entries?.[0]?.[0]===22?[21]:[]);
+ }
+});
+test("compression resume reorders only drones paused by AutoMining and leaves manual returns untouched",()=>{
+ const entities=new Map([[21,{itemID:21,ownerID:42,controllerID:100,droneCommand:"RETURN_HOME"}],
+   [22,{itemID:22,ownerID:42,controllerID:100,droneCommand:"RETURN_HOME"}]]),orders=[];
+ const api={surveyGrid:()=>"belt",candidates:()=>[{id:9,name:"Veldspar",state:{yieldKind:"ore"}}]};
+ const manager=createMiningDrones("",{getAPI:()=>api,pendingDeparture:()=>false,native:{
+   isDroneEntity:d=>!!d,DRONE_COMMAND_RETURN_BAY:"RETURN_BAY",DRONE_COMMAND_RETURN_HOME:"RETURN_HOME",DRONE_COMMAND_MINE:"MINE",
+   commandMineRepeatedly:(session,ids)=>{orders.push(ids);return {type:"dict",entries:[]};}}});
+ const s={enabled:true,mineDrones:true,characterID:42,ores:[],mineReplan:true,mineDroneMode:"spread",mineDroneOrder:"nearest",
+   miningDroneIDs:new Set([21,22]),mineCompressionResumeIDs:new Set([21])};
+ manager.tick({characterID:42},s,{getEntityByID:id=>entities.get(id)},{itemID:100},1000);
+ assert.deepEqual(orders,[[21]]);assert.equal(s.mineCompressionResumeIDs.size,0);
+});

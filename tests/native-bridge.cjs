@@ -66,9 +66,6 @@ const context = { module: { exports: {} }, Map, Set, Date, console, __dirname: p
 };
 vm.runInNewContext(prepareMiningSource(source) + "\n" + bridge, context, { filename: sourceFile });
 const api = context.module.exports.__autoMiningBridge;
-const profileCounts = new Map(), profileTimes = [];
-api.setProfiler({ start: () => 0n, end: name => profileTimes.push(name),
-  count: (name, amount = 1) => profileCounts.set(name, (profileCounts.get(name) || 0) + amount) });
 assert.equal(context.module.exports.miningModuleCanShortCycle(ship, {moduleID: 1, typeID: 100, effectID: 67}), true, "Crystal-capable ore miners must short-cycle on both baselines");
 assert.equal(api.hasSurveyor(ship), false);
 ship.passiveDerivedState = {attributes:{9001:1,9002:0}};
@@ -91,9 +88,6 @@ const candidates = api.candidates(scene, ship);
 const fleetMate = { ...ship, itemID: 11, position: { x: 20, y: 0, z: 0 } };
 const fleetCandidates = api.candidates(scene, fleetMate);
 assert.equal(fieldEnumerations, 1, 'Same-belt pilots share one field enumeration');
-assert.equal(profileCounts.get('field.cacheMisses'), 1);
-assert.equal(profileCounts.get('field.cacheHits'), 1);
-assert.deepEqual(profileTimes, ['field.enumeration']);
 assert.equal(fleetCandidates.length, 1);
 assert.notEqual(fleetCandidates[0].distance, candidates[0].distance, 'Each ship keeps its own range');
 assert.equal(api.surveyGrid(scene,ship),'current-belt');

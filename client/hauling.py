@@ -122,6 +122,20 @@ class _AutoMiningHaul(object):
                         inventory.MultiAdd([item['itemID'] for item in trip['items']], self.ship, flag=dest['flagID'])
                         # The server verifies empty hold AND gains in chosen storage.
                         self.request('unloaded')
+                    elif phase == 'resupplying':
+                        self.routeArrived = True
+                        if self.autoOwned:
+                            sm.GetService('autoPilot').SetOff()
+                        if _am_docked_location_id() != station:
+                            raise RuntimeError('Not docked at the fuel source.')
+                        cache = sm.GetService('invCache')
+                        inventory = cache.GetInventoryFromId(self.ship)
+                        for transfer in trip['fuel']['transfers']:
+                            current = self.request()
+                            if current.get('phase') != 'resupplying' or not self.valid() or _am_docked_location_id() != station:
+                                raise RuntimeError('Fuel trip interrupted')
+                            inventory.Add(transfer['itemID'], transfer['sourceLocationID'], qty=transfer['quantity'], flag=transfer['flagID'])
+                        self.request('resupplied')
                     elif phase == 'undocking':
                         # Recheck server state immediately before an irreversible session move.
                         self.request()

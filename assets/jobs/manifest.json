@@ -1,0 +1,18 @@
+{
+  "mining": {
+    "sha256": "6b721b503d4dad37fff02179966baac85d7584b761b4b41255ba11995da01b88",
+    "bytes": 2510956
+  },
+  "hauling": {
+    "sha256": "d7f29639a6233dad941af28fff64ee30f629ba08114ebed762b2b5fde41b73ea",
+    "bytes": 2429076
+  },
+  "boosting": {
+    "sha256": "a6508fc8a600f5f22c20ca3015a94a6120ecb69b1009fe9b29da3e078625d227",
+    "bytes": 2357777
+  },
+  "pve": {
+    "sha256": "db8896110d9721e98bb73ef65cd4a0019abfa0b3b09f83c3f2715d22cede328d",
+    "bytes": 2455508
+  }
+}

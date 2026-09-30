@@ -127,6 +127,35 @@ test("rat response recalls miners, launches fighters, then recalls only its own 
   assert.deepEqual(calls.at(-1), ["launch", "miners", "ratMiners"]);
 });
 
+test("a new rat wave during fighter recall relaunches fighters, then restores miners", () => {
+  const ship={kind:"ship",itemID:10,grid:"belt"}, session={characterID:1,notifications:[],sendNotification(...args){this.notifications.push(args);}};
+  const fighter={itemID:200,ownerID:1,controllerID:10,droneCommand:"FIGHT"};
+  const rat=id=>({kind:"ship",itemID:id,nativeNpc:true,operatorKind:"asteroidBeltRat",grid:"belt"});
+  const entities=new Map([[300,rat(300)]]),calls=[];
+  const scene={dynamicEntities:entities,getPublicGridClusterKeyForEntity:e=>e.grid||"belt",getEntityByID:id=>entities.get(id)};
+  const native={isDroneEntity:d=>!!d?.droneCommand,DRONE_COMMAND_RETURN_BAY:"RETURN_BAY",
+    commandReturnBay(_,ids){calls.push(["recall",ids]);for(const id of ids)entities.get(id).droneCommand="RETURN_BAY";return {type:"dict",entries:[]};}};
+  const defense=createRatDefense("ignored",{native,drones:{requestGroup(_,__,___,____,group,kind){calls.push(["launch",group,kind]);return true;}}});
+  const state={enabled:true,droneClientReady:true,ratDefenseEnabled:true,characterID:1,shipID:10,
+    ratMiningGroupKey:"miners",ratFighterGroupKey:"fighters",launchDrones:true,droneGroupKey:"miners"};
+  defense.tick(session,state,scene,ship,1000);
+  const request=JSON.parse(session.notifications[0][2][0]);
+  defense.setGroups(session,state,{...request,miningIDs:[100],fighterIDs:[200]});
+  defense.tick(session,state,scene,ship,2000);
+  assert.deepEqual(calls.at(-1),["launch","fighters","ratFighters"]);
+  state.ratManagedFighterIDs.add(200);entities.set(200,fighter);entities.delete(300);
+  defense.tick(session,state,scene,ship,3000);defense.tick(session,state,scene,ship,8000);
+  assert.equal(fighter.droneCommand,"RETURN_BAY");
+  entities.set(301,rat(301));defense.tick(session,state,scene,ship,9000);
+  assert.equal(calls.filter(c=>c[0]==="launch"&&c[2]==="ratFighters").length,1);
+  entities.delete(200);defense.tick(session,state,scene,ship,10000);
+  assert.equal(calls.filter(c=>c[0]==="launch"&&c[2]==="ratFighters").length,2);
+  state.ratManagedFighterIDs.add(200);fighter.droneCommand="FIGHT";entities.set(200,fighter);entities.delete(301);
+  defense.tick(session,state,scene,ship,11000);defense.tick(session,state,scene,ship,16000);
+  entities.delete(200);defense.tick(session,state,scene,ship,17000);
+  assert.deepEqual(calls.at(-1),["launch","miners","ratMiners"]);
+});
+
 test("standard fighter group remains out after rats leave", () => {
   const fighter = { itemID: 200, ownerID: 1, controllerID: 10, droneCommand: "FIGHT" };
   const rat = { kind: "ship", nativeNpc: true, operatorKind: "asteroidBeltRat", grid: "belt" };

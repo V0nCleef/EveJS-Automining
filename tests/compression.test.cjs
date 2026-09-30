@@ -17,3 +17,14 @@ test("compression respects per-item facility access and skips already compressed
   assert.match(action(scene,{characterID:42},{itemID:100}),/waiting/);
   assert.equal(calls.length,1);
 });
+test("fleet compression targets the selected booster and never substitutes another active facility",()=>{
+  const calls=[],contexts=[];
+  const compress=createCompression("/fixture",file=>{
+    if(file.endsWith("inSpaceCompressionMgrService.js"))return class {Handle_CompressItemInSpace(args){calls.push(args);return [1];}};
+    if(file.endsWith("itemStore.js"))return {listContainerItems:()=>[{itemID:1,typeID:10,quantity:20}]};
+    return {isCompressibleType:()=>true,isCompressedType:()=>false,resolveInSpaceCompressionContext:(_,id)=>{contexts.push(id);return {success:id===102};}};
+  });
+  const scene={dynamicEntities:new Map([[101,{kind:"ship",itemID:101}],[102,{kind:"ship",itemID:102}]])};
+  assert.match(compress(scene,{characterID:42},{itemID:100},101),/waiting/);assert.deepEqual(contexts,[101]);assert.deepEqual(calls,[]);
+  compress(scene,{characterID:42},{itemID:100},102);assert.deepEqual(calls,[[1,102]]);
+});

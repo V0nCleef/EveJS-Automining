@@ -1,0 +1,78 @@
+"use strict";
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { createStatistics } = require("../lib/statistics");
+test("transport receipts are idempotent, resettable and never become mined yield", () => {
+  let now = 1000;
+  const session = { characterID: 42 };
+  const fleet = { fleetID: 7, members: new Map([[42, {}]]) };
+  const stats = createStatistics(null, { clock: () => now, getFleet: () => fleet });
+  assert.equal(stats.recordTransport(session, "receipt-1", "pickup", 150), true);
+  assert.equal(stats.recordTransport(session, "receipt-1", "pickup", 150), false);
+  assert.equal(stats.recordTransport(session, "delivery-1", "delivery", 150), true);
+  const total = stats.snapshot(session).totals;
+  assert.equal(total.volume, 0); assert.equal(total.units, 0);
+  assert.equal(total.collectedVolume, 150); assert.equal(total.deliveredVolume, 150);
+  assert.equal(total.pickups, 1); assert.equal(total.transportDeliveries, 1);
+  assert.equal(stats.snapshot(session, { view: "fleet" }).totals.collectedVolume, 150);
+  now += 1000; stats.resetRun(session);
+  assert.equal(stats.snapshot(session).totals.collectedVolume, 0);
+  assert.equal(stats.sessions(session).rows[0].totals.collectedVolume, 150);
+  assert.equal(stats.recordTransport(session, "bad", "pickup", -1), false);
+});
+test("temporary hauler contributions survive departure and stay in their original fleet", () => {
+  const anna={characterID:42}, bill={characterID:88}, jimbo={characterID:17};
+  const a={fleetID:7,members:new Map([[42,{}]])}, b={fleetID:8,members:new Map([[88,{}]])};
+  const stats=createStatistics(null,{getFleet:id=>[a,b].find(fleet=>fleet.members.has(id)),
+    getSession:()=>({}),characterName:id=>id===17?"Jimbo":String(id)});
+  a.members.set(17,{});
+  stats.recordTransport(jimbo,"A-pickup","pickup",150);
+  stats.recordTransport(jimbo,"A-delivery","delivery",150);
+  a.members.delete(17);
+  let result=stats.snapshot(anna,{view:"fleet"});
+  assert.equal(result.totals.deliveredVolume,150);
+  assert.equal(result.totals.transportDeliveries,1);
+  const former=result.members.find(row=>row.characterID===17);
+  assert.equal(former.inFleet,false);assert.equal(former.participated,true);
+  assert.equal(former.totals.collectedVolume,150);
+  assert.equal(stats.snapshot(jimbo,{view:"fleet"}).inFleet,false,"Former contribution does not grant fleet access");
+  b.members.set(17,{});
+  stats.recordTransport(jimbo,"B-pickup","pickup",50);
+  stats.recordTransport(jimbo,"B-delivery","delivery",50);
+  assert.equal(stats.snapshot(bill,{view:"fleet"}).totals.deliveredVolume,50);
+  assert.equal(stats.snapshot(anna,{view:"fleet"}).totals.deliveredVolume,150);
+  b.members.delete(17);a.members.set(17,{});
+  stats.recordTransport(jimbo,"A-return-pickup","pickup",25);
+  stats.recordTransport(jimbo,"A-return-delivery","delivery",25);
+  result=stats.snapshot(anna,{view:"fleet"});
+  assert.equal(result.totals.deliveredVolume,175);
+  assert.equal(result.members.find(row=>row.characterID===17).totals.deliveredVolume,175);
+  assert.equal(result.members.find(row=>row.characterID===17).inFleet,true);
+  assert.equal(stats.snapshot(jimbo).totals.deliveredVolume,225,"Pilot history spans all of their trips");
+  stats.resetRun(jimbo);
+  assert.equal(stats.snapshot(jimbo).totals.deliveredVolume,0);
+  assert.equal(stats.snapshot(anna,{view:"fleet"}).totals.deliveredVolume,175,"Personal reset cannot reset fleet contributions");
+  assert.equal(result.totals.volume,0,"Transport never becomes mined yield");
+});
+test("bounded former-contributor rows cannot drop cached operation totals or current pilots", () => {
+  const anna={characterID:42}, fleet={fleetID:7,members:new Map([[42,{}]])};
+  const stats=createStatistics(null,{getFleet:id=>fleet.members.has(id)?fleet:null});
+  stats.recordTransport(anna,"current","delivery",5);
+  for(let id=1000;id<1513;id++){
+    fleet.members.set(id,{});
+    stats.recordTransport({characterID:id},"delivery-"+id,"delivery",10);
+    fleet.members.delete(id);
+  }
+  const result=stats.snapshot(anna,{view:"fleet"});
+  assert.equal(result.totals.deliveredVolume,5135);
+  assert.equal(result.totals.transportDeliveries,514);
+  assert.equal(result.members.length,512);
+  assert.equal(result.contributorsTrimmed,2);
+  assert.equal(result.members[0].characterID,42);
+  assert.equal(result.members[0].inFleet,true);
+  assert.equal(result.members[0].totals.deliveredVolume,5);
+  assert.equal(result.members.some(row=>row.characterID===1000),false);
+  assert.equal(result.members.some(row=>row.characterID===1512),true);
+  const retainedRowsVolume=result.members.reduce((total,row)=>total+row.totals.deliveredVolume,0);
+  assert.equal(retainedRowsVolume,5115,"Only rows age out; cached totals retain both omitted deliveries");
+});

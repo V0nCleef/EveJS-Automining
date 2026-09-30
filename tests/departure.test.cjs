@@ -1,7 +1,7 @@
 "use strict";
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { createDeparture, installNavigation } = require("../lib/departure");
+const { createDeparture, createTransportArrival, installNavigation } = require("../lib/departure");
 const { createController } = require("../lib/controller");
 
 function fixture() {
@@ -26,6 +26,28 @@ function fixture() {
     run(proceed = () => { events.push("travel"); return 123; }) { return guard.run(session, proceed); } };
   f.add(1); return f;
 }
+
+test("industrial core blocks travel even with recall disabled and no drones", async () => {
+  const f = fixture(); f.drones.clear(); f.scene.droneEntityIDs.clear(); f.options.enabled = false;
+  let ready = false; f.controller.prepareDeparture = () => ready;
+  const pending = f.run();
+  assert.equal(f.guard.pending(f.session), true);
+  assert.equal(f.events.includes("travel"), false);
+  ready = true; await f.step();
+  assert.equal(await pending, 123);
+  assert.equal(f.events.includes("travel"), true);
+});
+
+test("replaced core-wait departure can never execute its old destination", async () => {
+  const f = fixture(); f.drones.clear(); f.scene.droneEntityIDs.clear();
+  let ready = false; f.controller.prepareDeparture = () => ready;
+  const old = f.run(() => f.events.push("old destination"));
+  const failed = assert.rejects(old, /replaced/);
+  const newer = f.run(() => f.events.push("new destination"));
+  ready = true; await f.step(); await failed; await newer;
+  assert.equal(f.events.includes("old destination"), false);
+  assert.equal(f.events.includes("new destination"), true);
+});
 
 test("armor retreat orders recall but issues warp immediately", () => {
   const f = fixture(); f.options.retreatLayer = "armor"; f.options.haulID = "emergency";
@@ -157,6 +179,20 @@ test("autopilot warp also waits for server-confirmed drone return", async () => 
   assert.equal(f.events.filter(x => x === "autopilot").length, 1);
 });
 
+test("industrial refusal cleanup runs after native results and preserves errors", async () => {
+  const f = fixture(); f.options.enabled = false;
+  f.controller.departureRefused = () => f.events.push("inspect native result");
+  class Service {
+    Handle_CmdWarpToStuff() { f.events.push("native warp"); throw Error("scrambled"); }
+    Handle_CmdDock() { f.events.push("native dock"); return Promise.reject(Error("access denied")); }
+  }
+  installNavigation(Service, f.controller, f.guard);
+  assert.throws(() => new Service().Handle_CmdWarpToStuff([], f.session), /scrambled/);
+  assert.deepEqual(f.events.slice(-2), ["native warp", "inspect native result"]);
+  await assert.rejects(new Service().Handle_CmdDock([], f.session), /access denied/);
+  assert.deepEqual(f.events.slice(-2), ["native dock", "inspect native result"]);
+});
+
 test("fleet warp waits for follower recall before issuing the commander command", async () => {
   const leader = { characterID: 1 }, member = { characterID: 2 };
   const calls = [];
@@ -189,6 +225,19 @@ test("fleet commander cannot pull a member away with drones still outside", asyn
   assert.equal(f.events.filter(event => event === "fleet warp").length, 1);
 });
 
+test("refused follower preparation never starts the commander fleet warp", async () => {
+  const leader = { characterID: 1 }, member = { characterID: 2 };
+  let nativeCalls = 0;
+  const refusal = { error: "recall refused" };
+  const guard = { fleetFollowers: () => [member], cancel() {},
+    run: (session, proceed) => session === member ? Promise.resolve(refusal) : proceed() };
+  const controller = { departureOptions: () => ({ hauling: false }), cancelHaul() {} };
+  class Service { Handle_CmdWarpToStuff() { nativeCalls++; return "warped"; } }
+  installNavigation(Service, controller, guard);
+  assert.equal(await new Service().Handle_CmdWarpToStuff(["station", 600], leader, { fleet: true }), refusal);
+  assert.equal(nativeCalls, 0);
+});
+
 test("controller exposes independent recall setting and suspends planning until departure finishes", () => {
   const ship = { itemID: 10, kind: "ship" }, session = { characterID: 42, shipID: 10 };
   const scene = { sessions: new Map([[42, session]]), getShipEntityForSession: () => ship };
@@ -206,4 +255,38 @@ test("controller exposes independent recall setting and suspends planning until 
   controller.command(session, { action: "on" }); ship.dockingTargetID = 600;
   controller.tick(scene, 2000);
   assert.match(controller.snapshot(session).status, /Paused during travel/);
+});
+
+test("scoped pickup planner preserves ordinary native calls errors and receiver and consumes only once",()=>{
+ const session={},other={},calls=[],nativeError=Error("native warp rejected");
+ const prototype={warpToPoint(...args){assert.equal(this,scene);calls.push(args);if(args[1].reject)throw nativeError;return 42;}};
+ const scene=Object.create(prototype),scope=createTransportArrival({transportWarpPoint(s,p,actual,point,options){
+   assert.equal(s,session);assert.equal(actual,scene);assert.equal(p,"permit");return {point:{x:7},options:{...options,stopDistance:0}};
+ }});scope.attach(prototype);scope.attach(prototype);
+ const ordinary={x:1};assert.equal(scene.warpToPoint(session,ordinary,{stopDistance:1000}),42);assert.equal(calls.at(-1)[1],ordinary);
+ scope.run(session,"permit",()=>{
+   scene.warpToPoint(other,ordinary,{stopDistance:1000});assert.equal(calls.at(-1)[1],ordinary);
+   scene.warpToPoint(session,ordinary,{targetEntityID:9,stopDistance:1000});assert.deepEqual(calls.at(-1)[1],{x:7});assert.equal(calls.at(-1)[2].stopDistance,0);
+   assert.throws(()=>scene.warpToPoint(session,ordinary,{}),/changed/);
+ });
+ assert.throws(()=>scene.warpToPoint(session,{reject:true},{}),e=>e===nativeError);
+});
+
+test("pickup scope revokes authorization after return or error including inherited deferred callbacks",async()=>{
+ const session={},calls=[],prototype={warpToPoint(s,point){calls.push(point);return point;}};
+ const scene=Object.create(prototype),scope=createTransportArrival({transportWarpPoint:()=>({point:{changed:true},options:{}})});scope.attach(prototype);
+ let deferred;
+ scope.run(session,{},()=>{deferred=Promise.resolve().then(()=>scene.warpToPoint(session,{ordinary:true}));});
+ await deferred;assert.deepEqual(calls,[{ordinary:true}]);
+ assert.throws(()=>scope.run(session,{},()=>{throw Error("native rejection");}),/native rejection/);
+ assert.deepEqual(scene.warpToPoint(session,{ordinary:true}),{ordinary:true});
+});
+
+test("nested pickup scopes keep permits isolated and restore the outer invocation",()=>{
+ const session={},calls=[],prototype={warpToPoint(s,point){calls.push(point);}};
+ const scene=Object.create(prototype),scope=createTransportArrival({transportWarpPoint:(s,p)=>({point:{permit:p},options:{}})});scope.attach(prototype);
+ scope.run(session,"outer",()=>{
+   scope.run(session,"inner",()=>scene.warpToPoint(session,{},{}));
+   scene.warpToPoint(session,{},{});
+ });assert.deepEqual(calls,[{permit:"inner"},{permit:"outer"}]);
 });

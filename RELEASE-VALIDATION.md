@@ -1,37 +1,29 @@
-# AutoMining 1.0.10 recall compatibility
+# AutoMining 1.2.14 release validation
 
-The published 1.0.9 loader loses its manual warp, dock and autopilot recall
-wrappers when autopilotJumpZero compiles the movement service directly. The
-new compatibility gate reproduces that failure against the 1.0.9 release ZIP.
+Validated on 30 September 2026. The user confirmed the installed 1.2.14 build working in Native EveJS 0.12.9 with EVE client 3396210, including the escort stopping when its final eligible fleetmate leaves the grid.
 
-Version 1.0.10 attaches the guard after the service compiles and reports a
-startup error if required travel handlers are missing. Read-only native loads
-pass on EveJS 0.12.8 and official 0.12.9; the 0.12.9 check passes with
-autopilotJumpZero loaded both before and after AutoMining. The 15 focused
-departure tests pass. No stress fixture or performance checker is packaged.
+## Package provenance
 
-The user confirmed the same loader fix in game on local AutoMining 1.2.11.
-The 1.0.10 public ZIP has not received a separate in-game test.
+The public ZIP contains 64 production files from the exact installed and tested 1.2.14 freeze. Only README.md changes for public documentation. Code, translations, approved artwork and delivery assets remain byte-identical. Tests, private logs, player configuration, databases and development tooling are excluded from the install ZIP.
 
----
+- Public asset: `AutoMining-1.2.14.zip`
+- SHA-256: `634f4295baa28ed57529926d8b68caf8a8691e2bf5e054bf435aaa3ed7daaa97`
+- Bytes: 10,105,041
+- The matching `.zip.sha256` and `.update.json` are release assets.
 
-# Release acceptance — 2026-09-19
+## Automated checks
 
-The user installed the final Launcher 1.0.61 and AutoMining 1.0.7 pair and
-confirmed it working in the Native game. Earlier checks covered the settings
-window, saved preferences, locking/mining, survey after warp and Stop.
-This confirmation applies to the exact package hashes below. The ZIPs were
-not rebuilt after acceptance. Bundled candidate/verification wording records
-the earlier packaging checkpoint; this record and the release notes supersede
-that checkpoint's pending-release status.
+- 423 Node unit checks pass across the 44 self-contained suites, covering Mining, Hauling, Boosting, PVE, inventory admission, profiles, fleet coordination, drone/rat transitions, statistics and delivery.
+- Three older test fixtures were updated for explicit current defaults, saved Boosting profiles and Mining/fleet-hangar compression waiting. No production changes were needed.
+- Authored HUD behavior, artwork-cache/RPC checks and complete nine-language emission checks pass. These use native UI stand-ins and do not prove GPU rendering.
+- The public loader passes the actual 0.12.9 passive native service harness with filesystem writes blocked and no running world tick.
+- Earlier checks on this identical production freeze include 112 focused Node checks, 16 login companion and 10 PVE client checks, Python 2.7-compatible grammar and production JavaScript syntax.
+- Joint delivery with the installed Launcher menu bridge measures 261,915 / 262,144 bytes with the fixture token. Artwork transfers separately; future bootstrap changes must recheck that narrow headroom.
 
-Automated validation: 28 synthetic helper/Launcher transition cases, 83
-AutoMining Node checks, 11 authored Python lifecycle tests and 15 generic
-client-preparation tests passed, alongside focused Launcher, guide and updater
-checks. Synthetic backend switching is covered; live Docker gameplay was not
-tested for this release. The in-game window starter is an integration example,
-not a separately live-tested mod.
+The legacy mining-compatibility suite requires separate reviewed original/patched EveJS fixtures and is not included in the 423 check count. Live Docker gameplay and fresh live 0.12.8 coverage were not performed. Manifest support is separate from current live confirmation.
 
-- `EveJS-Launcher-V1.zip`: `ef9798de056d0372ad4af75b418cf09b270117217f01c64d650cb3f4725cb13e`
-- `EveJS-Launcher-Source-1.0.61.zip`: `ba047239aed53d5ffabe230f67dae8be6d4cbdec1a2f277bf290175be03a461a`
-- `AutoMining-1.0.7.zip`: `81981285a4e5089b3a1c97c3ea0b7de4778a41f255500cd081e747fbc2d31d7a`
+## Update and rollback
+
+Stop clients/server before updating. Preserve character settings, fleet presets, statistics and Launcher profile preferences. Update through Launcher Mods or Add ZIP, restart the server and reconnect clients. Restore the previous mod version with the preserved data if rollback is needed.
+
+The promo uses a user-supplied recording of the installed menu. Editorial captions explain available features; they do not add controls or redesign the HUD.

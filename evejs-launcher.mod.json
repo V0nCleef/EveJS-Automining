@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "id": "automining",
   "displayName": "AutoMining",
-  "version": "1.0.10",
-  "description": "Automatic mining with fleet mining boosts, optional mining and combat drone orders, ordered ore filters and ore-hold hauling.",
+  "version": "1.2.14",
+  "description": "Mining, hauling, boosting and PVE jobs, fleet escorts and reinforcement standby, native ammo restocking, fleet ore reception and pilot/fleet statistics.",
   "kind": "loader",
   "supportedBackends": [
     "native",
@@ -21,7 +21,7 @@
   },
   "launcherApi": {
     "version": 1,
-    "minLauncherVersion": "1.0.61",
+    "minLauncherVersion": "1.0.69",
     "helper": {
       "runtime": "node",
       "path": "helper.js"
@@ -172,5 +172,9 @@
         "restart": "client"
       }
     ]
+  },
+  "clientMenu": {
+    "apiVersion": 1,
+    "entrypoint": "client/menu.py"
   }
 }

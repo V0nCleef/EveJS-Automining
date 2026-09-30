@@ -195,5 +195,56 @@ class ClientTests(unittest.TestCase):
         self.assertIs(f.scope['_am_haul_job'], f.job)
 
 
+
+class FuelFixture(Fixture):
+    def __init__(self, problem=None):
+        super().__init__(problem=problem)
+        self.trip['phase'] = 'resupplying'
+        self.trip['fuel'] = {'transfers': [{'itemID': 88, 'sourceLocationID': 777, 'quantity': 20, 'flagID': 133}]}
+        self.session.stationid = 600
+        self.session.solarsystemid = None
+        self.polls = 0
+
+    def AutoMiningHaulAction(self, token, action, reason):
+        if action == 'poll':
+            self.polls += 1
+            if self.problem == 'cancel-fuel' and self.polls > 1:
+                self.trip['phase'] = 'idle'
+        if action == 'resupplied':
+            self.events.append(('rpc', action))
+            if self.problem == 'unconfirmed-fuel':
+                return json.dumps(dict(success=False, message='Fuel not confirmed'))
+            self.trip['phase'] = 'undocking'
+            return json.dumps(dict(success=True, trip=self.trip))
+        return super().AutoMiningHaulAction(token, action, reason)
+
+    def Add(self, item, source, **kwargs):
+        assert self.session.stationid == 600
+        self.events.append(('fuel-transfer', item, source, kwargs))
+
+    def ExitDockableLocation(self):
+        assert ('rpc', 'resupplied') in self.events
+        self.events.append('undock')
+        self.session.stationid = None
+        self.session.solarsystemid = 31
+        self.trip['phase'] = 'inbound'
+
+
+class FuelClientTests(unittest.TestCase):
+    def test_resupply_uses_native_bounded_add_then_verified_confirmation(self):
+        f = FuelFixture(); f.run()
+        self.assertIn(('fuel-transfer', 88, 777, {'qty': 20, 'flag': 133}), f.events)
+        self.assertIn(('rpc', 'resupplied'), f.events)
+        self.assertIn(('rpc', 'complete'), f.events)
+        self.assertEqual(f.route, [999])
+
+    def test_unconfirmed_or_cancelled_resupply_stays_docked(self):
+        for problem in ('unconfirmed-fuel', 'cancel-fuel'):
+            f = FuelFixture(problem); f.run()
+            self.assertEqual(f.session.stationid, 600)
+            self.assertNotIn('undock', f.events)
+            if problem == 'cancel-fuel':
+                self.assertFalse(any(isinstance(x, tuple) and x[0] == 'fuel-transfer' for x in f.events))
+
 if __name__ == '__main__':
     unittest.main()

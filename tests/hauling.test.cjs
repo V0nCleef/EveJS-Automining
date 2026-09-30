@@ -229,3 +229,37 @@ test("destination discovery scopes personal containers and corporation divisions
   assert.equal(d.search("Home Upwell", { characterID: 43 }).stations.length, 0);
   assert.throws(() => d.resolveStationIDs([9001], { characterID: 43 }), /existing station/);
 });
+
+test("fuel-only trip accepts empty orehold and confirms resupply before undocking", () => {
+  const f = fixture(); f.s.haulEnabled = false; f.empty(); let fuelQuantity = 0;
+  f.destinations.fuelPlan = () => ({ requiredUnits: 20, transfers: [{ itemID: 88, quantity: 20, flagID: 133, sourceLocationID: 600 }] });
+  f.destinations.fuelQuantity = () => fuelQuantity;
+  assert.equal(f.hauling.begin(f.session, f.s, f.scene, f.ship, null, { purpose: "fuel", fuel: { stationID: 600, storageKey: "personal", typeID: 16272, targetUnits: 20 } }), true);
+  f.dock(); f.action("poll"); assert.equal(f.s.haul.phase, "resupplying");
+  assert.throws(() => f.action("resupplied"), /could not be confirmed/);assert.equal(f.s.haul.phase, "resupplying");
+  fuelQuantity = 20; f.action("resupplied"); assert.equal(f.s.haul.phase, "undocking");
+});
+test("same-station fuel trip unloads ore first then restocks without losing return anchor", () => {
+  const f = fixture(); f.destinations.fuelPlan = () => ({ requiredUnits: 20, transfers: [] });
+  const fuel = { stationID: 600, storageKey: "personal", typeID: 16272, targetUnits: 20 };
+  f.hauling.begin(f.session,f.s,f.scene,f.ship,{flagID:134,full:false},{purpose:"fuel",fuel});f.dock();f.action("poll");
+  assert.equal(f.s.haul.phase,"unloading");f.deposit();f.action("unloaded");assert.equal(f.s.haul.phase,"resupplying");
+  assert.deepEqual(f.s.haul.origin,{systemID:30,x:100,y:200,z:300});
+});
+test("Defense escalation invalidates fuel token and remains docked after ore unloading", () => {
+  const f=fixture();f.begin();const old=f.s.haul.id;
+  assert.equal(f.hauling.escalateDefense(f.session,f.s,f.scene,f.ship,{flagID:134},{layer:"shield"}),true);
+  assert.notEqual(f.s.haul.id,old);assert.throws(()=>f.hauling.action(f.session,f.s,old,"complete"),/no longer active/);
+  f.dock();f.action("poll");f.deposit();f.action("unloaded");assert.equal(f.s.enabled,false);assert.equal(f.s.haul,null);
+});
+
+test("combined trip keeps separate ore destination and fuel source storage", () => {
+  const f = fixture();
+  const oreStorage = { key: "personal", ownerID: 42, locationID: 600, flagID: 4 };
+  const fuelSource = { key: "container:88", ownerID: 42, locationID: 88, flagID: 0 };
+  f.destinations.storage = (_,id,key) => { assert.equal(id,600); return key === "personal" ? oreStorage : fuelSource; };
+  f.destinations.fuelPlan = (_,ship,fuel) => { assert.equal(fuel.storageKey,"container:88"); return { source: fuelSource, requiredUnits:20, transfers: [{ itemID:9,sourceLocationID:88,quantity:20,flagID:133 }] }; };
+  f.hauling.begin(f.session,f.s,f.scene,f.ship,{flagID:134,full:false},{purpose:"fuel",fuel:{stationID:600,storageKey:"container:88",typeID:16272,targetUnits:20}});
+  assert.equal(f.s.haul.storage.key,"container:88");f.dock();f.action("poll");assert.equal(f.s.haul.storage.key,"personal");
+  f.deposit();f.action("unloaded");assert.equal(f.s.haul.storage.key,"container:88");assert.equal(f.hauling.view(f.s).fuel.transfers[0].sourceLocationID,88);
+});

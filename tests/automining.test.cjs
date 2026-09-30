@@ -491,7 +491,21 @@ test("preferences survive a new store/login without enabling automation", () => 
       defenseEnabled: false, defenseShieldEnabled: true, defenseShieldThreshold: 30, defenseArmorEnabled: false, defenseArmorThreshold: 30,
       recallDrones: true, launchDrones: false, droneGroupKey: "",
       mineDrones: false, mineDroneOrder: "nearest", mineDroneMode: "spread",
-      autoBoost: false, inviteFleet: false, ratDefenseEnabled: false, ratMiningGroupKey: "", ratFighterGroupKey: "" });
+      autoBoost: false, inviteFleet: false, ratDefenseEnabled: false, ratMiningGroupKey: "", ratFighterGroupKey: "",
+      oreMode: "leave", stackOreHold: true, stackFleetHangar: true, jettisonAbandon: false, jettisonCan: null,
+      coreEnabled: false, compressorEnabled: false, coreIntervals: {}, compressorIntervals: {},
+      fuelEnabled: false, fuelStationID: 0, fuelStorageKey: "personal", fuelReserveCycles: 2, fuelTargetCycles: 20,
+      fuelUseCargo: false, actionNotifications: true,
+      receiveFleetOre: false, receiveFleetAcceptCompressed: true, receiveFleetAcceptUncompressed: true,
+      shipRole: "boosting", job: "mining", jobProfiles: {}, pickupStyle: "binFirst",
+      fleetEnabled: false, fleetMode: "manual", fleetGroupID: "",
+      pveMode: "belt", pveBeltID: 0, pveFleetID: 0, pveAnchorID: 0, pveHomeStationID: 0, pveMaxJumps: 2,
+      pveFireMode: "focus", pvePriority: "strongest", pveOrbitOverride: 0,
+      pveDronesEnabled: false, pveDroneGroupKey: "", pveInterrupted: false,
+      pveAmmoRestock: true, pveAmmoTargets: {}, pveAmmoSourceKey: "personal",
+      reinforcementAutoCall: false, reinforcementResponderLimit: 1,
+      transportEnabled: false, transportStationID: 0, transportStorageKey: "personal",
+      transportThreshold: 95, transportIdleSeconds: 60, transportInterrupted: false });
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 test("mixed crystal eligibility finds separate rocks when a greedy assignment would share", () => {

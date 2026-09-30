@@ -39,6 +39,8 @@ function load(diskSource) {
       if (id === './lib/haulDestinations') return { createHaulDestinations: () => ({}) };
       if (id === './lib/departure') return { createNativeDeparture: () => ({}), installNavigation() {} };
       if (id === './lib/commands') return {};
+      if (id === './lib/statistics') return { createStatistics: () => ({ attachLedger: () => true }) };
+      if (id === './lib/activity') return { createActivity: () => ({}) };
       throw Error(`Unexpected dependency ${id}`);
     },
   };
