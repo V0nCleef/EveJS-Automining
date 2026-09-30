@@ -7,7 +7,7 @@ Validated on 30 September 2026. The user confirmed the installed 1.2.14 build wo
 The public ZIP contains 64 production files from the exact installed and tested 1.2.14 freeze. Only README.md changes for public documentation. Code, translations, approved artwork and delivery assets remain byte-identical. Tests, private logs, player configuration, databases and development tooling are excluded from the install ZIP.
 
 - Public asset: `AutoMining-1.2.14.zip`
-- SHA-256: `634f4295baa28ed57529926d8b68caf8a8691e2bf5e054bf435aaa3ed7daaa97`
+- SHA-256: `945234c6a75de5cc35ebfc26882d14328cebfdc3a677b760444a1190f392cd56`
 - Bytes: 10,105,041
 - The matching `.zip.sha256` and `.update.json` are release assets.
 
@@ -26,4 +26,4 @@ The legacy mining-compatibility suite requires separate reviewed original/patche
 
 Stop clients/server before updating. Preserve character settings, fleet presets, statistics and Launcher profile preferences. Update through Launcher Mods or Add ZIP, restart the server and reconnect clients. Restore the previous mod version with the preserved data if rollback is needed.
 
-The promo uses a user-supplied recording of the installed menu. Editorial captions explain available features; they do not add controls or redesign the HUD.
+The promo remains private for user review and is not included in the public release.

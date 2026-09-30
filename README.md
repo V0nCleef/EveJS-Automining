@@ -4,9 +4,7 @@
 
 [**Download AutoMining 1.2.14**](https://github.com/V0nCleef/EveJS-Automining/releases/tag/v1.2.14)
 
-[![Watch the AutoMining promo — actual in-game menu](https://raw.githubusercontent.com/V0nCleef/EveJS-Automining/main/docs/promo-poster.jpg)](https://github.com/V0nCleef/EveJS-Automining/releases/download/v1.2.14/AutoMining-1.2.14-promo-1080p.mp4)
 
-**[Watch the promo](https://github.com/V0nCleef/EveJS-Automining/releases/download/v1.2.14/AutoMining-1.2.14-promo-1080p.mp4)** · [Smaller sharing copy](https://github.com/V0nCleef/EveJS-Automining/releases/download/v1.2.14/AutoMining-1.2.14-promo-share.mp4) · [Text transcript](https://github.com/V0nCleef/EveJS-Automining/blob/main/docs/promo-transcript.md). Recorded from the current installed menu, with explanatory captions and original music.
 
 | Mining | Hauling | Boosting | PVE |
 | --- | --- | --- | --- |
