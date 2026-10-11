@@ -4,6 +4,8 @@
 
 [**Download AutoMining 1.2.15**](https://github.com/V0nCleef/EveJS-Automining/releases/tag/v1.2.15)
 
+[**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
+
 | Mining | Hauling | Boosting | PVE |
 | --- | --- | --- | --- |
 | ![Hulk — Mining](assets/jobs/mining.png) | ![Miasmos — Hauling](assets/jobs/hauling.png) | ![Orca — Boosting](assets/jobs/boosting.png) | ![Raven — PVE](assets/jobs/pve.png) |
