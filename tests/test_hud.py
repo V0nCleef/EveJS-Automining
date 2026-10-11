@@ -35,7 +35,7 @@ class Window:
     def ApplyAttributes(self,attrs):self.content=Widget();self.destroyed=False
     def Close(self):self.destroyed=True
     def SetCaption(self,value):self.caption=value
-module('carbonui',uiconst=ns(**{name:name for name in ['SCOPE_INGAME','TOTOP','TOBOTTOM','TOLEFT_PROP','TOPLEFT','TOPRIGHT','TORIGHT','TOALL','CENTER','CENTERLEFT','CENTERRIGHT','UI_HIDDEN','UI_NORMAL','UI_DISABLED','YESNO','ID_YES']}))
+module('carbonui',uiconst=ns(**{name:name for name in ['SCOPE_INGAME','TOTOP','TOBOTTOM','TOLEFT','TOLEFT_PROP','TOPLEFT','TOPRIGHT','TORIGHT','TOALL','CENTER','CENTERLEFT','CENTERRIGHT','UI_HIDDEN','UI_NORMAL','UI_DISABLED','YESNO','ID_YES']}))
 module('carbonui.control.window',Window=Window)
 for name,cls in [('tabGroup','TabGroup'),('button','Button'),('checkbox','Checkbox'),('combo','Combo'),('singlelineedits.singleLineEditText','SingleLineEditText'),('singlelineedits.singleLineEditInteger','SingleLineEditInteger')]:module('carbonui.control.'+name,**{cls:Widget})
 module('carbonui.primitives.container',Container=Widget)
@@ -158,7 +158,7 @@ assert 'smallest to largest' in w.priorityHint.text
 w.Refresh(True);assert w.orderEdit.GetValue()=='largest'
 assert len(w.availableScroll.entries)==7 and not w.selectedScroll.entries
 assert all(entry.fontsize == 15 and entry.vspace == 10 for entry in w.availableScroll.entries)
-assert [tab[0] for tab in w.tabs.tabs] == ['Mining', 'Mining drones', 'Mining Filter', 'Drones', 'Defense', 'Boosters', 'Ore handling', 'Statistics', 'Hauling', 'Jobs', 'PVE', 'Fleet']
+assert [tab[0] for tab in w.tabs.tabs] == ['Mining', 'Mining drones', 'Mining Filter', 'Drones', 'Defense', 'Boosters', 'Ore handling', 'Statistics', 'Hauling', 'Jobs', 'PVE', 'Fleet', 'Fleet Command']
 assert w.availableScroll.parent.parent.parent.parent is w.tabs.tabs[2][1]
 # The native ScrollContainer redirects directly parented controls into its
 # auto-sized content. Parenting to mainCont bypasses that redirection and
@@ -167,7 +167,7 @@ assert w._toggles['lock'].parent.parent.parent is w.tabs.tabs[0][1]
 assert w._toggles['mineDrones'].parent is w.tabs.tabs[1][1]
 assert w.oreModeEdit.parent is w.tabs.tabs[6][1]
 assert w._toggles['defenseEnabled'].parent is w.tabs.tabs[4][1]
-assert len(w.tabs.buttons) == 12
+assert len(w.tabs.buttons) == 13
 assert w.statusLabel.fontsize == 16
 assert w.notice.fontsize == 15
 assert w._toggles['mineDrones'].GetValue() is False
@@ -266,7 +266,7 @@ print('PASS: Boosters tab and separate rat-response drone groups save through th
 
 session.languageID='ZH'
 chinese=cls();chinese.ApplyAttributes({})
-assert [tab[0] for tab in chinese.tabs.tabs] == ['采矿','采矿无人机','采矿筛选','无人机','防御','增效','矿石处理','统计',scope['_am_tr']('Hauling'),scope['_am_tr']('Jobs'),scope['_am_tr']('PVE'),scope['_am_tr']('Fleet')]
+assert [tab[0] for tab in chinese.tabs.tabs] == ['采矿','采矿无人机','采矿筛选','无人机','防御','增效','矿石处理','统计',scope['_am_tr']('Hauling'),scope['_am_tr']('Jobs'),scope['_am_tr']('PVE'),scope['_am_tr']('Fleet'),scope['_am_tr']('Fleet Command')]
 assert chinese.notice.text.startswith('应用将保存')
 assert chinese._toggles['launchDrones'].text == '抵达后发射无人机'
 assert scope['_am_status']('Paused for warp; resumes at a mining location.') == '跃迁期间暂停；抵达采矿地点后继续。'
@@ -426,6 +426,8 @@ print('PASS: isolated fuel picker, feature drafts/defaults, setting search, fitt
 # The old lambda i=index hid every page when called with the native Button.
 assert quick.settingSearch.hintText=='Find a setting for this job...'
 for index,(row,marker) in enumerate(quick.tabs.buttons):
+    if index == 12:continue
+    if index == 12:continue
     quick.SelectJobDraft({5:'boosting',8:'hauling',10:'pve'}.get(index,'mining'))
     assert row.align=='TOPLEFT' and row.height==38
     assert row.state in ('UI_NORMAL','UI_HIDDEN')
@@ -434,7 +436,7 @@ for index,(row,marker) in enumerate(quick.tabs.buttons):
     assert quick.tabs.backgrounds[index].bgParent is row
     row.OnClick(row)
     assert quick._page==quick.tabs.tabs[index][3]
-    assert [panel.state for _,panel,_,_ in quick.tabs.tabs]==['UI_NORMAL' if i==index else 'UI_HIDDEN' for i in range(12)]
+    assert [panel.state for _,panel,_,_ in quick.tabs.tabs]==['UI_NORMAL' if i==index else 'UI_HIDDEN' for i in range(13)]
     assert marker.color[-1]>0 and quick.tabs.labels[index].color[-1]==1.0
     assert quick.tabs.backgrounds[index].color[-1]==0.3
 active=quick.tabs.index
@@ -1170,3 +1172,95 @@ assert not lazy.availableScroll.entries
 lazy.availableSearch.SetValue('');lazy.Search()
 assert len(lazy.availableScroll.tiles)==len(icon_catalog)
 print('PASS: Jobs art is above the opaque fill; unrelated pages defer filter icons; ore clicks retain available tiles; priority changes create no widgets.')
+
+# Discoverability belongs to the current character and only clears after the
+# separate native window opens successfully. Ordinary refreshes make no RPC.
+seen_by_character={};pulse_calls=[]
+scope['settings']=ns(char=ns(ui=ns(
+    Get=lambda key,default=False:seen_by_character.get((session.charid,key),default),
+    Set=lambda key,value:seen_by_character.__setitem__((session.charid,key),value))))
+sys.modules['carbonui'].uiconst.ANIM_WAVE='wave'
+module('carbonui.uianimations',animations=ns(FadeTo=lambda widget,**kw:pulse_calls.append((widget,kw))))
+attention=cls();attention.ApplyAttributes({})
+attention.ShowResponse(dict(agency_snapshot,canStopFleet=True),True)
+assert attention.tabs.order[0]==12 and attention._fleetCommandPulse
+assert pulse_calls[-1][1]['loops']==-1 and pulse_calls[-1][1]['curveType']=='wave'
+attention.tabs.Layout(1500,40)
+assert attention.tabs.buttons[12][0].left==8
+before=len(pulse_calls);rpc_count=len(calls)
+attention.ConfigureJobNavigation();attention.ConfigureJobNavigation()
+assert len(pulse_calls)==before and len(calls)==rpc_count
+attention.Request=lambda *args:(_ for _ in ()).throw(RuntimeError('Cannot open'))
+attention.OpenFleetCommand()
+assert attention._fleetCommandPulse and not seen_by_character
+scope['_am_fleet_command_class']=ns(Open=lambda:True)
+page=attention.tabs.index;attention.OpenFleetCommand()
+assert not attention._fleetCommandPulse and attention.tabs.labels[12].opacity==1.0
+assert attention.tabs.index==page and seen_by_character[(session.charid,'autoMiningFleetCommandSeen')]
+reopened=cls();reopened.ApplyAttributes({});reopened.ShowResponse(dict(agency_snapshot,canStopFleet=True),True)
+assert not reopened._fleetCommandPulse
+session.charid+=1
+other=cls();other.ApplyAttributes({});other.ShowResponse(dict(agency_snapshot,canStopFleet=True),True)
+assert other._fleetCommandPulse
+other.ShowResponse(dict(agency_snapshot,canStopFleet=False))
+assert not other._fleetCommandPulse and other.tabs.buttons[12][0].state=='UI_HIDDEN'
+session.charid-=1
+scope.pop('_am_fleet_command_class');scope.pop('settings');sys.modules.pop('carbonui.uianimations')
+print('PASS: Fleet Command is first for the leader; a single gentle pulse persists through refresh and failed opens, stops after a successful open, stays stopped on reopen, and remains separate per character.')
+
+# The command window inherits the same filter builder, picker and handlers;
+# orders use its own draft while the main window and personal filter stay put.
+scope['_am_window_class']=cls
+scope['_AM_FLEET_LOCALES']=json.loads((root/'client/fleetCommand.locales.json').read_text(encoding='utf-8'))
+exec((root/'client/fleetCommand.py').read_text(encoding='utf-8'),scope)
+command_cls=scope['_am_fleet_command_class']
+assert command_cls.BuildOreFilter is cls.BuildOreFilter and command_cls.DrawLists is cls.DrawLists
+command=command_cls();command.ApplyAttributes({})
+command.Show(dict(pilots=[dict(characterID=42,name='Test Commander',online=True,job='mining',enabled=False,
+    ores=['scordite'],override=False)],orders=[],catalog=icon_catalog))
+command.SelectCommandPage('filter',False)
+personal=list(lazy._selected)
+tile=next(tile for tile,bg,node in command.availableScroll.tiles if node.oreKey=='veldspar')
+tile.OnClick(tile)
+assert command._selected==['veldspar'] and lazy._selected==personal
+assert '(group)' in command._catalog['veldspar'] and 'III' not in command.ActiveOreLabel('veldspar',command._catalog['veldspar'])
+assert 'II &gt; base' in command.selectedScroll.entries[0].label
+command.AddOreKeys(['scordite']);command.selectedScroll.selected=[command.selectedScroll.entries[1]];command.MoveOreUp()
+assert command._selected==['scordite','veldspar']
+command.selected={42};sent=[]
+def command_rpc(method,raw):
+    request=json.loads(raw);sent.append(request)
+    return dict(pilots=command.rows,orders=[dict(action='filter',at=1000000,ores=request['ores'],results=[
+        dict(characterID=42,name='Test Commander',result='applied')])],order=dict(results=[dict(result='applied')]))
+command.Request=command_rpc;command.SendWork('filter')
+assert sent[0]['ores']==['scordite','veldspar'] and command._selected==['scordite','veldspar']
+assert any('Test Commander: Filter applied' in getattr(widget,'text','') for widget in widgets)
+assert command.PilotName(dict(characterID=123456,name=''))=='Unknown pilot'
+command.ClearFilter();assert not command._selected and not command.selectedScroll.entries
+assert lazy._selected==personal
+print('PASS: Fleet Command uses the identical native filter builder and tiles, localized groups/base artwork and grade priorities; selection/reordering sends an independent draft, and order logs show names and readable results.')
+
+# Temporary mining values render in the normal controls, while Apply continues
+# to send only personal preferences, even when another page has unsaved edits.
+recipient=cls();recipient.ApplyAttributes({})
+personal_settings=dict(state['settings'],job='mining',ores=['scordite'],approach=False,survey=False,compress=False,order='nearest',surveySeconds=60)
+base=dict(agency_snapshot,settings=personal_settings,revision='orders1',catalog=icon_catalog)
+recipient.ShowResponse(base,True)
+override=dict(leader='Test Commander',values=dict(ores=['veldspar'],approach=True,lock=True,order='furthest',survey=True,compress=True,surveySeconds=90))
+recipient.ShowResponse(dict(base,fleetOverride=override,fleetFilter=['veldspar']))
+assert recipient._selected==['veldspar'] and recipient._toggles['approach'].GetValue()
+assert recipient.orderEdit.GetValue()=='furthest' and recipient.timerEdit.GetValue()==90
+assert recipient._toggles['approach'].state=='UI_DISABLED'
+assert set(recipient._fleetOrderNotices)=={0,2}
+assert 'Test Commander' in recipient._fleetOrderNotices[0][1].text
+assert recipient.ReadSettings()['ores']==['scordite'] and not recipient.ReadSettings()['approach']
+recipient.AddOreKeys(['scordite']);assert recipient._selected==['veldspar']
+recipient.stackOreHold.SetChecked(False);recipient.Changed()
+recipient.ShowResponse(dict(base,fleetOverride=override,fleetFilter=['veldspar']))
+assert not recipient.ReadSettings()['stackOreHold'] and recipient.ReadSettings()['surveySeconds']==60
+recipient.ShowResponse(dict(base,fleetOverride=None,fleetFilter=None))
+assert recipient._selected==['scordite'] and not recipient._toggles['approach'].GetValue()
+assert recipient.timerEdit.GetValue()==60 and recipient._toggles['approach'].state=='UI_NORMAL'
+assert all(box.state=='UI_HIDDEN' for box,title,detail in recipient._fleetOrderNotices.values())
+assert not recipient.ReadSettings()['stackOreHold']
+print('PASS: recipient notices name the commander, show effective values, protect controlled editors and filters, preserve personal Apply values and unrelated drafts, and restore controls when orders end.')

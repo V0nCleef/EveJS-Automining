@@ -47,6 +47,7 @@ _AM_MODE_NAMES = {
 
 
 _AM_ZH = {
+    'Fleet Command': u'舰队指挥',
     'Connecting to AutoMining...': u'正在连接 AutoMining…',
     'Start / Resume': u'启动 / 继续', 'Stop': u'停止',
     'On / Off is saved per character': u'每个角色单独保存开关状态',
@@ -1001,4 +1002,9 @@ _AM_ZH.update({
 _AM_ZH.update({
     'Unknown PVE error.': u'\u672a\u77e5 PVE \u9519\u8bef\u3002',
     'Click a resource to include it. Click it again to remove it.\nSelect an entry in Mining order to move it up or down.': u'\u70b9\u51fb\u8d44\u6e90\u53ef\u5c06\u5176\u52a0\u5165\u7b5b\u9009\uff0c\u518d\u6b21\u70b9\u51fb\u53ef\u79fb\u9664\u3002\n\u9009\u62e9\u5f00\u91c7\u987a\u5e8f\u4e2d\u7684\u6761\u76ee\uff0c\u5373\u53ef\u5c06\u5176\u4e0a\u79fb\u6216\u4e0b\u79fb\u3002',
+})
+
+_AM_ZH.update({
+    'Next activation: %s s': u'下次激活：%s 秒',
+    'Fleet order active: %s. Your personal filter stays saved.': u'舰队指令生效：%s。您的个人筛选已保留。',
 })

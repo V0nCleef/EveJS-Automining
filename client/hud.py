@@ -286,7 +286,7 @@ def _am_build_window_class():
         def __init__(self, window, parent):
             self.window, self.parent, self.tabs, self.buttons = window, parent, [], []
             self.labels, self.backgrounds = [], []
-            self.order = [9, 0, 1, 2, 3, 6, 8, 5, 10, 11, 4, 7]
+            self.order = [12, 9, 0, 1, 2, 3, 6, 8, 5, 10, 11, 4, 7]
             self._layoutToken = None
             self.parent._OnSizeChange_NoBlock = self.Layout
 
@@ -373,6 +373,9 @@ def _am_build_window_class():
                 return
             if index not in self.window.JobPages():
                 return
+            if index == 12:
+                _am_uthread.new(self.window.OpenFleetCommand)
+                return
             changed = getattr(self, 'index', None) != index
             self.index = index
             for i, item in enumerate(self.tabs):
@@ -439,6 +442,7 @@ def _am_build_window_class():
             self._page = 'jobs'
             self._job = 'mining'
             self._jobChosen = False
+            self._canFleetCommand = False
             self._savedJob = 'mining'
             self._jobDrafts = {}
             self._lastResponse = None
@@ -456,7 +460,7 @@ def _am_build_window_class():
             self._statsSessions = False
             self._statsOffset = 0
             self._industrialModules = []
-            self._intervalDraft = {'core': {}, 'compressor': {}}
+            self._intervalDraft = {'core': {}, 'compressor': {}, 'burst': {}}
             Window.ApplyAttributes(self, attributes)
             self.SetCaption(_am_tr('AutoMining'))
             main = self.content
@@ -517,14 +521,8 @@ def _am_build_window_class():
             jobsTab = ScrollContainer(parent=panels, align=C.TOALL, state=C.UI_HIDDEN)
             pveTab = ScrollContainer(parent=panels, align=C.TOALL, state=C.UI_HIDDEN)
             fleetTab = ScrollContainer(parent=panels, align=C.TOALL, state=C.UI_HIDDEN)
+            commandTab = Container(parent=panels, align=C.TOALL, state=C.UI_HIDDEN)
             main = miningPanel
-            filterActions = Container(parent=filterPanel, align=C.TOBOTTOM, height=42, padTop=6)
-            moveUpWidth = button_width('Move up')
-            Button(parent=filterActions, align=C.TOPLEFT, label='Move up', width=moveUpWidth, func=self.MoveOreUp)
-            Button(parent=filterActions, align=C.TOPLEFT, left=moveUpWidth + 8,
-                   label='Move down', width=button_width('Move down'), func=self.MoveOreDown)
-            Button(parent=filterActions, align=C.TOPRIGHT, label='Clear filter',
-                   width=button_width('Clear filter'), func=self.ClearFilter)
             Section(parent=returnPanel, text='Ore handling')
             self.oreModeEdit = Combo(parent=returnPanel, align=C.TOTOP,
                 options=[('Leave aboard', 'leave'), ('Jettison ore', 'jettison'), ('Unload and return to mining', 'unload'), ('Request fleet pickup', 'pickup'), ("Put into booster's fleet hangar", 'fleetHangar')], select='leave', callback=self.Changed)
@@ -665,6 +663,9 @@ def _am_build_window_class():
             EveLabelSmall(parent=boostersPanel, align=C.TOTOP, autoFitToText=True, padBottom=14,
                 text='Configure fleet membership on the Fleet page. Mining boosts begin 5 seconds after arrival.')
             self.boostStatus = EveLabelMedium(parent=boostersPanel, align=C.TOTOP, autoFitToText=True, text='Automatic mining boosts are off.')
+            EveLabelSmall(parent=boostersPanel, align=C.TOTOP, autoFitToText=True, padBottom=8,
+                text='Activation interval follows successful starts; native cycle duration is the minimum.')
+            self.burstModules = ContainerAutoSize(parent=boostersPanel, align=C.TOTOP, minHeight=30)
             Section(parent=main, text='Targeting')
             for pairs in [(('lock', 'Lock targets automatically'), ('approach', 'Approach out-of-range ore'))]:
                 row = Container(parent=main, align=C.TOTOP, height=30)
@@ -684,19 +685,7 @@ def _am_build_window_class():
             timerRow = Container(parent=main, align=C.TOTOP, height=34)
             self.timerEdit = SingleLineEditInteger(parent=timerRow, align=C.TOPLEFT, width=100, setvalue=60, minValue=6, maxValue=86400, OnChange=self.Changed)
             EveLabelSmall(parent=timerRow, align=C.CENTERLEFT, left=110, text='Default 60 | Minimum 6')
-            self.filterLabel = EveLabelMedium(parent=filterPanel, align=C.TOTOP, height=24, text='No filter: all compatible resources')
-            EveLabelSmall(parent=filterPanel, align=C.TOTOP, autoFitToText=True, padBottom=8,
-                          text=text(_am_tr('Click a resource to include it. Click it again to remove it.\nSelect an entry in Mining order to move it up or down.')))
-            picker = Container(parent=filterPanel, align=C.TOALL, padBottom=8)
-            leftHalf = Container(parent=picker, align=C.TOLEFT_PROP, width=0.70, padRight=20)
-            available = Container(parent=leftHalf, align=C.TOALL, padRight=6)
-            selected = Container(parent=picker, align=C.TOALL)
-            self.availableLabel = EveLabelMedium(parent=available, align=C.TOTOP, height=24, text='Available ores')
-            self.selectedLabel = EveLabelMedium(parent=selected, align=C.TOTOP, height=24, text='Mining order (top first)')
-            self.availableSearch = SingleLineEditText(parent=available, align=C.TOTOP, height=28, padBottom=6, hint='Search available ore, ice or gas', OnChange=self.Search)
-            self.selectedSearch = SingleLineEditText(parent=selected, align=C.TOTOP, height=28, padBottom=6, hint='Search active filter', OnChange=self.Search)
-            self.availableScroll = ResourcePicker(self, parent=available, align=C.TOALL)
-            self.selectedScroll = ResourcePicker(self, active=True, parent=selected, align=C.TOALL)
+            self.BuildOreFilter(filterPanel)
             self.boosterRole = Combo(parent=boostersPanel, align=C.TOTOP, options=[('Boosting', 'boosting'), ('Transport', 'transport')],
                 select='boosting', state=C.UI_HIDDEN, callback=self.BoosterRoleChanged)
             self.BuildIndustrial(boostersPanel)
@@ -707,7 +696,7 @@ def _am_build_window_class():
             self.BuildFleet(fleetTab)
             self._toggles['actionNotifications'] = Checkbox(parent=jobsTab, align=C.TOTOP, height=32,
                 text='Show AutoMining action messages', checked=True, callback=self.Changed)
-            self.tabs.Startup([(_am_tr('Mining'), miningTab, None, 'mining'), (_am_tr('Mining drones'), miningDronesTab, None, 'miningdrones'), (_am_tr('Mining Filter'), filterPanel, None, 'filter'), (_am_tr('Drones'), dronesTab, None, 'drones'), (_am_tr('Defense'), defenseTab, None, 'defense'), (_am_tr('Boosters'), boostersTab, None, 'boosters'), (_am_tr('Ore handling'), returnTab, None, 'return'), (_am_tr('Statistics'), statisticsTab, None, 'statistics'), (_am_tr('Hauling'), transportTab, None, 'transport'), (_am_tr('Jobs'), jobsTab, None, 'jobs'), (_am_tr('PVE'), pveTab, None, 'pve'), (_am_tr('Fleet'), fleetTab, None, 'fleet')], groupID='AutoMiningTabs', autoselecttab=1)
+            self.tabs.Startup([(_am_tr('Mining'), miningTab, None, 'mining'), (_am_tr('Mining drones'), miningDronesTab, None, 'miningdrones'), (_am_tr('Mining Filter'), filterPanel, None, 'filter'), (_am_tr('Drones'), dronesTab, None, 'drones'), (_am_tr('Defense'), defenseTab, None, 'defense'), (_am_tr('Boosters'), boostersTab, None, 'boosters'), (_am_tr('Ore handling'), returnTab, None, 'return'), (_am_tr('Statistics'), statisticsTab, None, 'statistics'), (_am_tr('Hauling'), transportTab, None, 'transport'), (_am_tr('Jobs'), jobsTab, None, 'jobs'), (_am_tr('PVE'), pveTab, None, 'pve'), (_am_tr('Fleet'), fleetTab, None, 'fleet'), (_am_tr('Fleet Command'), commandTab, None, 'fleetcommand')], groupID='AutoMiningTabs', autoselecttab=1)
             self.ConfigureJobNavigation()
             self._toggles['inviteFleet'].state = C.UI_HIDDEN
             self.BuildSettingIndex()
@@ -720,7 +709,38 @@ def _am_build_window_class():
         def JobPages(self):
             if not self._jobChosen:
                 return set((7, 9))
-            return set({'mining': (0, 1, 2, 3, 6), 'hauling': (8, 3), 'boosting': (5, 1, 2, 3), 'pve': (10, 3)}.get(self._job, (0,))) | set((4, 7, 9, 11))
+            return set({'mining': (0, 1, 2, 3, 6), 'hauling': (8, 3), 'boosting': (5, 1, 2, 3), 'pve': (10, 3)}.get(self._job, (0,))) | set((4, 7, 9, 11)) | (set((12,)) if self._canFleetCommand else set())
+
+        def OpenFleetCommand(self):
+            try:
+                if not globals().get('_am_fleet_command_class'):
+                    source = self.Request('AutoMiningFleetCommandSource')['source']
+                    eval(compile(__import__('zlib').decompress(__import__('base64').b64decode(source)), '<automining-fleet-command>', 'exec'), globals())
+                globals()['_am_fleet_command_class'].Open()
+                self.FleetCommandAttention(True)
+            except Exception as error:
+                self.statusLabel.text = text(unicode(error))
+
+        def FleetCommandAttention(self, opened=False):
+            caption = self.tabs.labels[12]
+            try:
+                if opened:
+                    settings.char.ui.Set('autoMiningFleetCommandSeen', True)
+                seen = opened or settings.char.ui.Get('autoMiningFleetCommandSeen', False)
+            except Exception:
+                seen = opened
+            pulse = not seen and 12 in self.JobPages()
+            if pulse == getattr(self, '_fleetCommandPulse', None):
+                return
+            self._fleetCommandPulse = pulse
+            stop_motion(caption)
+            caption.opacity = 1.0
+            if pulse:
+                try:
+                    from carbonui.uianimations import animations
+                    animations.FadeTo(caption, startVal=0.45, endVal=1.0, duration=1.6, loops=-1, curveType=C.ANIM_WAVE)
+                except Exception:
+                    caption.opacity = 1.0
 
         def ConfigureJobNavigation(self, animate=False):
             if not getattr(self.tabs, 'buttons', None):
@@ -739,6 +759,7 @@ def _am_build_window_class():
             if getattr(self.tabs, 'index', 9) not in allowed:
                 self.tabs.SelectByIdx(9, animate=False)
             self.tabs.Layout()
+            self.FleetCommandAttention()
             if animate and revealed:
                 for index, row in enumerate(revealed):
                     fade(row, 0.4, 1.0, duration=0.24, offset=index * 0.025)
@@ -1616,7 +1637,7 @@ def _am_build_window_class():
             EveLabelSmall(parent=panel, align=C.TOTOP, autoFitToText=True, padBottom=8,
                 text='Activation interval follows successful starts; native cycle duration is the minimum.')
             self.modulePanel = ContainerAutoSize(parent=panel, align=C.TOTOP, minHeight=30)
-            self._modulePanels = {'core': coreModules, 'compressor': self.modulePanel}
+            self._modulePanels = {'core': coreModules, 'compressor': self.modulePanel, 'burst': self.burstModules}
             self.moduleEmpty = EveLabelSmall(parent=self.modulePanel, align=C.TOTOP,
                 autoFitToText=True, text='No supported fitted modules.')
             self._moduleRows = {}
@@ -1668,6 +1689,13 @@ def _am_build_window_class():
         def IntervalChanged(self, typeID, kind, widget, *args):
             if not self._loading:
                 self._intervalDraft[kind][str(typeID)] = widget.GetValue()
+                self._loading = True
+                try:
+                    for other in getattr(self, '_intervalEditors', {}).get((kind, str(typeID)), []):
+                        if other is not widget:
+                            other.SetValue(widget.GetValue())
+                finally:
+                    self._loading = False
                 self.Changed()
 
         def ResetInterval(self, module, widget, *args):
@@ -1678,7 +1706,7 @@ def _am_build_window_class():
 
         def RenderIndustrial(self, industrial, force=False):
             modules = industrial.get('modules') or []
-            ids = [(row['itemID'], row.get('kind')) for row in modules]
+            ids = [(row['itemID'], row.get('kind'), row.get('durationSeconds')) for row in modules]
             if force or ids != self._industrialModules:
                 self._industrialModules = ids
                 for kind, panel in self._modulePanels.items():
@@ -1686,9 +1714,10 @@ def _am_build_window_class():
                     if not any(row.get('kind') == kind for row in modules):
                         EveLabelSmall(parent=panel, align=C.TOTOP, autoFitToText=True, text='No supported fitted modules.')
                 self._moduleRows = {}
+                self._intervalEditors = {}
                 for module in modules:
                     kind = module.get('kind', 'core')
-                    if kind not in ('core', 'compressor'):
+                    if kind not in ('core', 'compressor', 'burst'):
                         continue
                     card = ContainerAutoSize(parent=self._modulePanels[kind], align=C.TOTOP, padBottom=8)
                     Fill(bgParent=card, state=C.UI_DISABLED, color=(0.055, 0.07, 0.09, 0.8))
@@ -1703,6 +1732,7 @@ def _am_build_window_class():
                     editor = SingleLineEditInteger(parent=controls, align=C.TOPLEFT, width=90,
                         setvalue=int(interval), minValue=1, maxValue=86400, hint='Activation interval in seconds')
                     editor.OnChange = self.IntervalCallback(module['typeID'], kind, editor)
+                    self._intervalEditors.setdefault((kind, str(module['typeID'])), []).append(editor)
                     Button(parent=controls, align=C.TOPRIGHT, label='Reset to equipment default',
                         width=button_width('Reset to equipment default'), func=self.ResetCallback(module, editor))
                     state = EveLabelSmall(parent=card, align=C.TOTOP, autoFitToText=True, text='')
@@ -1711,6 +1741,8 @@ def _am_build_window_class():
                 label = self._moduleRows.get(module['itemID'])
                 if label:
                     value = _am_tr('Active: %s s remaining', int(module.get('remainingSeconds', 0))) if module.get('active') else _am_tr('Waiting')
+                    if module.get('cooldownSeconds', 0) > 0 and not module.get('active'):
+                        value = _am_tr('Next activation: %s s', int(__import__('math').ceil(module['cooldownSeconds'])))
                     if label.text != value:
                         label.text = value
             self.industrialStatus.text = text(_am_status(industrial.get('status', '')))
@@ -2411,6 +2443,10 @@ def _am_build_window_class():
             return response
 
         def ShowResponse(self, response, replaceDraft=False, draft=False, preserveJobDrafts=False):
+            if response.get('fleetOverride') and not globals().get('_am_fleet_command_class'):
+                source = self.Request('AutoMiningFleetCommandSource')['source']
+                eval(compile(__import__('zlib').decompress(__import__('base64').b64decode(source)), '<automining-fleet-command>', 'exec'), globals())
+                return self.ShowResponse(response, replaceDraft, draft, preserveJobDrafts)
             if not draft:
                 self._lastResponse = response
                 if replaceDraft and not preserveJobDrafts:
@@ -2420,6 +2456,10 @@ def _am_build_window_class():
                 self.statusLabel.text = status
                 self.statusLabel.hint = status
             self.stopFleetButton.state = C.UI_NORMAL if response.get('canStopFleet') else C.UI_HIDDEN
+            allowed = bool(response.get('canStopFleet'))
+            if self._canFleetCommand != allowed:
+                self._canFleetCommand = allowed
+                self.ConfigureJobNavigation()
             if not draft and globals().get('_am_activity_set_state'):
                 _am_activity_set_state(response['enabled'], response.get('settings', {}).get('actionNotifications', True))
             trip = response.get('hauling') or {}
@@ -2450,32 +2490,15 @@ def _am_build_window_class():
             self.RenderFleet(response.get('fleet') or {})
             self.RenderTransport(response.get('transport') or {})
             self.RenderIndustrial(response.get('industrial') or {})
+            self.fleetFilterNotice.text = (_am_tr('Fleet order active: %s. Your personal filter stays saved.',
+                ', '.join(response['fleetFilter'])) if response.get('fleetFilter') is not None else '')
             self.fleetOreStatus.text = text(_am_status((response.get('fleetOre') or {}).get('status', 'Fleet ore collection is off.')))
             self.mineFleetOreStatus.text = self.fleetOreStatus.text
             oreHandling = response.get('oreHandling') or {}
             if oreHandling.get('status'):
                 self.returnStatus.text = text(_am_status(oreHandling['status']))
             if 'catalog' in response:
-                names = dict((row['name'].lower(), row['name']) for row in response['catalog'])
-                self._catalogTypes = dict((row['name'].lower(), int(row.get('typeID') or 0)) for row in response['catalog'])
-                self._catalogVolumes = dict((row['name'].lower(), row.get('volume')) for row in response['catalog'])
-                self._catalog = {}
-                for key, name in names.items():
-                    typeID = self._catalogTypes[key]
-                    localized = self.TypeName(typeID) if typeID else name
-                    if localized == str(typeID):
-                        localized = name
-                    if key.endswith(' 0-grade') and key[:-8] in names:
-                        baseID = self._catalogTypes.get(key[:-8], 0)
-                        base = self.TypeName(baseID) if baseID else name[:-8]
-                        self._catalog[key] = base if base != str(baseID) else name[:-8]
-                        # EveJS's synthetic base-grade records share the native
-                        # family's artwork; the client may not know their IDs.
-                        self._catalogTypes[key] = baseID or typeID
-                    elif key + ' 0-grade' in names:
-                        self._catalog[key] = localized + _am_tr(' (group)')
-                    else:
-                        self._catalog[key] = localized
+                self.LoadOreCatalog(response['catalog'])
             if not replaceDraft and (self._dirty or self._revision == response['revision']):
                 return
             if replaceDraft or not self._dirty:
@@ -2569,7 +2592,7 @@ def _am_build_window_class():
                 self.fuelCargo.SetChecked(prefs.get('fuelUseCargo', False), report=False)
                 self.fuelReserve.SetValue(prefs.get('fuelReserveCycles', 2), docallback=False)
                 self.fuelTarget.SetValue(prefs.get('fuelTargetCycles', 20), docallback=False)
-                self._intervalDraft = {'core': dict(prefs.get('coreIntervals', {})), 'compressor': dict(prefs.get('compressorIntervals', {}))}
+                self._intervalDraft = {'core': dict(prefs.get('coreIntervals', {})), 'compressor': dict(prefs.get('compressorIntervals', {})), 'burst': dict(prefs.get('boostIntervals', {}))}
                 self._fuelStationID = prefs.get('fuelStationID', 0)
                 self._fuelStationResult = self.LocalizeStationRow(response.get('fuelDestination'))
                 self._fuelDestinationSerial += 1
@@ -2657,6 +2680,51 @@ def _am_build_window_class():
                 description += _am_tr('\nVolume means remaining cubic metres, not ISK value.')
                 description += _am_tr('\nRequires an available Mining Surveyor or built-in equivalent. No scan required.')
             self.priorityHint.text = description
+
+        def BuildOreFilter(self, filterPanel):
+            filterActions = Container(parent=filterPanel, align=C.TOBOTTOM, height=42, padTop=6)
+            moveUpWidth = button_width('Move up')
+            Button(parent=filterActions, align=C.TOPLEFT, label='Move up', width=moveUpWidth, func=self.MoveOreUp)
+            Button(parent=filterActions, align=C.TOPLEFT, left=moveUpWidth + 8,
+                   label='Move down', width=button_width('Move down'), func=self.MoveOreDown)
+            Button(parent=filterActions, align=C.TOPRIGHT, label='Clear filter',
+                   width=button_width('Clear filter'), func=self.ClearFilter)
+            self.filterLabel = EveLabelMedium(parent=filterPanel, align=C.TOTOP, height=24, text='No filter: all compatible resources')
+            self.fleetFilterNotice = EveLabelSmall(parent=filterPanel, align=C.TOTOP, autoFitToText=True, padBottom=8, text='')
+            EveLabelSmall(parent=filterPanel, align=C.TOTOP, autoFitToText=True, padBottom=8,
+                          text=text(_am_tr('Click a resource to include it. Click it again to remove it.\nSelect an entry in Mining order to move it up or down.')))
+            picker = Container(parent=filterPanel, align=C.TOALL, padBottom=8)
+            leftHalf = Container(parent=picker, align=C.TOLEFT_PROP, width=0.70, padRight=20)
+            available = Container(parent=leftHalf, align=C.TOALL, padRight=6)
+            selected = Container(parent=picker, align=C.TOALL)
+            self.availableLabel = EveLabelMedium(parent=available, align=C.TOTOP, height=24, text='Available ores')
+            self.selectedLabel = EveLabelMedium(parent=selected, align=C.TOTOP, height=24, text='Mining order (top first)')
+            self.availableSearch = SingleLineEditText(parent=available, align=C.TOTOP, height=28, padBottom=6, hint='Search available ore, ice or gas', OnChange=self.Search)
+            self.selectedSearch = SingleLineEditText(parent=selected, align=C.TOTOP, height=28, padBottom=6, hint='Search active filter', OnChange=self.Search)
+            self.availableScroll = ResourcePicker(self, parent=available, align=C.TOALL)
+            self.selectedScroll = ResourcePicker(self, active=True, parent=selected, align=C.TOALL)
+
+        def LoadOreCatalog(self, catalog):
+            names = dict((row['name'].lower(), row['name']) for row in catalog)
+            self._catalogTypes = dict((row['name'].lower(), int(row.get('typeID') or 0)) for row in catalog)
+            self._catalogVolumes = dict((row['name'].lower(), row.get('volume')) for row in catalog)
+            self._catalog = {}
+            for key, name in names.items():
+                typeID = self._catalogTypes[key]
+                localized = self.TypeName(typeID) if typeID else name
+                if localized == str(typeID):
+                    localized = name
+                if key.endswith(' 0-grade') and key[:-8] in names:
+                    baseID = self._catalogTypes.get(key[:-8], 0)
+                    base = self.TypeName(baseID) if baseID else name[:-8]
+                    self._catalog[key] = base if base != str(baseID) else name[:-8]
+                    # EveJS's synthetic base-grade records share the native
+                    # family's artwork; the client may not know their IDs.
+                    self._catalogTypes[key] = baseID or typeID
+                elif key + ' 0-grade' in names:
+                    self._catalog[key] = localized + _am_tr(' (group)')
+                else:
+                    self._catalog[key] = localized
 
         def Search(self, *args):
             if hasattr(self, 'selectedScroll'):
@@ -2776,7 +2844,7 @@ def _am_build_window_class():
                          receiveFleetOre=bool(self.receiveFleetOre.GetValue()),
                          receiveFleetAcceptCompressed=bool(self.receiveFleetAcceptCompressed.GetValue()),
                          receiveFleetAcceptUncompressed=bool(self.receiveFleetAcceptUncompressed.GetValue()),
-                         coreIntervals=dict(self._intervalDraft['core']), compressorIntervals=dict(self._intervalDraft['compressor']),
+                         coreIntervals=dict(self._intervalDraft['core']), compressorIntervals=dict(self._intervalDraft['compressor']), boostIntervals=dict(self._intervalDraft['burst']),
                          fuelEnabled=bool(self.fuelToggle.GetValue()), fuelUseCargo=bool(self.fuelCargo.GetValue()),
                          job=self._job, pickupStyle=self.pickupStyle.GetValue(),
                          pveFireMode=self.pveFireMode.GetValue(), pvePriority=self.pvePriority.GetValue(),

@@ -19,7 +19,7 @@ const builders = source.slice(source.indexOf('function buildMarshaledString'),so
 const scope = {Buffer,console:{log(){},error(){}},config:{dev:{}},
  SEED_SKILL_EXTRACTOR_ACCESS_TOKEN:false,isSkillExtractorAccessTokenCompatibilityEnabled:()=>false};
 vm.createContext(scope);
-const delivery = api.createDelivery(path.resolve(__dirname,'..'),{token:'menu-integration'});
+const delivery = api.createDelivery(path.resolve(__dirname,'..'),{token:'fc7a90e8-1741-41cf-93dd-7073c4782530'});
 scope[api.LOADER_KEY]={delivery};
 let compiled = false;
 function Module() {}

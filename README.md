@@ -2,9 +2,7 @@
 
 **Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
 
-[**Download AutoMining 1.2.14**](https://github.com/V0nCleef/EveJS-Automining/releases/tag/v1.2.14)
-
-
+[**Download AutoMining 1.2.15**](https://github.com/V0nCleef/EveJS-Automining/releases/tag/v1.2.15)
 
 | Mining | Hauling | Boosting | PVE |
 | --- | --- | --- | --- |
@@ -13,9 +11,17 @@
 
 The ship cards are illustrated job artwork. AutoMining assists the configured jobs using EveJS's native movement, modules, inventory and fleet operations. Fitting, skills, range, capacity and access permissions still matter.
 
+## New in 1.2.15
+
+- **Fleet Command:** the fleet leader can send mining settings and ore priorities to selected miners from one separate window.
+- **Temporary session orders:** recipient pages show who controls them; personal settings stay saved and return when orders end.
+- **Selected fleet actions:** Start, Stop + recall, Recall, and a readable per-pilot order log.
+- **Mining Foreman Burst intervals:** fitted defaults, native-cycle minimum, and reset controls alongside Core and Compressor.
+- **Nine languages:** new controls, notices, and results follow the client's language.
+
 ## Compatibility
 
-- **Current live confirmation:** Native **EveJS 0.12.9**, EVE client **3396210**, AutoMining **1.2.14**.
+- **This update tested in Grid Check:** Native **EveJS 0.12.9**, EVE client **3396210**, with real fleet clients and a fitted Porpoise. See [release validation](RELEASE-VALIDATION.md).
 - **Launcher:** package minimum **1.0.69**, using Launcher API **v1** and client-menu API **v1**. Use an **up-to-date Launcher** for the current Neocom Mods icon and category.
 - **Also declared by the mod:** EveJS **0.12.8** and Launcher-managed **Docker**. This release has no fresh live gameplay coverage on those paths.
 
@@ -23,7 +29,7 @@ The shared Mods menu comes from the Launcher. AutoMining provides its menu adapt
 
 ## Install or update
 
-1. Download **AutoMining-1.2.14.zip** from the release.
+1. Download **AutoMining-1.2.15.zip** from the release.
 2. Stop the server and close EVE clients before changing the mod. Keep the previous ZIP and back up the existing server configuration and Launcher profile settings.
 3. In the Launcher, open **Mods > Add ZIP**, select the ZIP and enable **AutoMining**. For an existing installation, update the same AutoMining entry; its configured GitHub update channel also points to this repository.
 4. Start the server with that profile and log in again so the client receives the current companion.
@@ -49,6 +55,16 @@ A stopped pilot opens on **Jobs** and **Statistics**. Choose a ship card to reve
 **Apply settings** saves changes across pages; changing pages keeps your drafts. **Start / Resume** starts the chosen job. Each job remembers its own options and drone groups. Switching a running job asks to stop it, then leaves the new job waiting for Start. Search finds settings available to the selected job. **Show AutoMining action messages** controls the extra activity messages.
 
 Labels follow the client's English, Chinese, German, French, Spanish, Italian, Russian, Japanese or Korean setting. Resource, station and belt searches accept localized names.
+
+## Fleet Command
+
+The fleet leader's first **Fleet Command** tab opens a separate window on demand. It gently pulses until that character has opened it successfully. Its **Mining** and **Mining Filter** tabs share a visible pilot list, selected-pilot actions and order log. Set targeting, approach, target priority, automatic survey, compression and survey timing for selected Mining pilots. Build their ore order with the same icon tiles, groups, searches and priority controls as the normal Mining Filter.
+
+Fleet orders temporarily override the selected pilots' current session. Their personal settings stay saved. Affected Mining and Mining Filter pages show **Controlled by fleet commander**, name the commander and display the effective values. Controlled fields are protected, while unrelated personal settings remain editable. Restore mining settings and ore filters independently. Orders end when the recipient or commander stops, a pilot leaves or disconnects, the fleet or its leader changes, the pilot changes jobs, or the server restarts.
+
+Selected **Start**, **Stop + recall**, and **Recall** controls use native operations. The log shows pilot names, local times and per-pilot results. A Recall acknowledgement confirms the order was accepted; check the drones' return before moving away. Every order checks the current native leader and each recipient's actual fleet membership. Fleet Command and its new controls support all nine existing client languages.
+
+**Boosters** now lists each fitted Mining Foreman Burst with its native cycle, a start-to-start activation interval and **Reset to equipment default**. The fitted cycle is the minimum. Longer intervals run one cycle and wait before the next successful start. Timers follow the fitted equipment and remember their settings within the Boosting job profile. Core and Compressor retain their existing controls.
 
 ## Mining
 
@@ -99,7 +115,7 @@ Run the fleet's mining support with optional mining drones.
 | **Mining command bursts** | Automatically activate fitted, online mining bursts with their charges. Boosts begin five seconds after arrival. |
 | **Industrial Core** | Enable automatic supported Core activations. |
 | **Asteroid Ore Compressor** | Enable automatic supported compressor activations. |
-| **Equipment intervals** | Set an interval for each listed Core/compressor type, or reset to its fitted default. Intervals follow successful starts and cannot be shorter than the native cycle. |
+| **Equipment intervals** | Set an interval for each listed Core, compressor or Mining Foreman Burst type, or reset to its fitted default. Intervals follow successful starts and cannot be shorter than the native cycle. |
 | **Heavy Water restocking** | Enable, choose fuel station/source storage and set reserve/refill targets in Core cycles. Defaults: **2** reserve, **20** refill. The target must exceed the reserve. |
 | **Allow Heavy Water in cargo** | Permit cargo as fuel storage alongside the supported fuel hold. |
 | **Receive fleet ore** | Enable nearby fleet miners to transfer accepted ore into the fleet hangar. |

@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { parse, matchesOre, installChat, installPlainChat } = require("../lib/commands");
 const { createController } = require("../lib/controller");
 
-function fixture({ count = 3, pending = false, cap = 10, deferred = false, compress = null, preferences = null, crystals = null } = {}) {
+function fixture({ count = 3, pending = false, cap = 10, deferred = false, compress = null, preferences = null, crystals = null, extensions = {} } = {}) {
   const session = { characterID: 42 };
   const ship = { kind: "ship", itemID: 100, activeModuleEffects: new Map(), lockedTargets: new Map(), pendingTargetLocks: new Map() };
   const modules = Array.from({ length: count }, (_, i) => ({ item: { itemID: i + 1 }, effect: { name: "miningLaser" }, range: 100, snapshot: { maxRangeMeters: 100 } }));
@@ -60,7 +60,7 @@ function fixture({ count = 3, pending = false, cap = 10, deferred = false, compr
     compatible: (_, __, module, rock, now, ignoreRange) => free && (ignoreRange || rock.distance <= module.range) && rock.family === (module.family || "ore"),
   };
   session.sendNotification = (event, scope, args) => { assert.equal(event, "OnAutoMiningSurvey"); assert.equal(scope, "clientID"); assert.deepEqual(args, []); scans.push(now); };
-  const controller = createController(() => api, () => ({ getSceneForSession: () => spaceShip ? scene : null }), e => errors.push(e), preferences, compress, null, crystals);
+  const controller = createController(() => api, () => ({ getSceneForSession: () => spaceShip ? scene : null }), e => errors.push(e), preferences, compress, null, crystals, null, extensions);
   return { session, ship, modules, rocks, scene, started, stopped, removed, errors, controller, approaches, scans, stats, api,
     command: text => controller.command(session, parse(text)),
     tick(elapsed = 1000) { now += elapsed; controller.tick(scene, now); assert.deepEqual(errors, []); },
@@ -76,6 +76,32 @@ function volumes(f) {
     remainingQuantity: [100, 10, 5, 2][i], unitVolume: [0.1, 2, 10, 100][i],
   };
 }
+
+test("fleet mining controls drive movement, survey and compression without entering saved preferences", () => {
+  const leader={characterID:1,socket:{}}, sessions=new Map([[1,leader]]), saved=[];
+  const fleet={fleetID:99,members:new Map([[1,{}],[42,{}]])};let compressed=0,clock=10000;
+  const f=fixture({count:1,compress:()=>{compressed++;return "Compressed";},preferences:{get:()=>({}),save:(id,s)=>saved.push(structuredClone({order:s.order,approach:s.approach,survey:s.survey,compress:s.compress,surveySeconds:s.surveySeconds,ores:s.ores}))},
+    extensions:{now:()=>clock,getFleet:id=>[1,42].includes(id)?fleet:null,getSession:id=>sessions.get(id),isFleetBoss:(_,id)=>id===1,catalog:()=>[{name:"Veldspar"},{name:"Scordite"}]}});
+  sessions.set(42,f.session);f.command("automining scordite");f.command("automining on");f.controller.clientReady(f.session,true);
+  f.rocks[0].distance=150;f.rocks[1].distance=200;
+  const send=(action,extra={})=>f.controller.fleetCommand.action(leader,{action,pilots:[42],...extra});
+  send("filter",{ores:["veldspar"]});
+  clock+=2000;
+    send("mining",{settings:{approach:true,lock:true,order:"furthest",survey:true,compress:true,surveySeconds:90}});
+    f.tick();assert.equal(f.approaches.length,1);assert.ok([11,12].includes(f.approaches[0][0]));
+    assert.equal(f.scans.length,1);assert.equal(compressed,1);
+    const snapshot=f.controller.snapshot(f.session);
+    assert.equal(snapshot.settings.approach,false);assert.equal(snapshot.settings.survey,false);
+    assert.equal(snapshot.settings.compress,false);assert.equal(snapshot.settings.surveySeconds,60);
+    assert.deepEqual(snapshot.settings.ores,["scordite"]);
+    assert.equal(snapshot.fleetOverride.values.approach,true);
+    f.command('automining survey 120');
+    assert.equal(saved.at(-1).approach,false);assert.equal(saved.at(-1).compress,false);
+    assert.equal(saved.at(-1).survey,false);assert.equal(saved.at(-1).surveySeconds,120);
+    f.tick(90000);assert.equal(f.scans.length,2);
+    f.command("automining off");assert.equal(f.controller.snapshot(f.session).fleetOverride,null);
+    assert.deepEqual(f.controller.snapshot(f.session).settings.ores,["scordite"]);
+});
 
 test("barges arriving together claim separate local rocks, then share if only one remains", () => {
   const pilots = [{characterID: 41}, {characterID: 42}];
@@ -493,7 +519,7 @@ test("preferences survive a new store/login without enabling automation", () => 
       mineDrones: false, mineDroneOrder: "nearest", mineDroneMode: "spread",
       autoBoost: false, inviteFleet: false, ratDefenseEnabled: false, ratMiningGroupKey: "", ratFighterGroupKey: "",
       oreMode: "leave", stackOreHold: true, stackFleetHangar: true, jettisonAbandon: false, jettisonCan: null,
-      coreEnabled: false, compressorEnabled: false, coreIntervals: {}, compressorIntervals: {},
+      coreEnabled: false, compressorEnabled: false, coreIntervals: {}, compressorIntervals: {}, boostIntervals: {},
       fuelEnabled: false, fuelStationID: 0, fuelStorageKey: "personal", fuelReserveCycles: 2, fuelTargetCycles: 20,
       fuelUseCargo: false, actionNotifications: true,
       receiveFleetOre: false, receiveFleetAcceptCompressed: true, receiveFleetAcceptUncompressed: true,

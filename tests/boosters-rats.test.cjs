@@ -1,7 +1,10 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createBoosters } = require("../lib/boosters");
+const { createBoosters: nativeCreateBoosters } = require("../lib/boosters");
+const createBoosters = (root, options) => nativeCreateBoosters(root, { ...options,
+  native: options.native && { dogma: { getEntityRuntimeShipItem: ship => ship, getEntityRuntimeSkillMap: () => new Map() },
+    attributes: { getGenericModuleRuntimeAttributes: () => ({ durationMs: 60000 }) }, ...options.native } });
 const { createRatDefense } = require("../lib/ratDefense");
 
 test("booster-only ship activates mining burst, invites enabled pilots on its grid, and stops only its burst", () => {

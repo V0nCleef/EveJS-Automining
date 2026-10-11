@@ -1,29 +1,30 @@
-# AutoMining 1.2.14 release validation
+# AutoMining 1.2.15 release validation
 
-Validated on 30 September 2026. The user confirmed the installed 1.2.14 build working in Native EveJS 0.12.9 with EVE client 3396210, including the escort stopping when its final eligible fleetmate leaves the grid.
+Validated on 11 October 2026 in isolated Grid Check 0.2.0, Native EveJS 0.12.9 and EVE client 3396210. The production installation was left unchanged.
+
+## Tested behavior
+
+- Focused controller, crystals and Fleet Command regression checks: 86 passed. Earlier burst/industrial/rat/job checks also passed.
+- HUD fixtures cover first-tab order, pulse acknowledgement, the shared native ore filter, readable results, recipient notices, protected fields, unrelated personal edits and restoration.
+- All nine authored and delivered language catalogues cover the new labels, hints, states, errors and results.
+- Real three-client fleet checks verified selection, ore-order delivery, Start, Stop + recall, Recall and nonleader rejection. The separate window preserves the main page.
+- Real miner checks verified targeting and activation of two Strip Miner I modules on the commanded Veldspar while the personal Scordite filter stayed saved. Five deployed Mining Drone I physically returned to the bay after Stop + recall.
+- Native LeaveFleet and commander Stop restored both mining settings and ore filters. Disconnect/session replacement, leadership and job changes have focused regression coverage.
+- A disposable Porpoise matched the user's fitted Mining Foreman Burst equipment and charges. Its native cycle was 60 seconds; a 90-second interval produced successful starts 89.217 seconds apart, with an idle gap. Both controls reset to 60 seconds.
+- Actual combined Launcher menu/login delivery: 261655 / 262144 expression bytes, using a full UUID token. The Fleet Command helper loads on demand.
+
+## Publication checks
+
+The final release checkout passed 99 focused controller, fleet-order, burst and login-delivery checks, plus HUD and nine-language checks. The extracted ZIP passed the passive native service harness in Grid Check with filesystem writes blocked. All 68 ZIP members and updater/checksum files were verified before upload.
 
 ## Package provenance
 
-The public ZIP contains 64 production files from the exact installed and tested 1.2.14 freeze. Only README.md changes for public documentation. Code, translations, approved artwork and delivery assets remain byte-identical. Tests, private logs, player configuration, databases and development tooling are excluded from the install ZIP.
+All production code, translations and artwork are copied byte-for-byte from the tested candidate. Only README and release manifest metadata are changed for publication. The ZIP contains production files only; repository tests, private logs, screenshots, videos, player settings, databases and test-environment tooling are excluded. Matching ZIP checksum and updater descriptor are separate release assets.
 
-- Public asset: `AutoMining-1.2.14.zip`
-- SHA-256: `945234c6a75de5cc35ebfc26882d14328cebfdc3a677b760444a1190f392cd56`
-- Bytes: 10,105,041
-- The matching `.zip.sha256` and `.update.json` are release assets.
+## Coverage limits
 
-## Automated checks
-
-- 423 Node unit checks pass across the 44 self-contained suites, covering Mining, Hauling, Boosting, PVE, inventory admission, profiles, fleet coordination, drone/rat transitions, statistics and delivery.
-- Three older test fixtures were updated for explicit current defaults, saved Boosting profiles and Mining/fleet-hangar compression waiting. No production changes were needed.
-- Authored HUD behavior, artwork-cache/RPC checks and complete nine-language emission checks pass. These use native UI stand-ins and do not prove GPU rendering.
-- The public loader passes the actual 0.12.9 passive native service harness with filesystem writes blocked and no running world tick.
-- Earlier checks on this identical production freeze include 112 focused Node checks, 16 login companion and 10 PVE client checks, Python 2.7-compatible grammar and production JavaScript syntax.
-- Joint delivery with the installed Launcher menu bridge measures 261,915 / 262,144 bytes with the fixture token. Artwork transfers separately; future bootstrap changes must recheck that narrow headroom.
-
-The legacy mining-compatibility suite requires separate reviewed original/patched EveJS fixtures and is not included in the 423 check count. Live Docker gameplay and fresh live 0.12.8 coverage were not performed. Manifest support is separate from current live confirmation.
+Native English rendering was inspected; nine-language contents and delivery were checked offline. Not every burst variant was fitted. Mining locks/module activation and drone return were verified, without a measured harvested-yield claim. Unchanged cross-system hauling/PVE routes, Docker gameplay and fresh 0.12.8 gameplay were not repeated for this update. Declared compatibility is separate from live verification.
 
 ## Update and rollback
 
-Stop clients/server before updating. Preserve character settings, fleet presets, statistics and Launcher profile preferences. Update through Launcher Mods or Add ZIP, restart the server and reconnect clients. Restore the previous mod version with the preserved data if rollback is needed.
-
-The promo remains private for user review and is not included in the public release.
+Close clients and stop the server, then update AutoMining through Launcher Mods or Add ZIP. Restart the server and reconnect clients. Preserve character/job settings, fleet presets, statistics and Launcher profile preferences. Fleet Command orders are temporary and do not migrate. Restore the previous ZIP with the preserved data if rollback is needed.

@@ -65,6 +65,7 @@ function install(root = path.resolve(__dirname, "../..")) {
   const activity = createActivity();
   const controller = createController(() => mining?.__autoMiningBridge, () => require(path.join(root, "server/src/space/runtime.js")), console.error, preferences, createCompression(root), destinations,
     createCrystalManager(nativeCrystalOperations(root)), root, { statistics, activity,
+      characterName: id => loadNative("services/character/characterState.js").peekCharacterRecord(id)?.characterName,
       getFleet: id => loadNative("services/fleets/fleetRuntime.js").getFleetForCharacter(id),
       getSession: id => loadNative("services/chat/sessionRegistry.js").findSessionByCharacterID(id),
       isFleetBoss: (fleet, id) => {

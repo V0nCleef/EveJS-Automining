@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "id": "automining",
   "displayName": "AutoMining",
-  "version": "1.2.14",
-  "description": "Mining, hauling, boosting and PVE jobs, fleet escorts and reinforcement standby, native ammo restocking, fleet ore reception and pilot/fleet statistics.",
+  "version": "1.2.15",
+  "description": "Mining, hauling, boosting and PVE jobs with Fleet Command, temporary mining orders, equipment timers, fleet ore handling and pilot/fleet statistics.",
   "kind": "loader",
   "supportedBackends": [
     "native",

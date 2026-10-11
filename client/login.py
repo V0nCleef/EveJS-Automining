@@ -34,14 +34,15 @@ try:
             return self.current() and self.ready and self.session is not None and self.character == getattr(self.session, 'charid', None)
 
         def close_window(self):
-            window_class = (self.namespace or {}).get('_am_window_class')
-            if window_class is not None:
-                try:
-                    window = window_class.GetIfOpen()
-                    if window is not None:
-                        window.Close()
-                except Exception:
-                    pass
+            for name in ('_am_window_class', '_am_fleet_command_class'):
+                window_class = (self.namespace or {}).get(name)
+                if window_class is not None:
+                    try:
+                        window = window_class.GetIfOpen()
+                        if window is not None:
+                            window.Close()
+                    except Exception:
+                        pass
 
         def dispose(self):
             job = (self.namespace or {}).get('_am_haul_job')

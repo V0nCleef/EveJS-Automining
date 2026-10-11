@@ -830,7 +830,10 @@
     "Fleet and Defense appear after you choose a job. Statistics is always available.",
     "%.2f m3 / unit",
     "Unknown PVE error.",
-    "Click a resource to include it. Click it again to remove it.\nSelect an entry in Mining order to move it up or down."
+    "Click a resource to include it. Click it again to remove it.\nSelect an entry in Mining order to move it up or down.",
+    "Fleet Command",
+    "Next activation: %s s",
+    "Fleet order active: %s. Your personal filter stays saved."
   ],
   "translations": {
     "de": [
@@ -1664,7 +1667,10 @@
       "Flotte und Verteidigung erscheinen nach der Aufgabenwahl. Statistiken sind immer verfügbar.",
       "%.2f m3 / Einheit",
       "Unbekannter PVE-Fehler.",
-      "Klicke auf eine Ressource, um sie hinzuzufügen. Ein weiterer Klick entfernt sie.\nWähle einen Eintrag in der Abbaureihenfolge, um ihn nach oben oder unten zu verschieben."
+      "Klicke auf eine Ressource, um sie hinzuzufügen. Ein weiterer Klick entfernt sie.\nWähle einen Eintrag in der Abbaureihenfolge, um ihn nach oben oder unten zu verschieben.",
+      "Flottenkommando",
+      "Nächste Aktivierung: %s s",
+      "Flottenbefehl aktiv: %s. Dein persönlicher Filter bleibt gespeichert."
     ],
     "fr": [
       "Connexion à Minage automatique...",
@@ -2497,7 +2503,10 @@
       "Flotte et Défense apparaissent après le choix d’une activité. Les statistiques restent accessibles.",
       "%.2f m3 / unité",
       "Erreur PVE inconnue.",
-      "Cliquez sur une ressource pour l’ajouter. Cliquez à nouveau pour la retirer.\nSélectionnez une entrée dans l’ordre de minage pour la déplacer vers le haut ou le bas."
+      "Cliquez sur une ressource pour l’ajouter. Cliquez à nouveau pour la retirer.\nSélectionnez une entrée dans l’ordre de minage pour la déplacer vers le haut ou le bas.",
+      "Commandement de flotte",
+      "Prochaine activation : %s s",
+      "Ordre de flotte actif : %s. Votre filtre personnel reste enregistré."
     ],
     "es": [
       "Conectando a Minería automática...",
@@ -3330,7 +3339,10 @@
       "Flota y Defensa aparecen al elegir una tarea. Estadísticas siempre está disponible.",
       "%.2f m3 / unidad",
       "Error PVE desconocido.",
-      "Haz clic en un recurso para añadirlo. Haz clic otra vez para quitarlo.\nSelecciona una entrada en el orden de minería para subirla o bajarla."
+      "Haz clic en un recurso para añadirlo. Haz clic otra vez para quitarlo.\nSelecciona una entrada en el orden de minería para subirla o bajarla.",
+      "Mando de flota",
+      "Próxima activación: %s s",
+      "Orden de flota activa: %s. Tu filtro personal permanece guardado."
     ],
     "it": [
       "Connessione a Estrazione automatica...",
@@ -4163,7 +4175,10 @@
       "Flotta e Difesa compaiono dopo aver scelto un compito. Le statistiche sono sempre disponibili.",
       "%.2f m3 / unità",
       "Errore PVE sconosciuto.",
-      "Fai clic su una risorsa per includerla. Fai nuovamente clic per rimuoverla.\nSeleziona una voce nell’ordine di estrazione per spostarla in alto o in basso."
+      "Fai clic su una risorsa per includerla. Fai nuovamente clic per rimuoverla.\nSeleziona una voce nell’ordine di estrazione per spostarla in alto o in basso.",
+      "Comando flotta",
+      "Prossima attivazione: %s s",
+      "Ordine di flotta attivo: %s. Il filtro personale resta salvato."
     ],
     "ru": [
       "Подключение к Автодобыче...",
@@ -4996,7 +5011,10 @@
       "Разделы «Флот» и «Защита» появятся после выбора задачи. Статистика доступна всегда.",
       "%.2f м3 / ед.",
       "Неизвестная ошибка PVE.",
-      "Нажмите на ресурс, чтобы добавить его. Нажмите ещё раз, чтобы удалить.\nВыберите запись в порядке добычи, чтобы переместить её вверх или вниз."
+      "Нажмите на ресурс, чтобы добавить его. Нажмите ещё раз, чтобы удалить.\nВыберите запись в порядке добычи, чтобы переместить её вверх или вниз.",
+      "Управление флотом",
+      "Следующая активация: %s с",
+      "Действует приказ флота: %s. Личный фильтр сохранён."
     ],
     "ja": [
       "AutoMiningに接続中...",
@@ -5829,7 +5847,10 @@
       "任務を選ぶと艦隊と防御が表示されます。統計は常に利用できます。",
       "%.2f m3 / 個",
       "不明な PVE エラーです。",
-      "資源をクリックして追加し、もう一度クリックして削除します。\n採掘順序の項目を選択すると、上下に移動できます。"
+      "資源をクリックして追加し、もう一度クリックして削除します。\n採掘順序の項目を選択すると、上下に移動できます。",
+      "艦隊指揮",
+      "次の起動まで：%s 秒",
+      "艦隊指示が有効：%s。個人フィルターは保存されています。"
     ],
     "ko": [
       "AutoMining에 연결 중...",
@@ -6662,7 +6683,10 @@
       "작업을 선택하면 함대와 방어가 표시됩니다. 통계는 항상 사용할 수 있습니다.",
       "%.2f m3 / 개",
       "알 수 없는 PVE 오류입니다.",
-      "자원을 클릭하면 추가되고 다시 클릭하면 제거됩니다.\n채굴 순서에서 항목을 선택하면 위아래로 이동할 수 있습니다."
+      "자원을 클릭하면 추가되고 다시 클릭하면 제거됩니다.\n채굴 순서에서 항목을 선택하면 위아래로 이동할 수 있습니다.",
+      "함대 지휘",
+      "다음 활성화: %s초",
+      "함대 명령 적용 중: %s. 개인 필터는 저장된 상태로 유지됩니다."
     ],
     "zh": [
       "正在连接 AutoMining…",
@@ -7495,7 +7519,10 @@
       "选择任务后会显示舰队和防御页面。统计始终可用。",
       "%.2f 立方米 / 单位",
       "未知 PVE 错误。",
-      "点击资源可将其加入筛选，再次点击可移除。\n选择开采顺序中的条目，即可将其上移或下移。"
+      "点击资源可将其加入筛选，再次点击可移除。\n选择开采顺序中的条目，即可将其上移或下移。",
+      "舰队指挥",
+      "下次激活：%s 秒",
+      "舰队指令生效：%s。您的个人筛选已保留。"
     ]
   }
 }
