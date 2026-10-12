@@ -14,7 +14,8 @@ for node in ast.walk(ast.parse((root/'client/fleetCommand.py').read_text(encodin
 keys.update(['Mining','Hauling','Boosting','PVE','Offline','ON','OFF',
     'Fleet filter','Personal filter','All compatible resources',
     'applied','restored','started','refused','stopped','recalled','recallFailed',
-    'offline','notMember','notMiner','failed','filter','restore','start','stop','recall','mining','restoreMining','miningApplied',
+    'offline','notMember','notMiner','notDroneMiner','failed','filter','restore','start','stop','recall','mining','restoreMining','miningApplied',
+    'drones','restoreDrones','dronesApplied',
     'Lock targets automatically','Approach out-of-range ore','Target priority','Automatic survey','Automatic compression',
     'Survey seconds','Nearest first','Furthest first','Largest volume first','Smallest volume first'])
 keys.update(re.findall(r'throw Error\("([^"]+)"\)',(root/'lib/fleetCommand.js').read_text()))

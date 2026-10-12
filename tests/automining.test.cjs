@@ -77,6 +77,26 @@ function volumes(f) {
   };
 }
 
+test("fleet drone orders and restoration preserve ongoing laser cycles and target locks", () => {
+  const leader={characterID:1,socket:{}},sessions=new Map([[1,leader]]);
+  const fleet={fleetID:99,members:new Map([[1,{}],[42,{}]])};let clock=10000;
+  const f=fixture({count:2,extensions:{now:()=>clock,getFleet:id=>[1,42].includes(id)?fleet:null,
+    getSession:id=>sessions.get(id),isFleetBoss:(_,id)=>id===1,catalog:()=>[]}});
+  sessions.set(42,f.session);f.command('automining on');f.tick();
+  const effects=[...f.ship.activeModuleEffects.values()],targets=[...f.ship.lockedTargets.keys()];
+  const send=action=>f.controller.fleetCommand.action(leader,{action,pilots:[42],
+    settings:{mineDroneOrder:'furthest',mineDroneMode:'focus'}});
+  send('drones');f.tick();
+  assert.deepEqual([...f.ship.activeModuleEffects.values()],effects);
+  assert.deepEqual([...f.ship.lockedTargets.keys()],targets);
+  assert.equal(f.stopped.length,0);assert.equal(f.removed.length,0);assert.equal(f.started.length,2);
+  assert.deepEqual(f.controller.fleetCommand.drones(f.session,f.controller.snapshot(f.session).settings),
+    {mineDroneOrder:'furthest',mineDroneMode:'focus'});
+  clock+=2000;send('restoreDrones');f.tick();
+  assert.deepEqual([...f.ship.activeModuleEffects.values()],effects);
+  assert.equal(f.stopped.length,0);assert.equal(f.started.length,2);
+});
+
 test("fleet mining controls drive movement, survey and compression without entering saved preferences", () => {
   const leader={characterID:1,socket:{}}, sessions=new Map([[1,leader]]), saved=[];
   const fleet={fleetID:99,members:new Map([[1,{}],[42,{}]])};let compressed=0,clock=10000;

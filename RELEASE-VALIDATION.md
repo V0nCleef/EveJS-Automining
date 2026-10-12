@@ -1,30 +1,31 @@
-# AutoMining 1.2.15 release validation
+# AutoMining 1.2.16 release validation
 
-Validated on 11 October 2026 in isolated Grid Check 0.2.0, Native EveJS 0.12.9 and EVE client 3396210. The production installation was left unchanged.
+Validated on 12 October 2026 in isolated Grid Check 0.2.0, Native EveJS 0.12.9 and EVE client 3396210. The production mod and Grid Check configuration were preserved.
 
-## Tested behavior
+## Changes verified
 
-- Focused controller, crystals and Fleet Command regression checks: 86 passed. Earlier burst/industrial/rat/job checks also passed.
-- HUD fixtures cover first-tab order, pulse acknowledgement, the shared native ore filter, readable results, recipient notices, protected fields, unrelated personal edits and restoration.
-- All nine authored and delivered language catalogues cover the new labels, hints, states, errors and results.
-- Real three-client fleet checks verified selection, ore-order delivery, Start, Stop + recall, Recall and nonleader rejection. The separate window preserves the main page.
-- Real miner checks verified targeting and activation of two Strip Miner I modules on the commanded Veldspar while the personal Scordite filter stayed saved. Five deployed Mining Drone I physically returned to the bay after Stop + recall.
-- Native LeaveFleet and commander Stop restored both mining settings and ore filters. Disconnect/session replacement, leadership and job changes have focused regression coverage.
-- A disposable Porpoise matched the user's fitted Mining Foreman Burst equipment and charges. Its native cycle was 60 seconds; a 90-second interval produced successful starts 89.217 seconds apart, with an idle gap. Both controls reset to 60 seconds.
-- Actual combined Launcher menu/login delivery: 261655 / 262144 expression bytes, using a full UUID token. The Fleet Command helper loads on demand.
+- Empty-filter crystal preparation: a real Retriever with two Modulated Strip Miner II modules arrived in an Average Gneiss Deposit with incompatible Simple Asteroid Mining Crystal Type B II loaded and only Simple crystals in cargo. Both empty personal and fleet filters remained empty. Native crystal handling unloaded the incompatible crystals and both strip miners acquired Gneiss III-Grade and activated bare.
+- Fleet Command drone targeting: the real leader window presents a Mining drones tab with target priority and Focus/Spread controls. A Porpoise and Retriever showed the commander's effective values and protected controls while retaining personal preferences. Unrelated Apply operations preserved those preferences. Restore personal drone targeting and native LeaveFleet cleared the override correctly; a nonleader command was rejected.
+- Drone gameplay: five individually grouped Mining Drone I focused one Gneiss rock under a fleet order, then spread across five different rocks after restoring the pilot's personal settings. Strip miners continued operating during the drone-only order.
+- Dual Porpoise bursts: both fitted Mining Foreman Burst modules resumed after staggered native reload completion. The Laser Field Enhancement Charge module activated 334 ms after readiness; the Mining Laser Optimization Charge module activated 605 ms after readiness. At configured 85-second intervals, consecutive successful starts were 85.549 and 85.551 seconds apart. These intervals remain independent per module.
 
-## Publication checks
+## Focused checks
 
-The final release checkout passed 99 focused controller, fleet-order, burst and login-delivery checks, plus HUD and nine-language checks. The extracted ZIP passed the passive native service harness in Grid Check with filesystem writes blocked. All 68 ZIP members and updater/checksum files were verified before upload.
-
-## Package provenance
-
-All production code, translations and artwork are copied byte-for-byte from the tested candidate. Only README and release manifest metadata are changed for publication. The ZIP contains production files only; repository tests, private logs, screenshots, videos, player settings, databases and test-environment tooling are excluded. Matching ZIP checksum and updater descriptor are separate release assets.
+- 145 controller, crystal, burst, fleet-order, mining-drone, industrial and rat regression checks passed, including preservation of active laser cycles and target locks through drone-only orders and restoration.
+- HUD fixtures passed for the new command page, strict two-field requests, Mining/Boosting recipient notices, protected controls, personal Apply values and restoration.
+- Main and Fleet Command language-catalogue checks passed for all nine existing languages. Login delivery checks: 12 passed.
+- Actual combined Launcher menu/login delivery remained 261655 / 262144 expression bytes with a full UUID token; the new window code loads on demand.
+- The real native crystal planner bridge and passive native service-load harness passed. The passive harness blocked filesystem writes and reported none.
+- Native screenshots were inspected for the command window and recipient's Mining drones page. Test clients and the owned Grid Check server were closed after testing.
 
 ## Coverage limits
 
-Native English rendering was inspected; nine-language contents and delivery were checked offline. Not every burst variant was fitted. Mining locks/module activation and drone return were verified, without a measured harvested-yield claim. Unchanged cross-system hauling/PVE routes, Docker gameplay and fresh 0.12.8 gameplay were not repeated for this update. Declared compatibility is separate from live verification.
+Fresh live coverage is Native 0.12.9 with English rendering. Other language contents and delivery were checked offline. Docker, 0.12.8, unchanged hauling/PVE routes and every crystal/burst variant were not retested. The anomaly check proves target acquisition and module activation; it does not claim a measured harvested yield. An 85-second interval is a test override, not a new default.
 
-## Update and rollback
+## Installation
 
-Close clients and stop the server, then update AutoMining through Launcher Mods or Add ZIP. Restart the server and reconnect clients. Preserve character/job settings, fleet presets, statistics and Launcher profile preferences. Fleet Command orders are temporary and do not migrate. Restore the previous ZIP with the preserved data if rollback is needed.
+Close production clients, stop the server and Launcher, then update the mod with a rollback copy. Preserve player/job settings, statistics, fleet presets and Launcher profile preferences. Temporary fleet orders do not persist across sessions. This release was not installed into the maintainer's production Launcher during publication.
+
+## Package provenance
+
+Runtime code, translations and artwork match the tested candidate byte-for-byte. Only version metadata and public documentation change for publication. The package includes the native helper, legacy helper, patch asset and Launcher updater metadata. Private evidence, player data, videos and test tooling are excluded. All ZIP members and release assets are verified before publication.

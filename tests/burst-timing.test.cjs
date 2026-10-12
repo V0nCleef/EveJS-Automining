@@ -3,22 +3,24 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {createBoosters}=require('../lib/boosters');
 const {featurePreferences,featureRequest}=require('../lib/featureSettings');
 const {captureProfile,switchProfile}=require('../lib/jobProfiles');
-function fixture({interval,variant=42528}={}){
+function fixture({interval,variant=42528,dual=false}={}){
  let now=0,refused=false,duration=60000;
+ const reloads=new Map();
  const session={characterID:1},ship={kind:'ship',itemID:10,activeModuleEffects:new Map()};
  const s={autoBoost:true,boostOwned:new Map(),boostIntervals:interval?{[variant]:interval}:{}};
  const calls=[];
  const scene={getPublicGridClusterKeyForEntity:()=> 'belt',
-  activateGenericModule(_,item,name,options){calls.push({at:now,repeat:options.repeat});
+  activateGenericModule(_,item,name,options){calls.push({at:now,repeat:options.repeat,...(dual?{moduleID:item.itemID}:{})});
+   if(reloads.has(item.itemID))return {success:false,errorMsg:'MODULE_RELOADING'};
    if(refused)return {success:false,errorMsg:'NotEnoughCapacitor'};
    ship.activeModuleEffects.set(item.itemID,{nextCycleAtMs:now+duration,remainingCycles:options.repeat===0?1:null});return {success:true};},
   deactivateGenericModule(_,id,options){calls.push({stop:id,options});ship.activeModuleEffects.get(id).deactivateAtMs=ship.activeModuleEffects.get(id).nextCycleAtMs;}};
- const native={fitting:{getFittedModuleItems:()=>[{itemID:100,typeID:variant},{itemID:101,typeID:99}],isModuleOnline:()=>true,
+ const native={pendingReloads:()=>reloads,fitting:{getFittedModuleItems:()=>[{itemID:100,typeID:variant},{itemID:101,typeID:dual?variant:99}],isModuleOnline:()=>true,
   getTypeEffectRecords:type=>[{name:type===variant?'mining':'shield'}]},
   bursts:{resolveCommandBurstDefinition:e=>({family:e.name})},dogma:{getEntityRuntimeShipItem:()=>ship,getEntityRuntimeSkillMap:()=>new Map()},
   attributes:{getGenericModuleRuntimeAttributes:()=>({durationMs:duration})}};
  const api=createBoosters('unused',{native,state:()=>s,getAPI:()=>({miningSite:()=>true}),logError:()=>{}});
- return {api,s,ship,session,scene,calls,tick(at){now=at;api.tick(session,s,scene,ship,now);},
+ return {api,s,ship,session,scene,calls,reloads,tick(at){now=at;api.tick(session,s,scene,ship,now);},
   refuse(value){refused=value;},duration(value){duration=value;},view(at){return api.snapshot(session,s,ship,at);}};
 }
 test('every native mining-burst variant gets its effective fitted cycle default',()=>{
@@ -38,6 +40,20 @@ test('failed activation retries without spending the activation interval',()=>{
  const f=fixture({interval:300});f.refuse(true);f.tick(0);f.tick(5000);f.tick(14999);assert.equal(f.calls.length,1);
  f.refuse(false);f.tick(15000);assert.equal(f.calls.length,2);f.ship.activeModuleEffects.clear();
  f.tick(314999);assert.equal(f.calls.length,2);f.tick(315000);assert.equal(f.calls.length,3);
+});
+test('two bursts sharing a type and timer both activate and restart independently',()=>{
+ const f=fixture({interval:85,dual:true});f.tick(0);f.tick(5000);
+ assert.deepEqual(f.calls.map(x=>x.moduleID),[100,101]);
+ f.ship.activeModuleEffects.clear();f.tick(89999);assert.equal(f.calls.length,2);
+ f.tick(90000);assert.deepEqual(f.calls.slice(-2).map(x=>x.moduleID),[100,101]);
+});
+test('staggered native reload completion never puts the second burst in refusal backoff',()=>{
+ const f=fixture({interval:85,dual:true});f.reloads.set(101,{completeAtMs:6500});f.tick(0);f.tick(5000);
+ assert.deepEqual(f.calls,[{at:5000,repeat:0,moduleID:100}]);
+ f.reloads.delete(101);f.tick(7000);
+ assert.deepEqual(f.calls.at(-1),{at:7000,repeat:0,moduleID:101});
+ f.ship.activeModuleEffects.clear();f.tick(90000);assert.equal(f.calls.at(-1).moduleID,100);
+ f.tick(92000);assert.equal(f.calls.at(-1).moduleID,101);
 });
 test('editing a continuous timer defers its owned current cycle; manual effects are left alone',()=>{
  const f=fixture();f.tick(0);f.tick(5000);const live=f.ship.activeModuleEffects.get(100);live.nextCycleAtMs=125000;

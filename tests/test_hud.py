@@ -1264,3 +1264,33 @@ assert recipient.timerEdit.GetValue()==60 and recipient._toggles['approach'].sta
 assert all(box.state=='UI_HIDDEN' for box,title,detail in recipient._fleetOrderNotices.values())
 assert not recipient.ReadSettings()['stackOreHold']
 print('PASS: recipient notices name the commander, show effective values, protect controlled editors and filters, preserve personal Apply values and unrelated drafts, and restore controls when orders end.')
+
+# Only drone target priority/mode are commanded; personal launch/recall choices
+# stay editable. The same recipient page exists for miners and boosters.
+command.SelectCommandPage('drones',False)
+command.mineDroneOrderEdit.SelectItemByValue('furthest');command.mineDroneModeEdit.SelectItemByValue('focus')
+def drone_rpc(method,raw):
+    request=json.loads(raw);sent.append(request)
+    return dict(pilots=command.rows,orders=[],order=dict(results=[dict(result='dronesApplied')]))
+command.Request=drone_rpc;command.SendWork('drones')
+assert sent[-1]['settings']==dict(mineDroneOrder='furthest',mineDroneMode='focus')
+assert sent[-1]['action']=='drones'
+for job in ['mining','boosting']:
+    receiver=cls();receiver.ApplyAttributes({})
+    prefs=dict(personal_settings,job=job,mineDrones=True,mineDroneOrder='nearest',mineDroneMode='spread')
+    response=dict(base,settings=prefs,fleetOverride=None,fleetFilter=None)
+    receiver.ShowResponse(response,True)
+    drone_order=dict(leader='Test Commander',values=dict(mineDroneOrder='furthest',mineDroneMode='focus'))
+    receiver.ShowResponse(dict(response,fleetOverride=drone_order))
+    assert receiver.mineDroneOrderEdit.GetValue()=='furthest' and receiver.mineDroneModeEdit.GetValue()=='focus'
+    assert receiver.mineDroneOrderEdit.state=='UI_DISABLED' and getattr(receiver._toggles['mineDrones'],'state','UI_NORMAL')=='UI_NORMAL'
+    assert receiver._fleetOrderNotices[1][0].state=='UI_NORMAL'
+    assert 'Test Commander' in receiver._fleetOrderNotices[1][1].text
+    assert receiver.ReadSettings()['mineDroneOrder']=='nearest' and receiver.ReadSettings()['mineDroneMode']=='spread'
+    receiver.stackOreHold.SetChecked(False);receiver.Changed()
+    receiver.ShowResponse(dict(response,fleetOverride=drone_order))
+    assert not receiver.ReadSettings()['stackOreHold']
+    receiver.ShowResponse(response)
+    assert receiver.mineDroneOrderEdit.GetValue()=='nearest' and receiver.mineDroneModeEdit.GetValue()=='spread'
+    assert receiver.mineDroneOrderEdit.state=='UI_NORMAL' and receiver._fleetOrderNotices[1][0].state=='UI_HIDDEN'
+print('PASS: fleet drone page sends only target priority/mode; miners and boosters show effective values and commander notices, preserve personal Apply settings and restore independently.')

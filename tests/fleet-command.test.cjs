@@ -5,7 +5,7 @@ const { installHUD } = require("../lib/hud");
 function fixture() {
   let time = 10000;
   const sessions = new Map([1,2,3,4].map(characterID => [characterID, { characterID, characterName: `Pilot ${characterID}`, socket: {} }]));
-  const states = new Map([...sessions].map(([id]) => [id, { job: id === 3 ? "boosting" : "mining", enabled: false, ores: ["scordite"], lock: true, approach: false, order: "nearest", survey: false, compress: false, surveySeconds: 60 }]));
+  const states = new Map([...sessions].map(([id]) => [id, { job: id === 3 ? "boosting" : "mining", enabled: false, ores: ["scordite"], lock: true, approach: false, order: "nearest", survey: false, compress: false, surveySeconds: 60, mineDroneOrder: "nearest", mineDroneMode: "spread", mineDrones: true }]));
   const fleet = { fleetID: 90, leader: 1, members: new Map([1,2,3].map(id => [id, {}])) };
   const membership = new Map([1,2,3].map(id => [id, fleet]));
   const reset = [], controls = [];
@@ -103,5 +103,54 @@ test("mining order validation is atomic; stop, disconnect, new leader and new se
     const f=fixture();f.send("mining",[2],{settings});mutate(f);
     assert.equal(f.service.notice(f.sessions.get(2)),null);
     assert.equal(f.service.mining(f.sessions.get(2),f.states.get(2)).approach,false);
+  }
+});
+
+test("drone targeting reaches selected miners and boosters without changing their personal settings", () => {
+  const f=fixture(), settings={mineDroneOrder:"furthest",mineDroneMode:"focus"};
+  const originals=[2,3].map(id=>structuredClone(f.states.get(id)));
+  const result=f.send("drones",[2,3,4],{settings});
+  assert.deepEqual(result.order.results.map(row=>row.result),["dronesApplied","dronesApplied","notMember"]);
+  for(const [index,id] of [2,3].entries()) {
+    assert.deepEqual(f.service.drones(f.sessions.get(id),f.states.get(id)),settings);
+    assert.deepEqual(f.states.get(id),originals[index]);
+    assert.deepEqual(f.service.notice(f.sessions.get(id)).values,settings);
+    f.service.sourceAuthorized(f.sessions.get(id));
+  }
+  assert.equal(f.service.notice(f.sessions.get(1)),null);
+  assert.deepEqual(f.service.view(f.sessions.get(1)).pilots.find(p=>p.characterID===3).drones,settings);
+});
+
+test("drone orders restore independently of ore and mining orders", () => {
+  const f=fixture(),target=f.sessions.get(2),s=f.states.get(2);
+  const settings={mineDroneOrder:"smallest",mineDroneMode:"focus"};
+  f.send("filter",[2],{ores:["veldspar"]});f.send("drones",[2],{settings});
+  f.send("restore");assert.equal(f.service.effective(target,s),s.ores);
+  assert.deepEqual(f.service.drones(target,s),settings);
+  f.send("filter",[2],{ores:["veldspar"]});f.send("restoreDrones");
+  assert.deepEqual(f.service.drones(target,s),{mineDroneOrder:"nearest",mineDroneMode:"spread"});
+  assert.deepEqual(f.service.effective(target,s),["veldspar"]);
+  assert.deepEqual(f.service.notice(target).values,{ores:["veldspar"]});
+});
+
+test("drone targeting rejects extra controls, invalid values, nonleaders and unsuitable jobs",()=>{
+  for(const settings of [null,{},[],{mineDroneOrder:"bogus",mineDroneMode:"spread"},
+    {mineDroneOrder:"nearest",mineDroneMode:"bogus"},{mineDroneOrder:"nearest",mineDroneMode:"focus",launchDrones:true}]) {
+    const f=fixture();assert.throws(()=>f.send("drones",[2],{settings}),/valid fleet drone/);
+    assert.deepEqual(f.reset,[]);
+  }
+  const f=fixture(),settings={mineDroneOrder:"nearest",mineDroneMode:"focus"};
+  assert.throws(()=>f.service.action(f.sessions.get(2),{action:"drones",pilots:[1],settings}),/current fleet leader/);
+  f.states.get(3).job="pve";assert.equal(f.send("drones",[3],{settings}).order.results[0].result,"notDroneMiner");
+});
+
+test("drone orders expire for both jobs on stop, departure, disconnect and job change",()=>{
+  for(const id of [2,3])for(const mutate of [f=>f.service.clear(f.sessions.get(id)),
+      f=>f.service.clear(f.sessions.get(1),f.states.get(1),true),f=>f.membership.delete(id),
+      f=>f.sessions.get(1).socket.destroyed=true,f=>f.states.get(id).job=id===2?"boosting":"mining"]) {
+    const f=fixture(),target=f.sessions.get(id),s=f.states.get(id);
+    f.send("drones",[id],{settings:{mineDroneOrder:"furthest",mineDroneMode:"focus"}});mutate(f);
+    assert.equal(f.service.notice(target),null);
+    assert.deepEqual(f.service.drones(target,s),{mineDroneOrder:"nearest",mineDroneMode:"spread"});
   }
 });

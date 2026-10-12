@@ -2,7 +2,7 @@
 
 **Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
 
-[**Download AutoMining 1.2.15**](https://github.com/V0nCleef/EveJS-Automining/releases/tag/v1.2.15)
+[**Download AutoMining 1.2.16**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
 
 [**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
 
@@ -12,6 +12,13 @@
 | Pick resources and manage yield. | Collect fleet ore and deliver it. | Run industrial equipment and receive ore. | Patrol belts, escort pilots or answer calls. |
 
 The ship cards are illustrated job artwork. AutoMining assists the configured jobs using EveJS's native movement, modules, inventory and fleet operations. Fitting, skills, range, capacity and access permissions still matter.
+
+## New in 1.2.16
+
+- Empty ore filters now prepare mining crystals for the current grid too. In a Gneiss anomaly, an incompatible Simple crystal is replaced from cargo or unloaded so a modulated strip miner can mine bare.
+- Fleet Command adds **Mining drones**: send target priority and Focus/Spread mode to selected Mining or Boosting pilots. Automatic mining drone orders must already be enabled on each recipient. Launch and recall preferences remain personal.
+- Drone orders show the commander and effective values on the recipient's Mining drones page. Restore them independently of other orders; Stop, leaving the fleet or ending the session restores personal settings.
+- Each Mining Foreman Burst waits for its own native reload to finish and resumes on the next normal tick, avoiding the failed-activation retry delay. Successful activation intervals remain per module.
 
 ## New in 1.2.15
 
@@ -31,7 +38,7 @@ The shared Mods menu comes from the Launcher. AutoMining provides its menu adapt
 
 ## Install or update
 
-1. Download **AutoMining-1.2.15.zip** from the release.
+1. Download **AutoMining-1.2.16.zip** from the release.
 2. Stop the server and close EVE clients before changing the mod. Keep the previous ZIP and back up the existing server configuration and Launcher profile settings.
 3. In the Launcher, open **Mods > Add ZIP**, select the ZIP and enable **AutoMining**. For an existing installation, update the same AutoMining entry; its configured GitHub update channel also points to this repository.
 4. Start the server with that profile and log in again so the client receives the current companion.
@@ -60,9 +67,9 @@ Labels follow the client's English, Chinese, German, French, Spanish, Italian, R
 
 ## Fleet Command
 
-The fleet leader's first **Fleet Command** tab opens a separate window on demand. It gently pulses until that character has opened it successfully. Its **Mining** and **Mining Filter** tabs share a visible pilot list, selected-pilot actions and order log. Set targeting, approach, target priority, automatic survey, compression and survey timing for selected Mining pilots. Build their ore order with the same icon tiles, groups, searches and priority controls as the normal Mining Filter.
+The fleet leader's first **Fleet Command** tab opens a separate window on demand. It gently pulses until that character has opened it successfully. Its **Mining**, **Mining Filter** and **Mining drones** tabs share a visible pilot list, selected-pilot actions and order log. Set targeting, approach, target priority, automatic survey, compression and survey timing for selected Mining pilots. Build their ore order with the same icon tiles, groups, searches and priority controls as the normal Mining Filter. Drone targeting orders also support Boosting pilots and leave their personal launch/recall controls alone.
 
-Fleet orders temporarily override the selected pilots' current session. Their personal settings stay saved. Affected Mining and Mining Filter pages show **Controlled by fleet commander**, name the commander and display the effective values. Controlled fields are protected, while unrelated personal settings remain editable. Restore mining settings and ore filters independently. Orders end when the recipient or commander stops, a pilot leaves or disconnects, the fleet or its leader changes, the pilot changes jobs, or the server restarts.
+Fleet orders temporarily override the selected pilots' current session. Their personal settings stay saved. Affected Mining, Mining Filter and Mining drones pages show **Controlled by fleet commander**, name the commander and display the effective values. Controlled fields are protected, while unrelated personal settings remain editable. Restore mining settings, ore filters and drone targeting independently. Orders end when the recipient or commander stops, a pilot leaves or disconnects, the fleet or its leader changes, the pilot changes jobs, or the server restarts.
 
 Selected **Start**, **Stop + recall**, and **Recall** controls use native operations. The log shows pilot names, local times and per-pilot results. A Recall acknowledgement confirms the order was accepted; check the drones' return before moving away. Every order checks the current native leader and each recipient's actual fleet membership. Fleet Command and its new controls support all nine existing client languages.
 

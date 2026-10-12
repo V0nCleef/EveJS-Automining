@@ -193,3 +193,15 @@ const distant=crystalRocks.map(r=>({...r,distance:99999}));
 assert.equal(api.crystalPlan(scene,ship,crystalModule,distant,0,false),null,'Respect range when approach is disabled');
 assert.ok(api.crystalPlan(scene,ship,crystalModule,distant,0,true),'Approach can prepare for a distant eligible rock');
 console.log('PASS: native crystal compatibility, matching cargo selection, no-crystal fallback, ownership/hold/range and existing-crystal preservation.');
+
+// Exercise the manager with the actual installed native planner and no filter.
+crystalCargo=[];crystalLoaded={itemID:800,typeID:700,stacksize:1};
+const updateCrystals=require('../lib/crystals').createCrystalManager(()=>({pending:()=>false,
+  unload:()=>{crystalLoaded=null;},load:()=>{throw Error('No compatible cargo in this case');}}));
+const crystalState={ores:[],approach:false};
+assert.equal(updateCrystals({api,scene,session:{characterID:42},ship,state:crystalState,
+  modules:[crystalModule],rocks:crystalRocks,now:1000}),true);
+assert.equal(crystalLoaded,null,'Empty filter still removes an incompatible crystal');
+assert.equal(api.compatible(scene,ship,{...crystalModule,snapshot:{...crystalModule.snapshot,
+  chargeTypeID:0,crystalTargetTypeListID:0}},crystalRocks[0]),true,'Bare strip miner can now mine the current ore');
+console.log('PASS: empty-filter crystal manager uses actual native planning and restores compatible bare-strip-miner targeting.');

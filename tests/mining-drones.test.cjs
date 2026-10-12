@@ -5,6 +5,31 @@ const { createMiningDrones } = require("../lib/miningDrones");
 const { createRatDefense } = require("../lib/ratDefense");
 const { targetClaims } = require("../lib/targetClaims");
 
+test("temporary drone targeting changes actual orders, then restores personal targeting", () => {
+  const session={characterID:7},ship={itemID:10,kind:"ship"};
+  const drones=new Map([21,22].map(itemID=>[itemID,{itemID,ownerID:7,controllerID:10,droneCommand:"IDLE"}]));
+  const rocks=[101,102].map((id,index)=>({id,name:"Veldspar",distance:100*(index+1),
+    state:{yieldKind:"ore",remainingQuantity:100,unitVolume:1}}));
+  const state={enabled:true,mineDrones:true,mineDroneOrder:"nearest",mineDroneMode:"spread",characterID:7,
+    ores:[],miningDroneIDs:new Set(drones.keys()),mineIncompatibleIDs:new Set()};
+  let override={mineDroneOrder:"furthest",mineDroneMode:"focus"};
+  const orders=[];
+  const manager=createMiningDrones("",{getAPI:()=>({surveyGrid:()=>"anomaly",candidates:()=>rocks,
+    target:(_,__,id)=>rocks.find(r=>r.id===id)}),pendingDeparture:()=>false,
+    targeting:(_,s)=>override||s,native:{isDroneEntity:d=>!!d?.droneCommand,
+      DRONE_COMMAND_RETURN_HOME:"RETURN_HOME",DRONE_COMMAND_RETURN_BAY:"RETURN_BAY",DRONE_COMMAND_MINE:"MINE",
+      commandMineRepeatedly(_, [id],target){orders.push([id,target]);Object.assign(drones.get(id),{targetID:target,droneCommand:"MINE"});
+        return {type:"dict",entries:[]};}}});
+  const scene={getEntityByID:id=>drones.get(id)};
+  manager.tick(session,state,scene,ship,1000);
+  assert.deepEqual(orders,[[21,102],[22,102]]);
+  assert.equal(state.mineDroneOrder,"nearest");assert.equal(state.mineDroneMode,"spread");
+  override=null;state.mineReplan=true;state.nextMineScan=0;
+  manager.tick(session,state,scene,ship,2000);
+  assert.deepEqual(orders.slice(-2),[[21,101],[22,102]]);
+  assert.equal(state.mineDrones,true);
+});
+
 test("mining drones obey filter grade and spread, then keep orders without rescanning", () => {
   const session = { characterID: 7 }, ship = { itemID: 10, kind: "ship" };
   const droneA = { itemID: 21, controllerID: 10, ownerID: 7, droneCommand: "IDLE" };

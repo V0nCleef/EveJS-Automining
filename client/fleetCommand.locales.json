@@ -65,7 +65,16 @@
     "Choose valid fleet mining settings.": "Choose valid fleet mining settings.",
     "mining": "Mining settings order",
     "restoreMining": "Restore mining settings",
-    "miningApplied": "Mining settings applied"
+    "miningApplied": "Mining settings applied",
+    "Apply drone targeting order": "Apply drone targeting order",
+    "Restore personal drone targeting": "Restore personal drone targeting",
+    "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.": "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.",
+    "Fleet drone targeting active": "Fleet drone targeting active",
+    "Choose valid fleet drone targeting settings.": "Choose valid fleet drone targeting settings.",
+    "notDroneMiner": "Mining or Boosting job required",
+    "dronesApplied": "Drone targeting applied",
+    "drones": "Drone targeting",
+    "restoreDrones": "Restore personal drone targeting"
   },
   "de": {
     "Fleet Command": "Flottenkommando",
@@ -133,7 +142,16 @@
     "Choose valid fleet mining settings.": "Gültige Flotten-Bergbaueinstellungen wählen.",
     "mining": "Bergbaubefehl",
     "restoreMining": "Bergbaueinstellungen wiederherstellen",
-    "miningApplied": "Bergbaueinstellungen angewendet"
+    "miningApplied": "Bergbaueinstellungen angewendet",
+    "Apply drone targeting order": "Drohnenzielbefehl anwenden",
+    "Restore personal drone targeting": "Persönliche Drohnenzielwahl wiederherstellen",
+    "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.": "Drohnenzielbefehle gelten für Bergbau- und Booster-Piloten. Automatische Bergbaudrohnenbefehle müssen bereits aktiviert sein.",
+    "Fleet drone targeting active": "Drohnenzielwahl der Flotte aktiv",
+    "Choose valid fleet drone targeting settings.": "Gültige Einstellungen für die Drohnenzielwahl der Flotte auswählen.",
+    "notDroneMiner": "Bergbau- oder Booster-Aufgabe erforderlich",
+    "dronesApplied": "Drohnenzielwahl angewendet",
+    "drones": "Drohnenzielwahl",
+    "restoreDrones": "Persönliche Drohnenzielwahl wiederherstellen"
   },
   "fr": {
     "Fleet Command": "Commandement de flotte",
@@ -201,7 +219,16 @@
     "Choose valid fleet mining settings.": "Choisissez des réglages de minage de flotte valides.",
     "mining": "Ordre de minage",
     "restoreMining": "Rétablir les réglages de minage",
-    "miningApplied": "Réglages de minage appliqués"
+    "miningApplied": "Réglages de minage appliqués",
+    "Apply drone targeting order": "Appliquer le ciblage des drones",
+    "Restore personal drone targeting": "Rétablir le ciblage personnel des drones",
+    "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.": "Les ordres de ciblage des drones concernent les mineurs et les pilotes de soutien. Les ordres automatiques des drones miniers doivent déjà être activés.",
+    "Fleet drone targeting active": "Ciblage des drones de flotte actif",
+    "Choose valid fleet drone targeting settings.": "Choisissez des paramètres valides pour le ciblage des drones de flotte.",
+    "notDroneMiner": "Rôle Extraction ou Soutien requis",
+    "dronesApplied": "Ciblage des drones appliqué",
+    "drones": "Ciblage des drones",
+    "restoreDrones": "Rétablir le ciblage personnel des drones"
   },
   "es": {
     "Fleet Command": "Mando de flota",
@@ -269,7 +296,16 @@
     "Choose valid fleet mining settings.": "Elige ajustes válidos de minería de flota.",
     "mining": "Orden de minería",
     "restoreMining": "Restaurar ajustes de minería",
-    "miningApplied": "Ajustes de minería aplicados"
+    "miningApplied": "Ajustes de minería aplicados",
+    "Apply drone targeting order": "Aplicar orden de objetivos de drones",
+    "Restore personal drone targeting": "Restaurar objetivos personales de drones",
+    "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.": "Las órdenes de objetivos de drones se aplican a mineros y pilotos de apoyo. Las órdenes automáticas de drones mineros deben estar ya activadas.",
+    "Fleet drone targeting active": "Objetivos de drones de flota activos",
+    "Choose valid fleet drone targeting settings.": "Elige ajustes válidos de objetivos de drones de flota.",
+    "notDroneMiner": "Se requiere la función Minería o Apoyo",
+    "dronesApplied": "Objetivos de drones aplicados",
+    "drones": "Objetivos de drones",
+    "restoreDrones": "Restaurar objetivos personales de drones"
   },
   "it": {
     "Fleet Command": "Comando flotta",
@@ -337,7 +373,16 @@
     "Choose valid fleet mining settings.": "Scegli impostazioni minerarie di flotta valide.",
     "mining": "Ordine minerario",
     "restoreMining": "Ripristina impostazioni minerarie",
-    "miningApplied": "Impostazioni minerarie applicate"
+    "miningApplied": "Impostazioni minerarie applicate",
+    "Apply drone targeting order": "Applica ordine bersagli droni",
+    "Restore personal drone targeting": "Ripristina bersagli personali dei droni",
+    "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.": "Gli ordini bersagli droni si applicano a minatori e piloti di supporto. Gli ordini automatici dei droni minerari devono essere già attivi.",
+    "Fleet drone targeting active": "Bersagli droni di flotta attivi",
+    "Choose valid fleet drone targeting settings.": "Scegli impostazioni valide per i bersagli dei droni di flotta.",
+    "notDroneMiner": "Richiesto ruolo Estrazione o Supporto",
+    "dronesApplied": "Bersagli droni applicati",
+    "drones": "Bersagli droni",
+    "restoreDrones": "Ripristina bersagli personali dei droni"
   },
   "ru": {
     "Fleet Command": "Управление флотом",
@@ -405,7 +450,16 @@
     "Choose valid fleet mining settings.": "Выберите допустимые настройки добычи флота.",
     "mining": "Приказ на добычу",
     "restoreMining": "Восстановление настроек добычи",
-    "miningApplied": "Настройки добычи применены"
+    "miningApplied": "Настройки добычи применены",
+    "Apply drone targeting order": "Применить приказ целеуказания дронов",
+    "Restore personal drone targeting": "Восстановить личное целеуказание дронов",
+    "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.": "Приказы целеуказания дронов действуют для шахтёров и пилотов поддержки. Автоматические приказы добывающим дронам должны быть уже включены.",
+    "Fleet drone targeting active": "Активно целеуказание дронов флота",
+    "Choose valid fleet drone targeting settings.": "Выберите допустимые настройки целеуказания дронов флота.",
+    "notDroneMiner": "Требуется роль добычи или поддержки",
+    "dronesApplied": "Целеуказание дронов применено",
+    "drones": "Целеуказание дронов",
+    "restoreDrones": "Восстановить личное целеуказание дронов"
   },
   "zh": {
     "Fleet Command": "舰队指挥",
@@ -473,7 +527,16 @@
     "Choose valid fleet mining settings.": "请选择有效的舰队采矿设置。",
     "mining": "采矿设置命令",
     "restoreMining": "恢复采矿设置",
-    "miningApplied": "采矿设置已应用"
+    "miningApplied": "采矿设置已应用",
+    "Apply drone targeting order": "应用无人机目标指令",
+    "Restore personal drone targeting": "恢复个人无人机目标设置",
+    "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.": "无人机目标指令适用于采矿和增益支援角色。必须事先启用自动采矿无人机指令。",
+    "Fleet drone targeting active": "舰队无人机目标设置已生效",
+    "Choose valid fleet drone targeting settings.": "请选择有效的舰队无人机目标设置。",
+    "notDroneMiner": "需要采矿或增益支援角色",
+    "dronesApplied": "已应用无人机目标设置",
+    "drones": "无人机目标设置",
+    "restoreDrones": "恢复个人无人机目标设置"
   },
   "ja": {
     "Fleet Command": "艦隊指揮",
@@ -541,7 +604,16 @@
     "Choose valid fleet mining settings.": "有効なフリート採掘設定を選択してください。",
     "mining": "採掘設定の命令",
     "restoreMining": "採掘設定を復元",
-    "miningApplied": "採掘設定を適用しました"
+    "miningApplied": "採掘設定を適用しました",
+    "Apply drone targeting order": "ドローンの目標指示を適用",
+    "Restore personal drone targeting": "個人のドローン目標設定を復元",
+    "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.": "ドローンの目標指示は採掘と支援の役割に適用されます。採掘ドローンへの自動指示を事前に有効にしてください。",
+    "Fleet drone targeting active": "フリートのドローン目標設定が有効",
+    "Choose valid fleet drone targeting settings.": "有効なフリートのドローン目標設定を選択してください。",
+    "notDroneMiner": "採掘または支援の役割が必要",
+    "dronesApplied": "ドローン目標設定を適用済み",
+    "drones": "ドローン目標設定",
+    "restoreDrones": "個人のドローン目標設定を復元"
   },
   "ko": {
     "Fleet Command": "함대 지휘",
@@ -609,6 +681,15 @@
     "Choose valid fleet mining settings.": "유효한 함대 채광 설정을 선택하세요.",
     "mining": "채광 설정 명령",
     "restoreMining": "채광 설정 복원",
-    "miningApplied": "채광 설정 적용됨"
+    "miningApplied": "채광 설정 적용됨",
+    "Apply drone targeting order": "드론 목표 명령 적용",
+    "Restore personal drone targeting": "개인 드론 목표 설정 복원",
+    "Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.": "드론 목표 명령은 채굴 및 지원 역할에 적용됩니다. 자동 채굴 드론 명령을 미리 활성화해야 합니다.",
+    "Fleet drone targeting active": "함대 드론 목표 설정 적용 중",
+    "Choose valid fleet drone targeting settings.": "올바른 함대 드론 목표 설정을 선택하세요.",
+    "notDroneMiner": "채굴 또는 지원 역할 필요",
+    "dronesApplied": "드론 목표 설정 적용됨",
+    "drones": "드론 목표 설정",
+    "restoreDrones": "개인 드론 목표 설정 복원"
   }
 }

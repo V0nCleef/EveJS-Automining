@@ -83,10 +83,10 @@ def _am_build_fleet_command():
             middle = Container(parent=body, align=C.TOALL)
             tabs = Container(parent=middle, align=C.TOTOP, height=44, padBottom=8)
             self.commandButtons = {}
-            for page, caption in [('mining', 'Mining'), ('filter', 'Mining Filter')]:
+            for page, caption in [('mining', 'Mining'), ('filter', 'Mining Filter'), ('drones', 'Mining drones')]:
                 self.commandButtons[page] = button(tabs, caption, self.CommandPageCallback(page), align=C.TOLEFT, width=190, height=34, padRight=8)
             label(middle, 'Orders end when you stop or leave the fleet. Personal settings stay saved.', padding=(6, 6, 6, 8))
-            self.commandPanels = dict((page, Container(parent=middle, align=C.TOALL, state=C.UI_HIDDEN)) for page in ('mining', 'filter'))
+            self.commandPanels = dict((page, Container(parent=middle, align=C.TOALL, state=C.UI_HIDDEN)) for page in ('mining', 'filter', 'drones'))
             mining = ScrollContainer(parent=self.commandPanels['mining'], align=C.TOALL)
             section(mining, 'Targeting')
             for key, caption, checked in [('lock', 'Lock targets automatically', True), ('approach', 'Approach out-of-range ore', False)]:
@@ -108,6 +108,18 @@ def _am_build_fleet_command():
             button(applyRow, 'Apply ore order', lambda *a: self.Send('filter'), align=C.TOTOP, height=34, padBottom=6)
             button(applyRow, 'Restore personal filters', lambda *a: self.Send('restore'), align=C.TOTOP, height=34)
             self.BuildOreFilter(self.commandPanels['filter'])
+            drones = ScrollContainer(parent=self.commandPanels['drones'], align=C.TOALL)
+            section(drones, 'Automatic mining drone orders')
+            label(drones, 'Drone targeting orders apply to miners and boosters. Automatic mining drone orders must already be enabled.', padBottom=14)
+            label(drones, 'Drone target priority')
+            self.mineDroneOrderEdit = Combo(parent=drones, align=C.TOTOP, options=[(tr(caption), key) for caption, key in
+                [('Nearest first', 'nearest'), ('Furthest first', 'furthest'), ('Largest volume first', 'largest'), ('Smallest volume first', 'smallest')]], select='nearest', callback=self.Changed)
+            label(drones, 'Filter order and highest grade first; this priority breaks ties.\nVolume means remaining cubic metres.', padBottom=12)
+            label(drones, 'Drone targeting mode')
+            self.mineDroneModeEdit = Combo(parent=drones, align=C.TOTOP, options=[(tr(caption), key) for caption, key in
+                [('Spread: separate asteroids when possible', 'spread'), ('Focus: same best asteroid', 'focus')]], select='spread', callback=self.Changed)
+            button(drones, 'Apply drone targeting order', lambda *a: self.Send('drones'), align=C.TOTOP, height=34, padTop=14, padBottom=8)
+            button(drones, 'Restore personal drone targeting', lambda *a: self.Send('restoreDrones'), align=C.TOTOP, height=34)
             self.SelectCommandPage('mining', False)
             self.UpdatePriorityHint()
             _am_uthread.new(self.Refresh, True)
@@ -227,8 +239,11 @@ def _am_build_fleet_command():
                 origin = tr('Fleet filter' if 'ores' in row.get('overridden', ['ores'] if row['override'] else []) else 'Personal filter')
                 ores = ', '.join(self.OreName(key) for key in row['ores']) or tr('All compatible resources')
                 label(tile, origin + ': ' + ores, padding=(30, 0, 6, 0), maxLines=2)
-                if any(key != 'ores' for key in row.get('overridden', [])):
+                if any(key in ('lock', 'approach', 'order', 'survey', 'compress', 'surveySeconds') for key in row.get('overridden', [])):
                     label(tile, 'Fleet mining settings active', padding=(30, 4, 6, 0), color=(0.57, 0.78, 0.82, 1))
+                if any(key in ('mineDroneOrder', 'mineDroneMode') for key in row.get('overridden', [])):
+                    label(tile, 'Fleet drone targeting active', padding=(30, 4, 6, 0), color=(0.57, 0.78, 0.82, 1))
+                    tile.height = 142
 
         def TogglePilot(self, cid):
             def toggle(widget, *args):
@@ -278,6 +293,8 @@ def _am_build_fleet_command():
                 if action == 'mining':
                     request['settings'] = dict((key, bool(widget.GetValue())) for key, widget in self._toggles.items())
                     request['settings'].update(order=self.orderEdit.GetValue(), surveySeconds=self.timerEdit.GetValue())
+                elif action == 'drones':
+                    request['settings'] = dict(mineDroneOrder=self.mineDroneOrderEdit.GetValue(), mineDroneMode=self.mineDroneModeEdit.GetValue())
                 result = self.Request('AutoMiningFleetCommandAction', _am_json.dumps(request))
                 self.Show(result)
                 counts = {}
@@ -312,8 +329,10 @@ def _am_install_fleet_order_notices():
         return unicode(value).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
     fields = {'lock': 'Lock targets automatically', 'approach': 'Approach out-of-range ore',
-        'order': 'Target priority', 'survey': 'Automatic survey', 'compress': 'Automatic compression', 'surveySeconds': 'Survey seconds'}
+        'order': 'Target priority', 'survey': 'Automatic survey', 'compress': 'Automatic compression', 'surveySeconds': 'Survey seconds',
+        'mineDroneOrder': 'Drone target priority', 'mineDroneMode': 'Drone targeting mode'}
     priorities = {'nearest': 'Nearest first', 'furthest': 'Furthest first', 'largest': 'Largest volume first', 'smallest': 'Smallest volume first'}
+    drone_modes = {'spread': 'Spread: separate asteroids when possible', 'focus': 'Focus: same best asteroid'}
     original_show = _am_window_class.ShowResponse
     original_read = _am_window_class.ReadSettings
 
@@ -327,6 +346,10 @@ def _am_install_fleet_order_notices():
                 window.orderEdit.SelectItemByValue(value)
             elif key == 'surveySeconds':
                 window.timerEdit.SetValue(value, docallback=False)
+            elif key == 'mineDroneOrder':
+                window.mineDroneOrderEdit.SelectItemByValue(value)
+            elif key == 'mineDroneMode':
+                window.mineDroneModeEdit.SelectItemByValue(value)
             else:
                 window._toggles[key].SetChecked(value, report=False)
 
@@ -337,7 +360,7 @@ def _am_install_fleet_order_notices():
         edited = original_read(window) if dirty else {}
         original_show(window, response, replaceDraft, draft, preserveJobDrafts)
         order = response.get('fleetOverride') or {}
-        values = order.get('values', {}) if window._job == 'mining' else {}
+        values = order.get('values', {}) if window._job == response['settings'].get('job') else {}
         baseline = dict((key, personal.get(key, edited.get(key, response['settings'][key])) if dirty else response['settings'][key])
             for key in set(previous) | set(values))
         loading = window._loading
@@ -352,11 +375,13 @@ def _am_install_fleet_order_notices():
         window._fleetOrderValues = dict(values)
         window._fleetOrderPersonal = dict((key, baseline[key]) for key in values)
         window.fleetFilterNotice.text = ''
-        for key, widget in list(window._toggles.items()) + [('order', window.orderEdit), ('surveySeconds', window.timerEdit)]:
+        for key, widget in list(window._toggles.items()) + [('order', window.orderEdit), ('surveySeconds', window.timerEdit),
+                ('mineDroneOrder', window.mineDroneOrderEdit), ('mineDroneMode', window.mineDroneModeEdit)]:
             if key in fields:
                 widget.state = C.UI_DISABLED if key in values else C.UI_NORMAL
         notices = getattr(window, '_fleetOrderNotices', {})
-        for index, keys in [(0, [key for key in fields if key in values]), (2, ['ores'] if 'ores' in values else [])]:
+        for index, keys in [(0, [key for key in fields if key in values and key not in ('mineDroneOrder', 'mineDroneMode')]),
+                (1, [key for key in ('mineDroneOrder', 'mineDroneMode') if key in values]), (2, ['ores'] if 'ores' in values else [])]:
             if keys and index not in notices:
                 panel = window.tabs.tabs[index][1]
                 box = ContainerAutoSize(parent=panel, idx=0, align=C.TOTOP, alignMode=C.TOTOP, padBottom=14, padding=(10, 8, 10, 8))
@@ -372,7 +397,7 @@ def _am_install_fleet_order_notices():
                 for key in keys:
                     value = values[key]
                     caption = tr(fields[key]) if key != 'ores' else tr('Mining Filter')
-                    display = ', '.join(window._catalog.get(ore, ore) for ore in value) if key == 'ores' else tr(priorities[value]) if key == 'order' else str(value) if key == 'surveySeconds' else tr('ON' if value else 'OFF')
+                    display = ', '.join(window._catalog.get(ore, ore) for ore in value) if key == 'ores' else tr(priorities[value]) if key in ('order', 'mineDroneOrder') else tr(drone_modes[value]) if key == 'mineDroneMode' else str(value) if key == 'surveySeconds' else tr('ON' if value else 'OFF')
                     descriptions.append(caption + ': ' + display)
                 detail.text = safe(' | '.join(descriptions) + '\n' + tr('Orders end when you stop or leave the fleet. Personal settings stay saved.'))
         window._fleetOrderNotices = notices

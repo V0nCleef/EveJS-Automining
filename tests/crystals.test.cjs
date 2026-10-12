@@ -41,9 +41,24 @@ test("refused unload reports the problem, backs off, and does not assume bare mi
   f.tick(7000); assert.equal(f.calls.length,4);
 });
 
-test("active miners and empty filter remain untouched", () => {
+test("active miners remain untouched", () => {
   const f = fixture(); f.ship.activeModuleEffects.set(1,{}); f.tick();
   assert.deepEqual(f.calls, [["unload",10,2]]);
-  f.s.ores=[]; f.ship.activeModuleEffects.clear(); assert.equal(f.tick(2000),false);
-  assert.equal(f.calls.length,1);
+});
+
+test("all compatible ore mode unloads incompatible crystals and resumes bare mining", () => {
+  const f = fixture(); f.s.ores = [];
+  assert.equal(f.tick(), true);
+  assert.deepEqual(f.calls, [["unload",10,1],["unload",10,2]]);
+  assert.equal(f.tick(2000), false);
+  assert.equal(f.s.replan, true);
+});
+
+test("all compatible ore mode loads a matching cargo crystal through native reload", () => {
+  const f = fixture(); f.s.ores = []; f.matchingCargo();
+  assert.equal(f.tick(), true);
+  assert.deepEqual(f.calls, [["load",10,1,99],["load",10,2,99]]);
+  f.tick(2000); assert.equal(f.calls.length, 2);
+  f.pending.clear(); f.loaded.set(1,{typeID:8}); f.loaded.set(2,{typeID:8});
+  assert.equal(f.tick(51000), false);
 });
