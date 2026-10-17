@@ -1337,7 +1337,7 @@ def _am_build_window_class():
             self.fleetMode = Combo(parent=panel, align=C.TOTOP, options=[('Manual fleet', 'manual'), ('Automatic fleet', 'automatic')], select='manual', callback=self.FleetModeChanged)
             self.fleetStatus = EveLabelSmall(parent=panel, align=C.TOTOP, autoFitToText=True, padBottom=8, text='Fleet management is off.')
             EveLabelSmall(parent=panel, align=C.TOTOP, autoFitToText=True, padBottom=8,
-                text='Manual mode keeps fleet membership under your control. Automatic mode uses the selected preset.')
+                text='Manual mode uses the selected fleet preset. Automatic mode groups participating pilots on the same settled public grid.')
             self.fleetPreset = Combo(parent=panel, align=C.TOTOP, options=[('Select a fleet preset', '')], select='', callback=self.FleetPresetChanged)
             self.fleetPresetName = SingleLineEditText(parent=panel, align=C.TOTOP, height=30, hintText='Fleet preset name...')
             self.fleetSave = Button(parent=panel, align=C.TOTOP, label='Save fleet preset', func=self.SaveFleetPreset)
@@ -1361,11 +1361,11 @@ def _am_build_window_class():
                 self._busy = False
 
         def UpdateFleetControls(self):
-            automatic = self.fleetMode.GetValue() == 'automatic'
+            manual = self.fleetMode.GetValue() == 'manual'
             for widget in (self.fleetPreset, self.fleetPresetName, self.fleetSave, self.fleetDelete):
-                widget.state = C.UI_NORMAL if automatic else C.UI_DISABLED
+                widget.state = C.UI_NORMAL if manual else C.UI_DISABLED
             for widget in getattr(self, 'fleetMembers', []):
-                widget.state = C.UI_NORMAL if automatic else C.UI_DISABLED
+                widget.state = C.UI_NORMAL if manual else C.UI_DISABLED
 
         def FleetModeChanged(self, *args):
             self.UpdateFleetControls()

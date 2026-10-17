@@ -661,7 +661,7 @@ _AM_ZH.update({
     'Fleet mode': u'舰队模式',
     'Fleet preset': u'舰队预设',
     'Fleet management is off.': u'舰队管理已关闭。',
-    'Manual mode keeps fleet membership under your control. Automatic mode uses the selected preset.': u'手动模式由您控制舰队成员。自动模式使用所选预设。',
+    'Manual mode uses the selected fleet preset. Automatic mode groups participating pilots on the same settled public grid.': u'手动模式使用所选舰队预设。自动模式会在同一公共网格稳定后将参与的飞行员编入同一舰队。',
     'Select a fleet preset': u'选择舰队预设',
     'Fleet preset name...': u'舰队预设名称…',
     'Save fleet preset': u'保存舰队预设',

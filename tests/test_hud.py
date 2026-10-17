@@ -539,18 +539,25 @@ assert quick.pveEscortHelp.parent is quick.pveModePanels['escort'] and quick.pve
 # Fleet polling leaves settings clean and preserves checked roster drafts.
 fleet=dict(revision='f1',status='Fleet group ready.',presets=[dict(id='g1',name='Team',characterIDs=[42])],roster=[dict(characterID=42,name='Pilot A',online=True,status='Working'),dict(characterID=43,name='Pilot B',online=False,status='Offline')])
 quick._dirty=False;quick.RenderFleet(fleet);assert not quick._dirty
-assert all(member.state=='UI_DISABLED' for member in quick.fleetMembers)
+assert quick.fleetMode.GetValue()=='manual'
+assert all(member.state=='UI_NORMAL' for member in quick.fleetMembers)
+assert all(widget.state=='UI_NORMAL' for widget in (quick.fleetPreset,quick.fleetPresetName,quick.fleetSave,quick.fleetDelete))
 quick.fleetMode.SelectItemByValue('automatic');quick.FleetModeChanged();assert quick._dirty
+assert all(member.state=='UI_DISABLED' for member in quick.fleetMembers)
+assert all(widget.state=='UI_DISABLED' for widget in (quick.fleetPreset,quick.fleetPresetName,quick.fleetSave,quick.fleetDelete))
+quick.fleetMode.SelectItemByValue('manual');quick.FleetModeChanged()
+assert all(member.state=='UI_NORMAL' for member in quick.fleetMembers)
 quick.fleetPreset.SelectItemByValue('g1');quick.FleetPresetChanged()
 assert quick.fleetMembers[0].GetValue()
 quick.fleetMembers[1].SetChecked(True);quick.fleetMembers[1].callback(quick.fleetMembers[1])
 quick.RenderFleet(dict(fleet,roster=[dict(characterID=42,name='Pilot A',online=True,status='Ready'),dict(characterID=43,name='Pilot B',online=False,status='Offline')]))
 assert quick._fleetRosterDraft=={42,43} and quick.fleetMembers[1].GetValue()
+assert all(member.state=='UI_NORMAL' for member in quick.fleetMembers)
 def fleet_rpc(self,action,raw):
     payload=json.loads(raw);calls.append(('fleet',action,payload));return json.dumps(dict(success=True,fleet=fleet))
 Remote.AutoMiningFleetAction=fleet_rpc;quick.fleetPresetName.SetValue('Team');quick.SaveFleetPreset();fn,args=queued[-1];fn(*args)
 assert calls[-1][0:2]==('fleet','savePreset') and calls[-1][2]['revision']=='f1' and calls[-1][2]['characterIDs']==[42,43]
-quick.Save();assert state['settings']['fleetEnabled'] is False and state['settings']['fleetMode']=='automatic' and state['settings']['fleetGroupID']=='g1'
+quick.Save();assert state['settings']['fleetEnabled'] is False and state['settings']['fleetMode']=='manual' and state['settings']['fleetGroupID']=='g1'
 print('PASS: Jobs landing/cards, every contextual profile, shared destination, draft preservation, confirmed atomic stop-and-switch without restart, PVE stable belt/settings/range and fleet presets/manual controls/checkbox draft/revision.')
 # Complete localized belt names come from the verified native formatter, not server English cache.
 module('eve.common.lib.appConst',groupAsteroidBelt=9)

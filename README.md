@@ -2,7 +2,7 @@
 
 **Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
 
-[**Download AutoMining 1.2.16**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
+[**Download AutoMining 1.2.17**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
 
 [**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
 
@@ -12,6 +12,12 @@
 | Pick resources and manage yield. | Collect fleet ore and deliver it. | Run industrial equipment and receive ore. | Patrol belts, escort pilots or answer calls. |
 
 The ship cards are illustrated job artwork. AutoMining assists the configured jobs using EveJS's native movement, modules, inventory and fleet operations. Fitting, skills, range, capacity and access permissions still matter.
+
+## New in 1.2.17
+
+- Fixed pilot selection and preset editing being disabled in **Manual fleet** mode, even when pilots showed **Ready**.
+- Corrected the fleet-mode explanation in all nine client languages: Manual uses your saved roster preset; Automatic groups participating pilots on the same settled public grid.
+- For Manual fleet, include yourself and the desired pilots, name and save the preset, then enable shared fleet management, choose **Manual fleet**, select that same preset and **Apply settings** on each participating pilot.
 
 ## New in 1.2.16
 
@@ -30,7 +36,7 @@ The ship cards are illustrated job artwork. AutoMining assists the configured jo
 
 ## Compatibility
 
-- **This update tested in Grid Check:** Native **EveJS 0.12.9**, EVE client **3396210**, with real fleet clients and a fitted Porpoise. See [release validation](RELEASE-VALIDATION.md).
+- **This update:** the Manual fleet fix was confirmed in game with two real clients on Native **EveJS 0.12.9**. The previous 1.2.16 changes were tested in isolated Grid Check with client **3396210**. See [release validation](RELEASE-VALIDATION.md).
 - **Launcher:** package minimum **1.0.69**, using Launcher API **v1** and client-menu API **v1**. Use an **up-to-date Launcher** for the current Neocom Mods icon and category.
 - **Also declared by the mod:** EveJS **0.12.8** and Launcher-managed **Docker**. This release has no fresh live gameplay coverage on those paths.
 
@@ -38,7 +44,7 @@ The shared Mods menu comes from the Launcher. AutoMining provides its menu adapt
 
 ## Install or update
 
-1. Download **AutoMining-1.2.16.zip** from the release.
+1. Download **AutoMining-1.2.17.zip** from the release.
 2. Stop the server and close EVE clients before changing the mod. Keep the previous ZIP and back up the existing server configuration and Launcher profile settings.
 3. In the Launcher, open **Mods > Add ZIP**, select the ZIP and enable **AutoMining**. For an existing installation, update the same AutoMining entry; its configured GitHub update channel also points to this repository.
 4. Start the server with that profile and log in again so the client receives the current companion.
@@ -161,7 +167,7 @@ PVE targets public-grid native belt rats/pirate NPCs. Supported direct weapons a
 
 ## Shared Fleet, Defense, Drones and Statistics
 
-**Fleet:** Manual mode uses a selected saved roster preset. Automatic mode groups participating pilots on a settled public grid and preserves existing manually formed fleets. Refresh/edit the roster and save/delete shared presets. Call reinforcements manually, or enable calls when attacked; choose **1–8 responders**, default **1**. Only the current native **fleet boss** can confirm **Stop fleet AutoMining**. It stops current online members' jobs and orders their deployed drones home; an order is not guaranteed recovery.
+**Fleet:** Manual mode uses a selected saved roster preset. Include yourself and the desired pilots, name and save the preset, then enable shared fleet management, choose **Manual fleet**, select the same preset and **Apply settings** on each participating pilot. Selecting a checkbox edits the preset; it does not send an immediate invitation by itself. Automatic mode groups participating pilots on a settled public grid and preserves existing manually formed fleets. Refresh/edit the roster and save/delete shared presets. Call reinforcements manually, or enable calls when attacked; choose **1–8 responders**, default **1**. Only the current native **fleet boss** can confirm **Stop fleet AutoMining**. It stops current online members' jobs and orders their deployed drones home; an order is not guaranteed recovery.
 
 **Defense:** Enable retreat, independently watch shield/armor and set **1–100%** thresholds, default **30%**. Uses the shared retreat/mining-unload destination and storage. Shield retreat initially waits for drones, escalating if shield is lost or armor takes damage. Armor retreat orders recall and departs urgently, so drones may remain outside. Active Core cycles can delay travel. A completed retreat leaves AutoMining **off**.
 
