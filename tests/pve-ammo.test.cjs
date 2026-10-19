@@ -66,6 +66,17 @@ test('singleton reusable damaged crystals count as items; burned-out crystals ne
   f.inventory.push({itemID:701,typeID:2,locationID:10,flagID:5,quantity:-1,singleton:1,moduleState:{damage:.5}});
   const view=f.service.view(f.session,f.s,f.ship);assert.equal(view.items[0].loaded,1);assert.equal(view.items[0].cargo,1);assert.equal(view.items[0].reusable,true);assert.deepEqual(view.missing,[101]);
 });
+
+test('native charge hitpoints govern laser stock and readiness while legacy fixtures retain ratio semantics',()=>{
+  const f=fixture();f.native.family=()=> 'laserTurret';
+  f.native.chargeUsable=row=>Number(row.moduleState?.damage||0)<100;
+  f.loaded.set(100,{typeID:2,quantity:-1,singleton:1,moduleState:{damage:2}});
+  f.loaded.set(101,{typeID:2,quantity:-1,singleton:1,moduleState:{damage:100}});
+  f.inventory.push({itemID:701,typeID:2,locationID:10,flagID:5,quantity:-1,singleton:1,moduleState:{damage:2}},
+    {itemID:702,typeID:2,locationID:10,flagID:5,quantity:-1,singleton:1,moduleState:{damage:100}});
+  const view=f.service.view(f.session,f.s,f.ship);
+  assert.equal(view.items[0].loaded,1);assert.equal(view.items[0].cargo,1);assert.deepEqual(view.missing,[101]);assert.equal(view.ready,true);
+});
 test('accessible corporation division stock uses verified corporation ownership, with native transfer custody and receipts unchanged',()=>{
   const f=fixture(),reads=[];Object.assign(f.source,{key:'corp:30:115',kind:'corporation',ownerID:7,locationID:30,flagID:115});
   f.s.pveAmmoSourceKey=f.source.key;f.s.pveAmmoTargets={2:6};Object.assign(f.inventory[0],{ownerID:7,locationID:30,flagID:115});

@@ -4,6 +4,7 @@ const path = require("node:path");
 const legacy = require("./helper-legacy");
 const { supportsRoot, createDelivery } = require("./lib/loginDelivery");
 const { surveySeconds } = require("./lib/settings");
+const { migrateState } = require("./lib/statePaths");
 const ACTIONS = new Set(["install", "recover", "verify", "prepare_profile", "prepare_disable", "prepare_remove"]);
 function deliveryReport(request, result, method) {
   const features = String(process.env.EVEJS_LAUNCHER_HELPER_FEATURES || "").split(",");
@@ -29,6 +30,9 @@ function profileEnvironment(request) {
 function execute(request) {
   if (!ACTIONS.has(request.action)) throw Error("Unsupported AutoMining helper action");
   const root = request.runtime.evejsRoot || request.mod.root;
+  // Protect state before a server update can sweep legacy config files. Run
+  // before client-side preparation so a failed migration leaves it untouched.
+  if (["install", "recover"].includes(request.action)) migrateState(root);
   if (!supportsRoot(root, request.runtime.backend || "native")) {
     const result = legacy.execute(request);
     if (request.action === "prepare_profile") result.environment.AUTOMINING_CLIENT_DELIVERY = "legacy";

@@ -18,6 +18,7 @@ const { SUPPORTED_HASH, supportsMiningSource, prepareMiningSource } = require(".
 const loginDelivery = require("./lib/loginDelivery");
 const { createStatistics } = require("./lib/statistics");
 const { createActivity } = require("./lib/activity");
+const { migrateState } = require("./lib/statePaths");
 const key = Symbol.for("evejs.automining.loader.v1");
 function canonical(file) { return process.platform === "win32" ? path.resolve(file).toLowerCase() : path.resolve(file); }
 function install(root = path.resolve(__dirname, "../..")) {
@@ -25,6 +26,12 @@ function install(root = path.resolve(__dirname, "../..")) {
   const miningPath = path.join(root, "server/src/services/mining/miningRuntime.js");
   if (!fs.existsSync(miningPath) || !supportsMiningSource(fs.readFileSync(miningPath))) {
     console.error("[AutoMining] Unsupported miningRuntime.js. Mod left inactive; server files unchanged.");
+    return { active: false };
+  }
+  let state;
+  try { state = migrateState(root).paths; }
+  catch (error) {
+    console.error(`[AutoMining] Saved state could not be prepared: ${error.message}. Mod left inactive; existing files preserved.`);
     return { active: false };
   }
   const handshakePath = path.join(root, "server/src/network/tcp/handshake.js");
@@ -47,7 +54,7 @@ function install(root = path.resolve(__dirname, "../..")) {
     console.error("[AutoMining] Login companion could not be prepared; server startup preserved.");
   }
   let mining = null;
-  const preferences = createPreferences(path.join(root, "config/autoMining.players.json"));
+  const preferences = createPreferences(state.players);
   const destinations = createHaulDestinations(root);
   const loadNative = name => require(path.join(root, "server/src", name));
   const typeCache = new Map();
@@ -55,7 +62,7 @@ function install(root = path.resolve(__dirname, "../..")) {
     if (!typeCache.has(id)) typeCache.set(id, loadNative("services/inventory/itemTypeRegistry.js").resolveItemByTypeID(id));
     return typeCache.get(id);
   };
-  const statistics = createStatistics(path.join(root, "config/autoMining.statistics.json"), {
+  const statistics = createStatistics(state.statistics, {
     typeVolume: id => Number(typeInfo(id)?.volume) || 0,
     isDroneType: id => Number(typeInfo(id)?.categoryID) === 18,
     getFleet: id => loadNative("services/fleets/fleetRuntime.js").getFleetForCharacter(id),

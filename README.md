@@ -2,7 +2,7 @@
 
 **Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
 
-[**Download AutoMining 1.2.17**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
+[**Download AutoMining 1.2.18**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
 
 [**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
 
@@ -12,6 +12,12 @@
 | Pick resources and manage yield. | Collect fleet ore and deliver it. | Run industrial equipment and receive ore. | Patrol belts, escort pilots or answer calls. |
 
 The ship cards are illustrated job artwork. AutoMining assists the configured jobs using EveJS's native movement, modules, inventory and fleet operations. Fitting, skills, range, capacity and access permissions still matter.
+
+## New in 1.2.18
+
+- Keep character settings, saved job profiles, statistics and shared fleet presets in the EveJS data folder, so the bundled server updater preserves them.
+- Install/recover migrates legacy `config/autoMining.*.json` state before the server update; startup provides the same safeguard. Existing canonical state wins, original files remain intact, and migration failures prevent default settings from replacing saved data.
+- Recognize the reviewed EveJS **261018.1** mining/login sources, preserve native crystal durability and AIR mining exclusions, and retain **0.12.9** support. Compatibility checks and isolated bundled-updater preservation passed; see [release validation](RELEASE-VALIDATION.md).
 
 ## New in 1.2.17
 
@@ -36,7 +42,7 @@ The ship cards are illustrated job artwork. AutoMining assists the configured jo
 
 ## Compatibility
 
-- **This update:** the Manual fleet fix was confirmed in game with two real clients on Native **EveJS 0.12.9**. The previous 1.2.16 changes were tested in isolated Grid Check with client **3396210**. See [release validation](RELEASE-VALIDATION.md).
+- **This update:** Native **EveJS 0.12.9** and **261018.1** passed focused source/runtime compatibility checks. Isolated **0.12.9 → 261018.1** bundled-updater tests preserved saved state on the first upgrade, repeat upgrade and disabled-mod path. This release has no new in-game gameplay coverage. See [release validation](RELEASE-VALIDATION.md).
 - **Launcher:** package minimum **1.0.69**, using Launcher API **v1** and client-menu API **v1**. Use an **up-to-date Launcher** for the current Neocom Mods icon and category.
 - **Also declared by the mod:** EveJS **0.12.8** and Launcher-managed **Docker**. This release has no fresh live gameplay coverage on those paths.
 
@@ -44,7 +50,7 @@ The shared Mods menu comes from the Launcher. AutoMining provides its menu adapt
 
 ## Install or update
 
-1. Download **AutoMining-1.2.17.zip** from the release.
+1. Download **AutoMining-1.2.18.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
 2. Stop the server and close EVE clients before changing the mod. Keep the previous ZIP and back up the existing server configuration and Launcher profile settings.
 3. In the Launcher, open **Mods > Add ZIP**, select the ZIP and enable **AutoMining**. For an existing installation, update the same AutoMining entry; its configured GitHub update channel also points to this repository.
 4. Start the server with that profile and log in again so the client receives the current companion.
@@ -54,10 +60,12 @@ If the shared menu API is unavailable, the older **Insider > Tools > MODS** entr
 
 Preserve these files in the EveJS root when upgrading or moving the installation:
 
-- `config/autoMining.players.json` — character settings and saved job profiles.
-- `config/autoMining.statistics.json` — pilot counters and archived runs.
-- `config/autoMining.fleetGroups.json` — shared fleet presets.
+- `_local/automining/autoMining.players.json` — character settings and saved job profiles.
+- `_local/automining/autoMining.statistics.json` — pilot counters and archived runs.
+- `_local/automining/autoMining.fleetGroups.json` — shared fleet presets.
 - The Launcher's AutoMining profile mod-data `preferences.json` — Launcher-side defaults.
+
+When `EVEJS_DATA_ROOT` is configured, `automining/` lives inside that data root instead of `_local/`. Install or recover this mod before running the bundled EveJS updater: the helper copies legacy `config/autoMining.*.json` files into the durable data folder without changing their bytes. Server startup also checks for legacy files as a fallback. Existing canonical files always win; differing legacy files are preserved, never merged or overwritten. A failed migration leaves the sources intact and prevents AutoMining from starting with defaults. Keep those legacy files in your backup when rolling back to an older mod version, since older versions still read `config/`.
 
 **Apply Launcher settings** controls whether changed Launcher settings apply at the next login. In-game settings remain saved until you change those Launcher settings again. Leave that checkbox off when managing the job in game.
 

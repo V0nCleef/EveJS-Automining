@@ -9,7 +9,7 @@ const { supportsMiningSource, prepareMiningSource } = require("../lib/miningComp
 const sourceFile = path.join(process.argv[2], "server/src/services/mining/miningRuntime.js");
 const source = fs.readFileSync(sourceFile, "utf8");
 assert.ok(supportsMiningSource(source), "Unsupported mining runtime baseline");
-const bridge = require("../lib/bridge");
+const bridge = require(process.env.AUTOMINING_BRIDGE_FIXTURE || "../lib/bridge");
 const ore = { itemID: 51, typeID: 123, itemName: "Dense Veldspar", kind: "asteroid", radius: 5, position: { x: 50, y: 0, z: 0 } };
 const ship = { itemID: 10, kind: "ship", characterID: 42, position: { x: 0, y: 0, z: 0 }, radius: 5 };
 const fitted = [{ itemID: 1, typeID: 100, flagID: 27, locationID: 10, online: true }, { itemID: 2, typeID: 100, online: false }];
@@ -19,6 +19,7 @@ fitted.push({ itemID: 3, typeID: 200, locationID: 10, online: true });
 const resources = new Map([[51, { remainingQuantity: 100, yieldTypeID: 123, yieldKind: "ore", unitVolume: 0.1 }]]);
 let free = 100;
 let crystalLoaded = null, crystalCargo = [];
+let crystalDurabilityFixture = false;
 let oreHoldEnabled = false;
 let boostUntil = 0;
 const boostTimes = [];
@@ -32,7 +33,8 @@ const dependencies = {
   simulationInventoryProjection: { findShipItemById: () => ship, getProjectionVersion: () => `${free}:${oreHoldEnabled}`, listContainerItems: () => [...crystalCargo, ...(oreHoldEnabled ? [{ flagID: 134, quantity: 1, volume: 100 - free }] : [])] },
   liveFittingState: {
     getEffectTypeRecord: () => miningEffect,
-    getTypeAttributeMap: type => ({128: 1, 604: 663, 3148: type === 701 ? 7 : 8}),
+    getTypeAttributeMap: type => ({128: 1, 604: 663, 3148: type === 701 ? 7 : 8,
+      ...(crystalDurabilityFixture ? {9:100,786:1} : {})}),
     isChargeCompatibleWithModule: (module, charge) => module === 100 && [700,701].includes(charge),
     getAttributeIDByNames: name => ({integratedMiningScanner:9001,miningScannerUpgrade:9002})[name],
     getFittedModuleItems: () => fitted, isModuleOnline: x => x.online,
@@ -55,6 +57,8 @@ const dependencies = {
   wormholeEnvironmentRuntime: { getLocationModifierSourcesForSystem: () => [] },
   miningRuntimeState: { ensureSceneMiningState() {}, getMineableState: (_, id) => resources.get(id), isMineableStaticEntity: x => x.kind === "asteroid" },
   npcEquipment: { isNativeNpcEntity: () => false },
+  crystalDurability: fs.existsSync(path.join(process.argv[2], "server/src/services/dogma/crystalDurability.js"))
+    ? require(path.join(process.argv[2], "server/src/services/dogma/crystalDurability.js")) : {},
 };
 const context = { module: { exports: {} }, Map, Set, Date, console, __dirname: path.dirname(sourceFile),
   require(id) {
@@ -205,3 +209,45 @@ assert.equal(crystalLoaded,null,'Empty filter still removes an incompatible crys
 assert.equal(api.compatible(scene,ship,{...crystalModule,snapshot:{...crystalModule.snapshot,
   chargeTypeID:0,crystalTargetTypeListID:0}},crystalRocks[0]),true,'Bare strip miner can now mine the current ore');
 console.log('PASS: empty-filter crystal manager uses actual native planning and restores compatible bare-strip-miner targeting.');
+
+if (process.env.AUTOMINING_261018_REGRESSION) {
+  const results = [];
+  function check(name, run) {
+    try { run(); results.push({ name, passed: true }); }
+    catch (error) { results.push({ name, passed: false, message: error.message }); }
+  }
+  check('AIR targetability changes invalidate cached candidates and survey targets', () => {
+    ore.airMiningTargetable = false;
+    try {
+      assert.equal(api.candidates(scene, ship).length, 0);
+      assert.equal(api.target(scene, ship, 51), null);
+      assert.equal(api.surveyResource(scene, ship, 51), null);
+      assert.equal(api.miningSite(scene, ship), false);
+    } finally { delete ore.airMiningTargetable; }
+  });
+  crystalDurabilityFixture = true;
+  check('native dogma hitpoints retain a usable cargo crystal with damage above one', () => {
+    crystalLoaded = null;
+    crystalCargo = [{itemID:900,typeID:701,ownerID:42,locationID:10,flagID:5,stacksize:1,moduleState:{damage:2}}];
+    assert.equal(api.crystalPlan(scene, ship, crystalModule, crystalRocks, 0, false)?.chargeID, 900);
+  });
+  check('native dogma hitpoints reject an exhausted cargo crystal', () => {
+    crystalLoaded = null;
+    crystalCargo[0].moduleState.damage = 100;
+    assert.equal(api.crystalPlan(scene, ship, crystalModule, crystalRocks, 0, false), null);
+  });
+  check('an exhausted compatible loaded crystal is no longer preserved', () => {
+    crystalCargo = [];
+    crystalLoaded = {itemID:800,typeID:701,stacksize:1,moduleState:{damage:100}};
+    assert.equal(api.crystalPlan(scene, ship, compatibleModule, crystalRocks, 0, false)?.loadedID, 800);
+  });
+  check('a compatible loaded crystal below native hitpoints is preserved', () => {
+    crystalLoaded.moduleState.damage = 2;
+    assert.equal(api.crystalPlan(scene, ship, compatibleModule, crystalRocks, 0, false), null);
+  });
+  console.log(JSON.stringify({ regression: '261018.1-native-mining-seams', results }, null, 2));
+  const failures = results.filter(result => !result.passed);
+  if (process.env.AUTOMINING_EXPECT_BASELINE_FAILURES) {
+    assert.equal(failures.length, 3, 'The old bridge must reproduce all three compatibility defects');
+  } else assert.equal(failures.length, 0, JSON.stringify(failures));
+}
