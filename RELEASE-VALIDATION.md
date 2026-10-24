@@ -1,23 +1,51 @@
-# AutoMining 1.2.18 release validation
+# AutoMining 1.2.19 release validation
 
-## Scope
+## Changes
 
-This release recognizes the reviewed EveJS 261018.1 mining and login sources while retaining 0.12.9 compatibility. It preserves the native AIR mining exclusions and crystal durability rules, and moves AutoMining's saved state from `config/` to the server data root's `automining/` folder.
+The native warp-landing handoff can temporarily reject point navigation after
+the ship has left WARP mode. AutoMining waits for that handoff instead of
+switching off. The final return uses a 1 km arrival area and one native Stop;
+it does not wait for exact coordinates, zero speed or a settling timer.
+Strip miners can work on compatible ore already in range during the owned
+return approach. Other mining movement and drone arrival wait for trip completion.
 
-Install/recover migrates legacy files before client preparation. Startup provides the same migration safeguard before enabling hooks. Migration copies exact bytes without deleting sources; existing validated canonical state wins conflicts. Failed migration leaves existing files intact and keeps AutoMining inactive. An explicit injected native fleet filename remains authoritative and shared.
+The origin is captured when mining starts and stays fixed through automatic
+ore approaches, station returns and braking drift. Deliberate pilot navigation
+replaces it at the stopped location; a new warp captures its landing point.
+If the hold fills during manual movement, its current position becomes the origin.
+The default trigger remains 95%. Saved settings and Launcher updating are retained.
 
 ## Evidence
 
-- Sixteen focused preservation checks passed using isolated fixtures copied from actual 0.12.9 and 261018.1 resolver/mining/login sources: helper install/recover, loader fallback, exact bytes, repeated migration, canonical conflicts, failed publication, corrupt input, EVEJS_DATA_ROOT and shared native fleet stores.
-- Seventeen existing fleet/statistics regression checks passed. Real 261018.1 passive native handlers loaded without writes, using disposable canonical state and GameStore data.
-- Reviewed LF/CRLF mining/login baselines, native AIR/crystal behavior, PVE charge durability and unchanged-source future-version compatibility were checked with focused native adapters. Unrelated source mutations remain refused.
-- The unmodified bundled official updater was exercised on a copied 0.12.9 installation upgraded to 261018.1, then repeated. Canonical AutoMining settings survived. A separate first-upgrade test with disabled mods preserved legacy settings without executing helpers or loaders, using the updated Launcher's preservation policy.
-- No live game client was written, no live service restarted and no game/rendering launched in the updater laboratory. Public ZIP members retain the exact tested runtime bytes; unchanged members retain their 1.2.17 package bytes.
+- 137 focused Node checks passed for hauling, controller return integration,
+  navigation hooks, ordinary mining and fleet ore handling; 9 client navigation
+  checks passed. The prior installed build fails the three new controller
+  behavior regressions and passes its other 77 checks in that same A/B run.
+- The original 1.2.18 landing rejection was reproduced through passive native
+  0.12.9 and 261018.1 adapters without writes. The earlier test.1 candidate also
+  completed two real-client 5% unload/return cycles with one initial Start and
+  two active strip miners after each return.
+- The final test.2 runtime was installed locally with a rollback backup and
+  byte verification of all 70 package files. Player settings, statistics,
+  fleet presets, profile settings, other mods and server config were preserved.
+- The user tested the final AutoMining behavior in game and explicitly approved
+  this release on 2026-10-24. No new Grid Check run was performed for that final
+  iteration, at the user's request; the earlier test.1 footage is not evidence
+  of the final 1 km behavior.
+- Public runtime files match the user-approved test.2 ZIP exactly. Only release
+  version/documentation differ. Launcher GitHub update configuration is unchanged.
 
 ## Coverage limits
 
-This release has no fresh in-game gameplay coverage or Docker/0.12.8 runtime coverage. Previous two-client Manual fleet gameplay evidence is recorded in [1.2.17 validation](https://github.com/V0nCleef/EveJS-Automining/blob/v1.2.17/RELEASE-VALIDATION.md). Version labels alone do not enable unknown native source changes.
+Fresh final gameplay approval covers the user's Native 261018.1 setup. This
+release does not claim new Docker, 0.12.8, 0.12.9 live-client, cross-system,
+corporation-storage or Upwell return coverage. Existing movement interruption,
+ship/system checks, unload confirmation, Defense and timeouts remain enforced.
 
 ## Update
 
-Close EVE clients and stop the server. Update the Launcher, then use **Mods > AutoMining > Update** or add `AutoMining-1.2.18.zip` before running the EveJS server updater. Keep backups of existing player settings, statistics, fleet presets and Launcher profile preferences. The canonical files are `_local/automining/autoMining.{players,statistics,fleetGroups}.json`, or `automining/` inside `EVEJS_DATA_ROOT` when configured. Legacy config copies are retained for rollback; an older mod still reads those older copies.
+Close EVE clients and stop the server. In the Launcher use
+**Mods > AutoMining > Update**, or add **AutoMining-1.2.19.zip** to the same entry.
+Back up saved settings/statistics/fleet presets and Launcher profile preferences.
+Start the server and reconnect. To roll back, stop clients/server and restore
+the previous package while retaining the backed-up saved data.

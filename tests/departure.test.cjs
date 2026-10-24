@@ -290,3 +290,28 @@ test("nested pickup scopes keep permits isolated and restore the outer invocatio
    scene.warpToPoint(session,{},{});
  });assert.deepEqual(calls,[{permit:"inner"},{permit:"outer"}]);
 });
+
+test("accepted manual navigation marks the mining origin; refused commands and scheduled movement do not", async () => {
+  const session = {}, recorded = [];
+  let scheduled = false;
+  const controller = { departureOptions: () => ({}), cancelHaul() {},
+    manualMiningNavigation: pilot => recorded.push(pilot),
+    transportNavigation: () => scheduled };
+  class Service {
+    Handle_CmdGotoPoint() { return true; }
+    Handle_CmdStop() { return Promise.resolve(true); }
+    Handle_CmdSteerDirection() { return true; }
+    Handle_CmdSetSpeedFraction() { return false; }
+    Handle_CmdGotoDirection() { throw Error("movement refused"); }
+    Handle_CmdFollowBall() { return true; }
+  }
+  installNavigation(Service, controller, { cancel() {} });
+  const service = new Service();
+  assert.equal(service.Handle_CmdGotoPoint([], session), true);
+  await service.Handle_CmdStop([], session);
+  assert.equal(service.Handle_CmdSteerDirection([], session), true);
+  service.Handle_CmdSetSpeedFraction([], session);
+  assert.throws(() => service.Handle_CmdGotoDirection([], session), /movement refused/);
+  scheduled = true; service.Handle_CmdFollowBall([90, 500], session);
+  assert.deepEqual(recorded, [session, session, session]);
+});

@@ -2,7 +2,7 @@
 
 **Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
 
-[**Download AutoMining 1.2.18**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
+[**Download AutoMining 1.2.19**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
 
 [**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
 
@@ -12,6 +12,13 @@
 | Pick resources and manage yield. | Collect fleet ore and deliver it. | Run industrial equipment and receive ore. | Patrol belts, escort pilots or answer calls. |
 
 The ship cards are illustrated job artwork. AutoMining assists the configured jobs using EveJS's native movement, modules, inventory and fleet operations. Fitting, skills, range, capacity and access permissions still matter.
+
+## New in 1.2.19
+
+- Fixed miners stopping after a station unload and return. Native warp-landing handoffs are waited out instead of treating a temporary movement refusal as a failed trip.
+- Strip miners can work on compatible ore already in range while approaching the saved mining position. The return trip retains movement control until arrival.
+- Return braking starts within **1 km** of the origin. Mining no longer waits for exact coordinates, zero speed or a settling timer, and braking drift does not trigger another correction loop.
+- Capture the origin when mining starts. Automatic ore approaches and unload trips keep it fixed; deliberate pilot movement or a new warp updates it. The normal hold trigger remains **95%** and saved settings stay intact.
 
 ## New in 1.2.18
 
@@ -42,7 +49,7 @@ The ship cards are illustrated job artwork. AutoMining assists the configured jo
 
 ## Compatibility
 
-- **This update:** Native **EveJS 0.12.9** and **261018.1** passed focused source/runtime compatibility checks. Isolated **0.12.9 → 261018.1** bundled-updater tests preserved saved state on the first upgrade, repeat upgrade and disabled-mod path. This release has no new in-game gameplay coverage. See [release validation](RELEASE-VALIDATION.md).
+- **This update:** the final mining-return behavior was tested and approved in game by the user on Native **EveJS 261018.1**. Automated checks cover mining, navigation, hauling and the unchanged client trip workflow. Earlier native landing-handoff adapters covered **0.12.9** and **261018.1**; see [release validation](RELEASE-VALIDATION.md) for the distinction and limits.
 - **Launcher:** package minimum **1.0.69**, using Launcher API **v1** and client-menu API **v1**. Use an **up-to-date Launcher** for the current Neocom Mods icon and category.
 - **Also declared by the mod:** EveJS **0.12.8** and Launcher-managed **Docker**. This release has no fresh live gameplay coverage on those paths.
 
@@ -50,7 +57,7 @@ The shared Mods menu comes from the Launcher. AutoMining provides its menu adapt
 
 ## Install or update
 
-1. Download **AutoMining-1.2.18.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
+1. Download **AutoMining-1.2.19.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
 2. Stop the server and close EVE clients before changing the mod. Keep the previous ZIP and back up the existing server configuration and Launcher profile settings.
 3. In the Launcher, open **Mods > Add ZIP**, select the ZIP and enable **AutoMining**. For an existing installation, update the same AutoMining entry; its configured GitHub update channel also points to this repository.
 4. Start the server with that profile and log in again so the client receives the current companion.
@@ -111,7 +118,7 @@ Mine compatible **ore, ice or gas** with fitted modules. Optional mining-drone o
 
 **Request pickup now** requires a running Mining job, saved fleet-pickup mode, ore available in space and native fleet membership.
 
-Jettison, fleet pickup and booster collection handle **ore, including compressed ore**; they exclude ice and gas. Station unload uses the mining hold. Automatic unload returns to the saved mining position; manual travel cancels that trip. Automatic returns from instanced or gated sites are unsupported. The Mining job works on the current grid rather than searching the universe for new sites.
+Jettison, fleet pickup and booster collection handle **ore, including compressed ore**; they exclude ice and gas. Station unload uses the mining hold. Automatic unload returns to the origin saved when mining starts. Strip miners can work on ore in range during the return approach; the ship brakes once within 1 km. Automatic movement keeps the origin fixed, while deliberate pilot movement or a new warp updates it. Manual travel during an active unload/return trip cancels that trip. Automatic returns from instanced or gated sites are unsupported. The Mining job works on the current grid rather than searching the universe for new sites.
 
 ## Hauling
 

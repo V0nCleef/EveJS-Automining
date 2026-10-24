@@ -18,7 +18,7 @@ function fixture() {
   const destinations = { station: id => { assert.equal(id, 600); return { stationID: 600, systemID: 31 }; },
     storage: (_, id, key) => { assert.equal(id, 600); if (!available || key !== "personal") throw Error("Storage unavailable"); return destination; },
     cargo: () => remaining, totals: () => ({ 100: deposited }) };
-  const s = { enabled: true, haulEnabled: true, haulClientReady: true, stationID: 600, storageKey: "personal" };
+  const s = { job: "mining", enabled: true, haulEnabled: true, haulClientReady: true, stationID: 600, storageKey: "personal" };
   const hauling = createHauling({ destinations, getSpace: () => space, clock: () => now,
     save: (_, value) => { saved.push({ enabled: value.enabled, interrupted: value.haulInterrupted }); return ""; },
     resetMining: () => moves.push("reset") });
@@ -29,7 +29,7 @@ function fixture() {
     missing() { available = false; }, advance(ms) { now += ms; } };
 }
 
-test("full cycle requires confirmed dock and deposit before undock, then exact origin before resume", () => {
+test("full cycle requires confirmed dock and deposit before undock, then the origin area before resume", () => {
   const f = fixture(); f.begin();
   assert.equal(f.s.haul.phase, "outbound");
   assert.deepEqual(f.saved[0], { enabled: true, interrupted: true });
@@ -47,16 +47,12 @@ test("full cycle requires confirmed dock and deposit before undock, then exact o
   f.scene.systemID = 30; f.ship.position = { x: 1e9, y: 0, z: 0 }; f.action("poll");
   assert.equal(f.s.haul.phase, "returning");
   f.action("position"); f.action("position"); assert.equal(f.moves.filter(x => x[0] === "warp").length, 1);
-  f.ship.mode = "STOP"; f.ship.position = { x: 1000, y: 200, z: 300 }; f.action("position");
+  f.ship.mode = "STOP"; f.ship.position = { x: 5100, y: 200, z: 300 }; f.action("position");
   assert.equal(f.moves.at(-1)[0], "approach");
   assert.throws(() => f.action("complete"), /not been reached/);
   f.ship.position = { x: 100, y: 200, z: 300 };
-  f.ship.velocity = { x: 3, y: 0, z: 0 };
-  assert.equal(f.action("position").atOrigin, undefined);
-  f.ship.velocity = { x: 0, y: 0, z: 0 };
-  assert.equal(f.action("position").atOrigin, undefined);
-  f.advance(2100);
-  assert.equal(f.action("position").atOrigin, true);
+  f.ship.velocity = { x: 30, y: 0, z: 0 };
+  assert.equal(f.action("position").atOrigin, true, "Resume while native Stop is still braking");
   f.action("complete"); assert.equal(f.s.haul, null); assert.equal(f.s.enabled, true); assert.equal(f.s.haulInterrupted, false);
 });
 
@@ -129,23 +125,174 @@ test("return warp is requested under gate cloak; only native landing readiness i
   assert.throws(() => f.action("position"), /WARP_BLOCKED_BY_CLOAK/);
 });
 
-test("return keeps one belt anchor across trips and refuses to resume while drifting", () => {
+test("return brakes once inside 1 km and never chases braking drift", () => {
   const f = fixture(); f.begin();
   const anchor = { ...f.s.haul.origin };
   f.dock(); f.action("poll"); f.deposit(); f.action("unloaded");
   f.session.stationID = 0; f.advance(100); f.action("poll"); f.advance(3500); f.action("poll");
   f.action("poll");
-  f.ship.position = { x: anchor.x + 8, y: anchor.y, z: anchor.z };
-  f.ship.velocity = { x: 2, y: 0, z: 0 };
-  assert.equal(f.action("position").atOrigin, undefined);
-  assert.throws(() => f.action("complete"), /not been reached/);
-  f.ship.velocity = { x: 0, y: 0, z: 0 };
+  f.ship.position = { x: anchor.x + 900, y: anchor.y, z: anchor.z };
+  f.ship.velocity = { x: 80, y: 0, z: 0 };
+  assert.equal(f.action("position").atOrigin, true);
+  assert.equal(f.ship.mode, "STOP");
+  f.ship.position.x += 1500;
+  for (let i = 0; i < 4; i++) assert.equal(f.action("position").atOrigin, true);
+  assert.equal(f.moves.filter(x => x === "stop").length, 1);
+  assert.equal(f.moves.filter(x => Array.isArray(x) && x[0] === "approach").length, 0);
+  f.action("complete");
+  assert.equal(f.s.enabled, true);
+  f.begin();
+  assert.deepEqual(f.s.haul.origin, anchor, "Braking drift must not shift the next return");
+});
+
+function returningFixture() {
+  const f = fixture();
+  f.begin(); f.dock(); f.action("poll"); f.deposit(); f.action("unloaded");
+  f.session.stationID = 0;
+  f.advance(100); f.action("poll"); f.advance(3500); f.action("poll"); f.action("poll");
+  f.ship.position = { x: 1e9, y: 0, z: 0 };
+  f.action("position");
+  f.ship.mode = "STOP";
+  f.ship.position = { x: 5100, y: 200, z: 300 };
+  f.session._space = { pilotWarpVisibilityHandoff: { shipID: f.ship.itemID, landingPending: true } };
+  return f;
+}
+
+test("return waits through the post-warp landing handoff, then approaches and resumes automatically", () => {
+  const f = returningFixture(), tripID = f.s.haul.id;
+  const approach = f.space.gotoPoint;
+  let rejected = 0;
+  f.space.gotoPoint = (...args) => {
+    if (f.session._space.pilotWarpVisibilityHandoff.landingPending) { rejected++; return false; }
+    return approach(...args);
+  };
+  assert.doesNotThrow(() => f.action("position"));
+  f.advance(3000);
+  assert.doesNotThrow(() => f.action("position"));
+  assert.equal(rejected, 0, "Do not ask native subwarp to move before landing is ready");
+  assert.equal(f.s.enabled, true);
+  assert.equal(f.s.haul.id, tripID);
+  assert.equal(f.s.haul.moving, "warp");
+  f.session._space.pilotWarpVisibilityHandoff.landingPending = false;
+  f.action("position");
+  assert.equal(f.s.haul.moving, "approach");
+  f.ship.position = { x: 100, y: 200, z: 300 };
   f.action("position"); f.action("position"); f.advance(2100);
   assert.equal(f.action("position").atOrigin, true);
   f.action("complete");
-  f.ship.position = { x: anchor.x + 8, y: anchor.y, z: anchor.z };
+  assert.equal(f.s.haul, null);
+  assert.equal(f.s.enabled, true);
+  assert.equal(f.s.haulInterrupted, false);
+  assert.equal(f.s.replan, true);
+  assert.equal(f.s.next, 0);
+});
+
+test("arrival and completion cannot resume mining before the native landing handoff finishes", () => {
+  const f = returningFixture();
+  f.ship.position = { x: 100, y: 200, z: 300 };
+  f.s.haul.settledAt = 1;
+  f.advance(3000);
+  assert.throws(() => f.action("complete"), /not been reached/);
+  assert.equal(f.action("position").atOrigin, undefined);
+  f.advance(3000);
+  assert.equal(f.action("position").atOrigin, undefined);
+  assert.equal(f.s.enabled, true);
+  f.session._space.pilotWarpVisibilityHandoff.landingPending = false;
+  assert.equal(f.action("position").atOrigin, true, "A ready landing needs no settling timer");
+});
+
+test("a landing handoff for another ship does not delay this ship's return", () => {
+  const f = returningFixture();
+  f.session._space.pilotWarpVisibilityHandoff.shipID = 99;
+  f.action("position");
+  assert.equal(f.s.haul.moving, "approach");
+});
+
+test("a stalled landing still hits the existing return timeout", () => {
+  const f = returningFixture();
+  for (let i = 0; i < 301; i++) { f.advance(1000); f.action("poll"); }
+  assert.equal(f.s.enabled, false);
+  assert.equal(f.s.haul, null);
+  assert.match(f.s.haulStatus, /return-position timeout/);
+});
+
+test("the arrival radius is 1 km, requires server acknowledgement, and preserves the anchor", () => {
+  const f = returningFixture(), anchor = { ...f.s.haul.origin };
+  f.session._space.pilotWarpVisibilityHandoff.landingPending = false;
+  f.ship.position = { x: anchor.x + 1000, y: anchor.y, z: anchor.z };
+  f.ship.velocity = { x: 100, y: 0, z: 0 };
+  assert.throws(() => f.action("complete"), /not been reached/);
+  assert.equal(f.action("position").atOrigin, true);
+  f.action("complete");
   f.begin();
   assert.deepEqual(f.s.haul.origin, anchor);
+
+  const outside = returningFixture();
+  outside.session._space.pilotWarpVisibilityHandoff.landingPending = false;
+  outside.ship.position = { x: outside.s.haul.origin.x + 1001, y: outside.s.haul.origin.y, z: outside.s.haul.origin.z };
+  assert.throws(() => outside.action("complete"), /not been reached/);
+  assert.equal(outside.action("position").atOrigin, undefined);
+  assert.equal(outside.s.haul.moving, "approach");
+});
+
+test("mining may run during our landed return approach, never during warp or somebody else's move", () => {
+  const f = returningFixture();
+  const allowed = () => f.hauling.canMine(f.session, f.s, f.scene, f.ship);
+  assert.equal(allowed(), false);
+  f.session._space.pilotWarpVisibilityHandoff.landingPending = false;
+  f.action("position");
+  assert.equal(allowed(), true);
+  f.ship.targetPoint = { x: 99, y: 88, z: 77 };
+  assert.equal(allowed(), false);
+  f.ship.targetPoint = f.s.haul.origin;
+  f.ship.pendingWarp = {};
+  assert.equal(allowed(), false);
+  delete f.ship.pendingWarp;
+  f.s.job = "boosting";
+  assert.equal(allowed(), false);
+});
+
+test("origin is captured at Start and stays fixed through automatic travel; manual movement replaces it", () => {
+  const f = fixture();
+  f.hauling.rememberOrigin(f.session, f.s, f.scene, f.ship);
+  const initial = { ...f.s.miningAnchor };
+  f.ship.position.x += 12000;
+  f.hauling.rememberOrigin(f.session, f.s, f.scene, f.ship);
+  f.begin();
+  assert.deepEqual(f.s.haul.origin, initial, "First full hold must use the initial mining location");
+  f.s.haul = null; f.s.haulInterrupted = false;
+  f.s.miningAnchorNeedsUpdate = true;
+  f.ship.mode = "GOTO";
+  f.hauling.rememberOrigin(f.session, f.s, f.scene, f.ship);
+  assert.deepEqual(f.s.miningAnchor, initial, "Do not save a partially completed manual move");
+  f.ship.mode = "STOP"; f.ship.velocity.x = 8;
+  f.hauling.rememberOrigin(f.session, f.s, f.scene, f.ship);
+  assert.deepEqual(f.s.miningAnchor, initial, "Let the pilot's manual Stop finish braking");
+  f.ship.velocity.x = 0; f.ship.position.x += 400;
+  f.hauling.rememberOrigin(f.session, f.s, f.scene, f.ship);
+  const manual = { systemID: 30, ...f.ship.position };
+  assert.deepEqual(f.s.miningAnchor, manual);
+  f.ship.position.x += 6000;
+  f.begin();
+  assert.deepEqual(f.s.haul.origin, manual, "Later automatic movement keeps the manual origin");
+});
+
+test("a hold filling during manual travel uses the current manual position, and another system gets a fresh origin", () => {
+  const f = fixture(); f.hauling.rememberOrigin(f.session, f.s, f.scene, f.ship);
+  f.s.miningAnchorNeedsUpdate = true; f.ship.position.x += 6000; f.ship.mode = "GOTO";
+  f.begin(); assert.deepEqual(f.s.haul.origin, { systemID: 30, ...f.ship.position });
+  f.s.haul = null; f.s.haulInterrupted = false;
+  f.scene.systemID = 99; f.ship.mode = "STOP"; f.ship.position.x += 9000;
+  f.hauling.rememberOrigin(f.session, f.s, f.scene, f.ship);
+  assert.deepEqual(f.s.miningAnchor, { systemID: 99, ...f.ship.position });
+});
+
+test("a rejected Stop cannot authorize trip completion", () => {
+  const f = returningFixture(); f.session._space.pilotWarpVisibilityHandoff.landingPending = false;
+  f.ship.position = { ...f.s.haul.origin };
+  f.scene.stop = () => false;
+  assert.equal(f.action("position").atOrigin, undefined);
+  assert.throws(() => f.action("complete"), /not been reached/);
 });
 
 test("stale tokens, different ships, timeouts and cancellation never resume mining", () => {
