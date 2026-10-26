@@ -2656,7 +2656,9 @@ def _am_build_window_class():
             pve = self._job == 'pve'
             self._droneArrivalPanel.state = self._droneRatPanel.state = C.UI_HIDDEN if pve else C.UI_NORMAL
             self._pveDronePanel.state = C.UI_NORMAL if pve else C.UI_HIDDEN
-            self.ratMiningGroupEdit.state = C.UI_NORMAL if self._job == 'mining' or self._job == 'boosting' and self._toggles['mineDrones'].GetValue() else C.UI_DISABLED
+            # Group selection is configuration, including while docked or when
+            # mining orders are off. Runtime launch permissions stay separate.
+            self.ratMiningGroupEdit.state = C.UI_NORMAL if self._job in ('mining', 'boosting') else C.UI_DISABLED
 
         def UpdateOreModeHint(self):
             if hasattr(self, 'fleetHangarHint'):

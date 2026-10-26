@@ -56,7 +56,8 @@ test("verified unloading and restocking phases emit completion and returned posi
   f.controller.haulAction(f.session, id, "unloaded"); assert.equal(f.events().at(-1).key, "oreComplete");
   op.phase = "resupplying"; op.fuel = { typeID: 16272, storageKey: "personal" }; op.fuelPlan = { requiredUnits: 100 };
   f.controller.haulAction(f.session, id, "resupplied"); assert.equal(f.events().at(-1).key, "fuelComplete");
-  delete f.session.stationID; op.phase = "returning"; op.settledAt = Date.now() - 3000;
+  delete f.session.stationID; op.phase = "returning";
+  assert.equal(f.controller.haulAction(f.session, id, "position").atOrigin, true);
   f.controller.haulAction(f.session, id, "complete"); assert.equal(f.events().at(-1).key, "resumed"); assert.equal(f.s.haul, null);
 });
 test("docked snapshot presents stable read-only ship identity without activation", () => {

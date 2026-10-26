@@ -784,7 +784,7 @@ state.update(enabled=False,settings=dict(state['settings'],job='boosting',shipRo
     autoBoost=False,ratMiningGroupKey='',ratFighterGroupKey=fighter_key))
 booster.ShowResponse(dict(state,catalog=catalog),True)
 assert booster.JobPages()=={7,9} and not booster._jobChosen
-assert booster.ratMiningGroupEdit.state=='UI_DISABLED'
+assert booster.ratMiningGroupEdit.state=='UI_NORMAL'
 before=len(calls)
 booster.jobCards['boosting'].OnClick(booster.jobCards['boosting'])
 assert booster.JobPages()=={1,2,3,4,5,7,9,11} and len(calls)==before
@@ -821,7 +821,7 @@ booster.SelectJobDraft('hauling')
 assert booster.JobPages()=={3,4,7,8,9,11} and booster._page=='transport'
 assert booster._toggles['mineDrones'].GetValue() and booster._selected==['veldspar']
 booster.SelectJobDraft('boosting');booster._toggles['mineDrones'].SetChecked(False);booster.Changed()
-assert booster.ratMiningGroupEdit.state=='UI_DISABLED' and booster.ratMiningGroupEdit.GetValue()==group_key
+assert booster.ratMiningGroupEdit.state=='UI_NORMAL' and booster.ratMiningGroupEdit.GetValue()==group_key
 assert not any(call[0]=='control' for call in calls[before:])
 print('PASS: Boosting reveals optional Mining drones/Filter after an explicit card choice, keeps laser/ore pages hidden, saves draft drone/filter choices without starting, and preserves fighter-only versus miner/fighter rat validation.')
 

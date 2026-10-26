@@ -833,7 +833,8 @@
     "Click a resource to include it. Click it again to remove it.\nSelect an entry in Mining order to move it up or down.",
     "Fleet Command",
     "Next activation: %s s",
-    "Fleet order active: %s. Your personal filter stays saved."
+    "Fleet order active: %s. Your personal filter stays saved.",
+    "Approaching fleet booster for ore delivery."
   ],
   "translations": {
     "de": [
@@ -1670,7 +1671,8 @@
       "Klicke auf eine Ressource, um sie hinzuzufügen. Ein weiterer Klick entfernt sie.\nWähle einen Eintrag in der Abbaureihenfolge, um ihn nach oben oder unten zu verschieben.",
       "Flottenkommando",
       "Nächste Aktivierung: %s s",
-      "Flottenbefehl aktiv: %s. Dein persönlicher Filter bleibt gespeichert."
+      "Flottenbefehl aktiv: %s. Dein persönlicher Filter bleibt gespeichert.",
+      "Flottenbooster zur Erzabgabe wird angeflogen."
     ],
     "fr": [
       "Connexion à Minage automatique...",
@@ -2506,7 +2508,8 @@
       "Cliquez sur une ressource pour l’ajouter. Cliquez à nouveau pour la retirer.\nSélectionnez une entrée dans l’ordre de minage pour la déplacer vers le haut ou le bas.",
       "Commandement de flotte",
       "Prochaine activation : %s s",
-      "Ordre de flotte actif : %s. Votre filtre personnel reste enregistré."
+      "Ordre de flotte actif : %s. Votre filtre personnel reste enregistré.",
+      "Approche du vaisseau de soutien de flotte pour livrer le minerai."
     ],
     "es": [
       "Conectando a Minería automática...",
@@ -3342,7 +3345,8 @@
       "Haz clic en un recurso para añadirlo. Haz clic otra vez para quitarlo.\nSelecciona una entrada en el orden de minería para subirla o bajarla.",
       "Mando de flota",
       "Próxima activación: %s s",
-      "Orden de flota activa: %s. Tu filtro personal permanece guardado."
+      "Orden de flota activa: %s. Tu filtro personal permanece guardado.",
+      "Acercándose a la nave de apoyo de flota para entregar mineral."
     ],
     "it": [
       "Connessione a Estrazione automatica...",
@@ -4178,7 +4182,8 @@
       "Fai clic su una risorsa per includerla. Fai nuovamente clic per rimuoverla.\nSeleziona una voce nell’ordine di estrazione per spostarla in alto o in basso.",
       "Comando flotta",
       "Prossima attivazione: %s s",
-      "Ordine di flotta attivo: %s. Il filtro personale resta salvato."
+      "Ordine di flotta attivo: %s. Il filtro personale resta salvato.",
+      "Avvicinamento alla nave di supporto della flotta per consegnare il minerale."
     ],
     "ru": [
       "Подключение к Автодобыче...",
@@ -5014,7 +5019,8 @@
       "Нажмите на ресурс, чтобы добавить его. Нажмите ещё раз, чтобы удалить.\nВыберите запись в порядке добычи, чтобы переместить её вверх или вниз.",
       "Управление флотом",
       "Следующая активация: %s с",
-      "Действует приказ флота: %s. Личный фильтр сохранён."
+      "Действует приказ флота: %s. Личный фильтр сохранён.",
+      "Сближение с кораблём поддержки флота для передачи руды."
     ],
     "ja": [
       "AutoMiningに接続中...",
@@ -5850,7 +5856,8 @@
       "資源をクリックして追加し、もう一度クリックして削除します。\n採掘順序の項目を選択すると、上下に移動できます。",
       "艦隊指揮",
       "次の起動まで：%s 秒",
-      "艦隊指示が有効：%s。個人フィルターは保存されています。"
+      "艦隊指示が有効：%s。個人フィルターは保存されています。",
+      "鉱石を引き渡すため艦隊支援艦に接近中。"
     ],
     "ko": [
       "AutoMining에 연결 중...",
@@ -6686,7 +6693,8 @@
       "자원을 클릭하면 추가되고 다시 클릭하면 제거됩니다.\n채굴 순서에서 항목을 선택하면 위아래로 이동할 수 있습니다.",
       "함대 지휘",
       "다음 활성화: %s초",
-      "함대 명령 적용 중: %s. 개인 필터는 저장된 상태로 유지됩니다."
+      "함대 명령 적용 중: %s. 개인 필터는 저장된 상태로 유지됩니다.",
+      "광석을 전달하기 위해 함대 지원함에 접근 중입니다."
     ],
     "zh": [
       "正在连接 AutoMining…",
@@ -7522,7 +7530,8 @@
       "点击资源可将其加入筛选，再次点击可移除。\n选择开采顺序中的条目，即可将其上移或下移。",
       "舰队指挥",
       "下次激活：%s 秒",
-      "舰队指令生效：%s。您的个人筛选已保留。"
+      "舰队指令生效：%s。您的个人筛选已保留。",
+      "正在接近舰队加成舰以交付矿石。"
     ]
   }
 }

@@ -1,10 +1,12 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict");
 const {createFleetOre}=require("../lib/fleetOre");
-function fixture(){
+function fixture(wantsCompression=undefined){
   let now=0,refuse=false,voidMove=false,compression=false,guestAccess=true,serial=1000;const calls=[],rows=[],sessions=new Map(),states=new Map(),ships=new Map();
   const fleet={fleetID:10,members:new Map([[1,{}],[2,{}]])};
-  const scene={systemID:300,getShipEntityForSession:s=>ships.get(s.characterID),getLivePublicGridClusterKeyForEntity:()=>"belt"};
+  const scene={systemID:300,getShipEntityForSession:s=>ships.get(s.characterID),getLivePublicGridClusterKeyForEntity:()=>"belt",
+    followBall(s,id,range){calls.push(["follow",s.characterID,id,range]);Object.assign(ships.get(s.characterID),{mode:"FOLLOW",targetEntityID:id,followRange:range});return true;},
+    stop(s){calls.push(["stop",s.characterID]);ships.get(s.characterID).mode="STOP";}};
   const booster={characterID:1,shipID:101},miner={characterID:2,shipID:102};sessions.set(1,booster);sessions.set(2,miner);
   states.set(1,{job:"boosting",enabled:true,receiveFleetOre:true,compressorEnabled:false});states.set(2,{job:"mining",enabled:true,oreMode:"fleetHangar"});
   for(const s of [booster,miner])ships.set(s.characterID,{itemID:s.shipID,kind:"ship",mode:"STOP",radius:100,position:{x:(s.characterID-1)*1000,y:0,z:0}});
@@ -17,12 +19,12 @@ function fixture(){
     move(s,target,source,row,quantity,flag){calls.push(["move",s.characterID,row.itemID,target,quantity,flag]);if(refuse)throw Error("SHIP_SERVICE_ACCESS_DENIED");if(voidMove)return;
       assert.equal(row.locationID,source);assert(row.quantity>=quantity);row.quantity-=quantity;
       rows.push({itemID:serial++,typeID:row.typeID,locationID:target,flagID:flag,quantity,ownerID:target===101?1:s.characterID});}};
-  const ore=createFleetOre({root:"",getSpace:()=>({getSceneForSession:()=>scene}),getSession:id=>sessions.get(id),getState:s=>states.get(s.characterID),native,clock:()=>now,
+  const ore=createFleetOre({root:"",getSpace:()=>({getSceneForSession:()=>scene}),getSession:id=>sessions.get(id),getState:s=>states.get(s.characterID),native,wantsCompression,clock:()=>now,
     compress(sc,s,ship,facilityID){assert.equal(facilityID,101);calls.push(["compress",s.characterID]);if(compression)for(const row of rows)if(row.locationID===ship.itemID&&row.typeID===10)row.typeID=11;return compression?"Compressed":"Waiting";},logError:()=>{}});
   const add=(typeID=10,quantity=20,ownerID=2,locationID=102,flagID=134)=>{const r={itemID:serial++,typeID,quantity,ownerID,locationID,flagID};rows.push(r);return r;};
   return {ore,booster,miner,scene,states,ships,rows,calls,capacities,fleet,sessions,add,
     tick(time=now){now=time;return ore.tick(booster,states.get(1),scene,ships.get(1),null,now);},
-    minerTick(time=now){now=time;return ore.tick(miner,states.get(2),scene,ships.get(2),null,now);},
+    minerTick(time=now,hold=null){now=time;return ore.tick(miner,states.get(2),scene,ships.get(2),hold,now);},
     waiting(){return ore.waitingForCompression(miner,states.get(2),scene,ships.get(2));},
     compress(value){compression=value;},access(value){guestAccess=value;},refuse(value=true){refuse=value;},voidMove(value=true){voidMove=value;}};
 }
@@ -34,10 +36,62 @@ test("stationary same-fleet raw ore goes through native guest deposit then owner
   assert.deepEqual(f.calls.map(c=>c[0]),["move","move"]);assert.equal(result.event.quantity,20);assert.equal(result.event.storedUnits,20);
   f.tick(1000);assert.equal(f.calls.length,2);
 });
+
+test("a full miner approaches an accessible same-grid receiver and stays committed after compression shrinks its hold",()=>{
+  const f=fixture();f.add();f.ships.get(2).position.x=20000;
+  const first=f.minerTick(0,{full:true});assert.equal(first.deliveryActive,true);assert.match(first.status,/Approaching fleet booster/);
+  assert.deepEqual(f.calls,[["follow",2,101,1500]]);
+  f.minerTick(5000,{full:false});assert.equal(f.calls.length,1);
+  f.ships.get(2).position.x=2500;f.minerTick(10000,{full:false});assert.deepEqual(f.calls[1],["stop",2]);
+  f.tick(10000);assert.equal(f.rows.filter(r=>r.locationID===102&&r.quantity>0).length,0);
+  assert.equal(f.minerTick(15000,{full:false}).deliveryActive,false);
+});
+
+test("manual steering disowns delivery and never stops or reissues movement over the pilot",()=>{
+  const f=fixture();f.add();f.ships.get(2).position.x=20000;f.minerTick(0,{full:true});
+  Object.assign(f.ships.get(2),{mode:"GOTO",targetEntityID:null});
+  assert.match(f.minerTick(5000,{full:true}).status,/manual steering/);
+  f.minerTick(10000,{full:true});assert.equal(f.calls.length,1);assert.equal(f.ships.get(2).mode,"GOTO");
+});
+
+test("receiver permission or fleet loss stops only the owned delivery approach",()=>{
+  for(const lose of [f=>f.access(false),f=>f.fleet.members.delete(2),f=>f.states.get(1).receiveFleetOre=false,
+    f=>f.ships.get(1).velocity={x:10,y:0,z:0}]) {
+    const f=fixture();f.add();f.ships.get(2).position.x=20000;f.minerTick(0,{full:true});lose(f);
+    assert.equal(f.minerTick(5000,{full:true}).deliveryActive,false);assert.deepEqual(f.calls[1],["stop",2]);
+  }
+});
+
+test("full hold delivery never approaches a receiver on another grid, travelling, denying raw ore, or full",()=>{
+  for(const change of [f=>f.scene.getLivePublicGridClusterKeyForEntity=e=>e.itemID===101?"elsewhere":"belt",
+    f=>f.ships.get(1).pendingWarp={},f=>{Object.assign(f.states.get(1),{receiveFleetAcceptCompressed:true,receiveFleetAcceptUncompressed:false});},
+    f=>{f.add(10,100,1,101,134);f.add(10,100,1,101,155);}]) {
+    const f=fixture();f.add();f.ships.get(2).position.x=20000;change(f);f.minerTick(0,{full:true});assert.equal(f.calls.length,0);
+  }
+});
 test("compressor-enabled receiver never takes raw ore while native compression is unavailable between intervals",()=>{
   const f=fixture();f.states.get(1).compressorEnabled=true;f.add();assert.equal(f.waiting(),true);
   f.tick();assert.deepEqual(f.calls.map(c=>c[0]),["compress"]);assert.equal(f.rows[0].quantity,20);assert.match(f.tick().status,/Waiting for fleet compression/);
   f.compress(true);f.tick(5000);assert.equal(f.waiting(),false);assert.equal(f.rows.filter(r=>r.locationID===101&&r.flagID===134&&r.typeID===11).reduce((n,r)=>n+r.quantity,0),20);
+});
+
+test("receiver-first pickup honors the miner's effective compression preference even when raw ore is admitted",()=>{
+  for(const fleetOverride of [false,true]) {
+    const f=fixture(fleetOverride?()=>true:undefined);f.add();f.compress(true);
+    Object.assign(f.states.get(1),{compressorEnabled:true,receiveFleetAcceptCompressed:true,receiveFleetAcceptUncompressed:true});
+    f.states.get(2).compress=!fleetOverride;f.tick();
+    assert.deepEqual(f.calls.map(c=>c[0]),["compress","move","move"]);
+    assert.equal(f.rows.filter(r=>r.locationID===101&&r.typeID===10&&r.quantity>0).length,0);
+    assert.equal(f.rows.filter(r=>r.locationID===101&&r.typeID===11&&r.flagID===134).reduce((n,r)=>n+r.quantity,0),20);
+  }
+});
+
+test("raw acceptance remains usable between compressor intervals when the miner requests compression",()=>{
+  const f=fixture();f.add();f.states.get(2).compress=true;
+  Object.assign(f.states.get(1),{compressorEnabled:true,receiveFleetAcceptCompressed:true,receiveFleetAcceptUncompressed:true});
+  const result=f.tick();assert.deepEqual(f.calls.map(c=>c[0]),["compress","move","move"]);
+  assert.equal(f.rows.filter(r=>r.locationID===101&&r.typeID===10&&r.flagID===134).reduce((n,r)=>n+r.quantity,0),20);
+  assert.doesNotMatch(result.status,/Waiting for fleet compression/);
 });
 test("already compressed ore transfers while raw stays, excluding ice gas and non-ore rows",()=>{
   const f=fixture();f.states.get(1).compressorEnabled=true;f.add(10,20);f.add(11,30);f.add(12,40);f.tick();

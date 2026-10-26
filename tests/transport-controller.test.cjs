@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createController } = require("../lib/controller");
-function fixture(role = "transport", fleetOre = null, fleetGroups = null, jobProfiles = {}) {
+function fixture(role = "transport", fleetOre = null, fleetGroups = null, jobProfiles = {}, compress = null) {
   let state, blocked = false, docked = false, cleanupFails = false;
   const calls = [], errors = [], transportTicks = [];
   const session = { characterID: 42, shipid: 100, shipTypeID: 42244, sendNotification() {} };
@@ -25,9 +25,9 @@ function fixture(role = "transport", fleetOre = null, fleetGroups = null, jobPro
     oreHold: () => ({ flagID: 134, full: true }), miningSite: () => true };
   const destinations = { station: () => ({ stationID: 600 }), storage: () => ({ key: "personal" }) };
   const controller = createController(() => api, () => ({ getSceneForSession: () => docked ? null : scene }), error => errors.push(error),
-    preferences, null, destinations, null, null, { transport, industrial, fleetOre, fleetGroups });
+    preferences, compress, destinations, null, null, { transport, industrial, fleetOre, fleetGroups });
   controller.snapshot(session);
-  return { controller, session, scene, ship, calls, errors, transport, transportTicks, get s() { return state; }, block: value => { blocked = value; },
+  return { controller, session, scene, ship, calls, errors, transport, transportTicks, api, get s() { return state; }, block: value => { blocked = value; },
     dock() { docked = true; session.stationid = 600; }, cleanupFails() { cleanupFails = true; },
     tick(time) { controller.tick(scene, time); assert.deepEqual(errors, []); } };
 }
@@ -37,6 +37,27 @@ test("Transport suppresses industrial activation and waits for the core without 
   assert.equal(f.s.autoBoost, true); assert.equal(f.s.coreEnabled, true);
   f.block(false); f.tick(2000);
   assert.equal(f.calls.includes("transport"), true); assert.equal(f.calls.includes("industrial"), false);
+});
+
+test("fleet-hangar mode honors automatic compression and remembers full hold before compression",()=>{
+  let compressed=false,deliveredHold=null;
+  const receiver={tick(session,s,scene,ship,hold){deliveredHold=hold;},view:()=>null,waitingForCompression:()=>false};
+  const f=fixture("boosting",receiver,null,{},()=>{compressed=true;return "Compressed 1 resource stack(s).";});
+  f.s.job="mining";f.s.oreMode="fleetHangar";f.s.compress=true;
+  f.api.oreHold=()=>({flagID:134,capacity:1000,used:compressed?10:950,full:!compressed});
+  f.tick(1000);
+  assert.equal(compressed,true);assert.equal(deliveredHold.full,true);
+  assert.equal(f.s.holdStatus.full,false);assert.match(f.s.compressionStatus,/Compressed 1/);
+});
+
+test("fleet delivery owns movement until receipt, and manual navigation releases it without touching personal preferences",()=>{
+  let cancelled=null;
+  const receiver={tick(session,s){s.fleetOreDeliveryPending=true;s.fleetOreStatus="Approaching fleet booster for ore delivery.";},
+    view:s=>({deliveryActive:s.fleetOreDeliveryPending}),cancel:(...args)=>{cancelled=args;args[1].fleetOreDeliveryPending=false;}};
+  const f=fixture("boosting",receiver);f.s.job="mining";f.s.oreMode="fleetHangar";f.s.approach=true;
+  f.tick(1000);assert.equal(f.s.status,"Approaching fleet booster for ore delivery.");
+  assert.equal(f.calls.includes("transport"),false);assert.equal(f.s.enabled,true);
+  f.controller.manualMiningNavigation(f.session);assert.deepEqual(cancelled[4],{manual:true,stop:false});assert.equal(f.s.approach,true);
 });
 test("switching the same Porpoise back to Boosting releases Transport and preserves its destination", () => {
   const f = fixture("transport", null, null, { boosting: { autoBoost: true, coreEnabled: true } });

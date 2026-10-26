@@ -2,7 +2,7 @@
 
 **Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
 
-[**Download AutoMining 1.2.19**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
+[**Download AutoMining 1.2.20**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
 
 [**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
 
@@ -12,6 +12,15 @@
 | Pick resources and manage yield. | Collect fleet ore and deliver it. | Run industrial equipment and receive ore. | Patrol belts, escort pilots or answer calls. |
 
 The ship cards are illustrated job artwork. AutoMining assists the configured jobs using EveJS's native movement, modules, inventory and fleet operations. Fitting, skills, range, capacity and access permissions still matter.
+
+## New in 1.2.20
+
+- Fixed automatic compression being skipped when miners use **Put into booster's fleet hangar**. The miner's effective compression setting, including Fleet Command overrides, also applies when the booster processes intake first.
+- Miners reaching their unload threshold now approach an accessible stationary receiving booster on the same local grid. They brake within the native **2500 m** transfer boundary and keep the delivery pending if compression shrinks the hold along the way.
+- Mining resumes after delivery. Manual navigation takes priority and cancels the owned approach until **Start / Resume**.
+- Mining-drone group selection stays configurable in Mining and Boosting, including while docked and with automatic mining-drone orders off.
+
+**Testing so far: Grid Check only.** Two real clients were used in an isolated test environment; this update has **not yet been validated in normal gameplay**. See [release validation](RELEASE-VALIDATION.md) for the exact coverage.
 
 ## New in 1.2.19
 
@@ -49,7 +58,7 @@ The ship cards are illustrated job artwork. AutoMining assists the configured jo
 
 ## Compatibility
 
-- **This update:** the final mining-return behavior was tested and approved in game by the user on Native **EveJS 261018.1**. Automated checks cover mining, navigation, hauling and the unchanged client trip workflow. Earlier native landing-handoff adapters covered **0.12.9** and **261018.1**; see [release validation](RELEASE-VALIDATION.md) for the distinction and limits.
+- **This update:** tested only in isolated **Grid Check** on Native **EveJS 261018.1**, using two real EVE clients (Porpoise and Retriever). Normal gameplay testing is still pending. **78 focused checks**, HUD checks and all nine language checks passed; see [release validation](RELEASE-VALIDATION.md) for coverage and limits.
 - **Launcher:** package minimum **1.0.69**, using Launcher API **v1** and client-menu API **v1**. Use an **up-to-date Launcher** for the current Neocom Mods icon and category.
 - **Also declared by the mod:** EveJS **0.12.8** and Launcher-managed **Docker**. This release has no fresh live gameplay coverage on those paths.
 
@@ -57,7 +66,7 @@ The shared Mods menu comes from the Launcher. AutoMining provides its menu adapt
 
 ## Install or update
 
-1. Download **AutoMining-1.2.19.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
+1. Download **AutoMining-1.2.20.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
 2. Stop the server and close EVE clients before changing the mod. Keep the previous ZIP and back up the existing server configuration and Launcher profile settings.
 3. In the Launcher, open **Mods > Add ZIP**, select the ZIP and enable **AutoMining**. For an existing installation, update the same AutoMining entry; its configured GitHub update channel also points to this repository.
 4. Start the server with that profile and log in again so the client receives the current companion.
@@ -153,7 +162,7 @@ Run the fleet's mining support with optional mining drones.
 | **Mining drones/filter** | Optional drone mining with ordered filters, its own target priority and focus/spread mode. |
 | **Compression/stacking** | Accessible automatic compression and separate hold-stacking controls. |
 
-For collection, miners choose **Put into booster's fleet hangar**. Both ships must share a fleet, have hangar access and be within **2500 m** transfer range. Accepted ore can move from the fleet hangar into the booster's mining hold when space permits. Compressed-only reception waits for configured compression, including between timed activations; raw ore stays aboard until acceptable.
+For collection, miners choose **Put into booster's fleet hangar**. When the miner reaches its unload threshold, it approaches an accessible stationary booster on the same local grid and brakes within transfer range. Both ships must share a fleet and have hangar access; transfers still require **2500 m** range. Automatic compression remains available in this delivery mode and follows the miner's own setting. Manual navigation cancels the approach until Start / Resume; it never triggers a warp to chase a booster. Accepted ore can move from the fleet hangar into the booster's mining hold when space permits. Compressed-only reception waits for configured compression, including between timed activations; raw ore stays aboard until acceptable.
 
 Collection stays on grid. The booster does not chase bins or automatically unload received ore. Heavy Water restocking takes **existing accessible stock**; nothing is bought or created. Missing fuel or access can leave the ship docked. An active Core cycle can block travel; Stop prevents future cycles rather than ending the current native cycle instantly.
 

@@ -47,6 +47,7 @@ _AM_MODE_NAMES = {
 
 
 _AM_ZH = {
+    'Approaching fleet booster for ore delivery.': u'正在接近舰队加成舰以交付矿石。',
     'Fleet Command': u'舰队指挥',
     'Connecting to AutoMining...': u'正在连接 AutoMining…',
     'Start / Resume': u'启动 / 继续', 'Stop': u'停止',
