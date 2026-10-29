@@ -1,8 +1,15 @@
 # AutoMining for EveJS
 
+**AutoMining 1.2.22** supports EveJS **261028.1** and fixes the
+Start / Resume -> target search -> OFF failure caused by the removed scene grid
+API. Native bubble membership is used across mining, boosting, defense, fleet
+ore handling, PVE and statistics. Focused controller/cycle checks pass, and the
+installed build was reported working in native gameplay on 30 October 2026.
+See RELEASE-VALIDATION.md for the evidence and limits.
+
 **Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
 
-[**Download AutoMining 1.2.20**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
+[**Download AutoMining 1.2.22**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
 
 [**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
 

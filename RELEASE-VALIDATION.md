@@ -1,3 +1,40 @@
+# AutoMining 1.2.22: native grid lookup runtime fix
+
+**Release status, 30 October 2026:** the installed 1.2.22 build was reported
+working in native gameplay after the fix. This is user-reported confirmation;
+it does not establish Docker, all hulls, extended sessions or soak coverage.
+The release ZIP is the unchanged installed/tested archive, SHA-256
+`0c8b927002b4bbe7ffd21adb8cad4e6a14d66801ce1f36670ab4bd11474d3356`.
+Its included documentation predates this confirmation. Runtime, client and
+artwork members correspond to this release's source; only the public README
+and this validation document contain the later release-status update.
+
+The actual client report on 29 October 2026 established that 1.2.21 restored the UI but Start / Resume switched the job off. Launcher server-console lines 4045, 4899, 4988, 5283 and 5308 record: `Automation stopped after error: scene.getPublicGridClusterKeyForEntity is not a function`. The saved ore filters were empty. This is an API mismatch, not a filter or range error. The controller catches the exception, clears fleet-command overrides and disables the job.
+
+261028.1 replaces cluster-key methods with native `getGridBubbleIDForEntity`. New lib/grid.js reads that authority in mining discovery, boosting, rat defense, fleet ore handling, automatic fleet grouping, PVE/deployment and statistics. Adjacent partition boxes can share a bubble; box keys and distance approximations are not substitutes. Native null membership stays null even if cached box fields exist. Older reviewed scenes retain the existing live-cluster path. Native ownership, AIR/Abyssal isolation, shared dungeon-resource semantics, targetability, range, permissions and committed inventory/statistics handling remain in place.
+
+A failing regression reproduces the exact error and OFF transition using the real 261028.1 spatial topology and grid-bubble modules. After the fix, the same controller with an empty filter locks a target, starts its module, executes the actual native mining-cycle function against in-memory authorities and remains ON on the next tick. An empty grid waits ON. Additional controls exercise adjacent boxes, different bubbles, removal, native AIR/Abyssal scope, shared dungeon resources, invalid scope and targetability.
+
+246 focused checks pass across 16 relevant files. Six existing feature suites also pass with the obsolete grid methods removed from their fixtures, covering boosting/defense, fleet ore transfer, automatic fleet groups, PVE, deployment and combat statistics. No player database or running player service was used by these tests. The user subsequently reported the installed fix working in native gameplay. The earlier 1.2.21 evidence below is retained as historical evidence and did not establish successful live grid lookup.
+
+---
+
+# AutoMining 1.2.21 local compatibility validation
+
+Unpublished local build for EveJS 261028.1, prepared 29 October 2026.
+
+The installed 1.2.20 package was present and loader.js enabled, but its exact mining-source guard refused the new runtime before login delivery initialized. Existing canonical and legacy settings/statistics/fleet groups were present.
+
+Changes: reviewed LF/CRLF native mining baselines; retain new cargo receipts, NPC duplicate/compensation paths, fresh hold occupancy, native AIR settlement, crystals, residue and statistics. No legacy mining patch is applied to 261028.1. Launcher install/verify/profile preparation now reports unsupported mining source before claiming readiness; removal/disable remain available. All existing client sources and nine language catalogs are retained.
+
+Verification: 204 focused Node checks; eight isolated native adapter/bridge checks using copied source, static JSON and a fresh empty SQLite schema; HUD, nine-language catalogs, fleet commands, login companion and the actual public Mods registry. Real native codec packet composition retains AutoMining, Asteroid Erosion and Localtime in either wrapper order (237688 bytes). Shared Launcher menu delivery retains the original login and exact menu entrypoint bytes. No player databases are used by these tests. State tests cover canonical precedence, revisions/history, migration races, failed writes and restart reads.
+
+Limits: native checks execute in memory or passively load native modules; no full server startup, retail-client session, Grid Check gameplay, Docker or soak was performed on 261028.1. The two-client 261018.1 gameplay evidence below is historical coverage. Existing features were retained; this is not a claim of exhaustive gameplay coverage.
+
+The five-file local install uses the existing Launcher lifecycle OS lock, preserves the enabled loader choice, and updates only AutoMining's root-local registry record. No shared core, other mod, global Launcher config, world database, certificate or physical client archive changes are part of this build. A single verified rollback ZIP contains the old AutoMining package and its own state/config copies.
+
+---
+
 # AutoMining 1.2.20 release validation
 
 **Testing so far: isolated Grid Check only. Normal gameplay validation is still pending.**

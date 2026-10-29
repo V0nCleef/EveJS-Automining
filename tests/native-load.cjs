@@ -74,14 +74,25 @@ try {
   assert.match(entityPlanner,/targetEntityID: target\.itemID/);
   const ship={itemID:900000001,radius:250,position:{x:0,y:0,z:0},direction:{x:1,y:0,z:0},warpSpeedAU:3,maxVelocity:100};
   const arrival={x:200000,y:345,z:678};
-  const pending=movement.buildPendingWarpRequest(ship,arrival,{stopDistance:0,targetEntityID:900000002});
-  assert.deepEqual(pending.targetPoint,arrival);assert.deepEqual(pending.rawDestination,arrival);
-  const preparing=movement.buildPreparingWarpState(ship,pending,{nowMs:1000});
-  assert.deepEqual(preparing.targetPoint,arrival);assert.equal(preparing.targetEntityID,900000002);
-  // Proof against the real native completion implementation, without a world tick.
-  const movementSource=fs.readFileSync(path.join(root,"server/src/space/destiny/simulation/movement.js"),"utf8");
-  assert.match(movementSource,/subtractVectors\(entity\.warpState\.targetPoint, entity\.warpState\.origin\)/);
-  assert.match(movementSource,/entity\.position = addVectors\([\s\S]*?entity\.warpState\.origin,[\s\S]*?scaleVector\(direction, traveledDistance\)/);
+  if (typeof movement.buildPendingWarpRequest === "function") {
+    const pending=movement.buildPendingWarpRequest(ship,arrival,{stopDistance:0,targetEntityID:900000002});
+    assert.deepEqual(pending.targetPoint,arrival);assert.deepEqual(pending.rawDestination,arrival);
+    const preparing=movement.buildPreparingWarpState(ship,pending,{nowMs:1000});
+    assert.deepEqual(preparing.targetPoint,arrival);assert.equal(preparing.targetEntityID,900000002);
+    const movementSource=fs.readFileSync(path.join(root,"server/src/space/destiny/simulation/movement.js"),"utf8");
+    assert.match(movementSource,/subtractVectors\(entity\.warpState\.targetPoint, entity\.warpState\.origin\)/);
+    assert.match(movementSource,/entity\.position = addVectors\([\s\S]*?entity\.warpState\.origin,[\s\S]*?scaleVector\(direction, traveledDistance\)/);
+  } else {
+    // 261028.1 owns request planning inside warpCommands and queues movement
+    // until the next Destiny tick. AutoMining still wraps the public point
+    // seam after scope authorization; it must not resurrect the old helpers.
+    assert.equal(typeof movement.movementWarpCommands.warpToPointChecked,"function");
+    assert.match(movement.movementWarpCommands.warpToPointChecked.toString(),/queueMovementCommand/);
+    assert.match(commandsSource,/function buildWarpRequest\(entity, destination, options/);
+    assert.match(commandsSource,/targetEntityID: toFiniteNumber\(options.targetEntityID/);
+    assert.match(commandsSource,/targetPoint: cloneVector\(request.targetPoint\)/);
+    assert.ok(fs.existsSync(path.join(root,"server/src/space/destiny/simulation/evolve.js")));
+  }
   const ledger = require(path.join(root, "server/src/services/mining/miningLedgerState.js"));
   assert.equal(ledger.recordMiningLedgerEvent._autoMiningStatistics, automining.statistics,
     "Statistics hook must attach before native consumers capture ledger exports");

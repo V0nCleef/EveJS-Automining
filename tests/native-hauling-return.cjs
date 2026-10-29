@@ -44,11 +44,17 @@ Module._load = function(request, parent, isMain) {
 
 try {
   const native = require(path.join(root, "server/src/space/runtime/scene/pilotCommands.js"));
-  const { hasPendingPilotWarpLanding } = require(path.join(root, "server/src/space/runtime/destinyDeliveryEligibility.js"));
+  const eligibility = require(path.join(root, "server/src/space/runtime/destinyDeliveryEligibility.js"));
+  const legacyHandoff = typeof eligibility.hasPendingPilotWarpLanding === "function";
+  const hasPendingPilotWarpLanding = legacyHandoff ? eligibility.hasPendingPilotWarpLanding
+    : (_, ship) => ship.mode === "WARP" || Boolean(ship.pendingWarp);
   let now = 10000;
   const session = { characterID: 42, shipID: 10,
     _space: { pilotWarpVisibilityHandoff: { shipID: "10", landingPending: true } } };
   const ship = { itemID: 10, mode: "STOP", position: { x: 5000, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 } };
+  // 261028.1 removed the separate session landing handoff; its Ball remains in
+  // WARP until native landing completes. Exercise that native rejection too.
+  if (!legacyHandoff) { delete session._space.pilotWarpVisibilityHandoff; ship.mode = "WARP"; }
   const scene = { systemID: 30, getShipEntityForSession: () => ship,
     stop: () => { ship.mode = "STOP"; return true; } };
   const origin = { systemID: 30, x: 0, y: 0, z: 0 };
@@ -88,7 +94,8 @@ try {
   assert.equal(movementCalls, 0);
   assert.equal(s.enabled, true);
   assert.equal(s.haul.id, token);
-  session._space.pilotWarpVisibilityHandoff.landingPending = false;
+  if (legacyHandoff) session._space.pilotWarpVisibilityHandoff.landingPending = false;
+  else ship.mode = "STOP";
   assert.equal(hasPendingPilotWarpLanding(session, ship), false);
   hauling.action(session, s, token, "position");
   assert.equal(movementCalls, 1);

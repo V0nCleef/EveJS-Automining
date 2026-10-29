@@ -27,7 +27,7 @@ const dependencies = {
   config: { miningEnabled:true, miningSurveyScanDistanceMeters:250000 },
   runtime: { getSceneForSession: () => scene },
   interactionScope: { canEntitiesInteractLocally: () => true },
-  characterState: { getActiveShipRecord: () => ship },
+  characterState: { getActiveShipRecord: () => ship, peekCharacterRecord: () => ({}) },
   skillState: { getCachedCharacterSkillMap: () => new Map() },
   itemStore: { ITEM_FLAGS: { CARGO_HOLD: 5 } },
   simulationInventoryProjection: { findShipItemById: () => ship, getProjectionVersion: () => `${free}:${oreHoldEnabled}`, listContainerItems: () => [...crystalCargo, ...(oreHoldEnabled ? [{ flagID: 134, quantity: 1, volume: 100 - free }] : [])] },
@@ -37,7 +37,7 @@ const dependencies = {
       ...(crystalDurabilityFixture ? {9:100,786:1} : {})}),
     isChargeCompatibleWithModule: (module, charge) => module === 100 && [700,701].includes(charge),
     getAttributeIDByNames: name => ({integratedMiningScanner:9001,miningScannerUpgrade:9002})[name],
-    getFittedModuleItems: () => fitted, isModuleOnline: x => x.online,
+    getFittedModuleItems: () => fitted, listHiddenModifierItems: () => [], isModuleOnline: x => x.online,
     getTypeEffectRecords: typeID => [typeID === 200 ? surveyEffect : miningEffect], getLoadedChargeByFlag: () => crystalLoaded,
     buildShipResourceState: () => ({ cargoCapacity: free, generalMiningHoldCapacity: oreHoldEnabled ? 100 : 0 }),
   },
@@ -50,6 +50,9 @@ const dependencies = {
     isMiningEffectRecord: e => e === miningEffect,
     buildMiningModuleSnapshot: ({additionalModifierEntries}) => ({ family: "ore", maxRangeMeters: additionalModifierEntries.length ? 90 : 45 }),
   },
+  // Capacity is a directly controlled fixture variable here. The new native
+  // cache + fresh occupancy contract is exercised in compat-261028.test.cjs.
+  shipResourceStateCache: { getShipResourceState: (_, __, build) => build() },
   commandBurstRuntime: { collectModifierEntriesForItem: (_, item, now) => {
     boostTimes.push(now);
     return now < boostUntil ? [{attributeID:54, value:100}] : [];

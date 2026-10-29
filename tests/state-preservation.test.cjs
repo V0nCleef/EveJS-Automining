@@ -7,7 +7,9 @@ const { execute } = require(path.join(candidate, "helper"));
 const { createPreferences } = require(path.join(candidate, "lib/preferences"));
 const { createStatistics } = require(path.join(candidate, "lib/statistics"));
 const { createFleetGroups } = require(path.join(candidate, "lib/fleetGroups"));
-const nativeRoots = [
+const nativeRoots = process.env.AUTOMINING_NATIVE_ROOT ? [
+  [process.env.AUTOMINING_NATIVE_VERSION || "reviewed native", process.env.AUTOMINING_NATIVE_ROOT],
+] : [
   ["0.12.9", process.env.AUTOMINING_NATIVE_ROOT_0129],
   ["261018.1", process.env.AUTOMINING_NATIVE_ROOT_261018],
 ];

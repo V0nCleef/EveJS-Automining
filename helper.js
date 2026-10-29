@@ -5,6 +5,7 @@ const legacy = require("./helper-legacy");
 const { supportsRoot, createDelivery } = require("./lib/loginDelivery");
 const { surveySeconds } = require("./lib/settings");
 const { migrateState } = require("./lib/statePaths");
+const { supportsMiningSource } = require("./lib/miningCompatibility");
 const ACTIONS = new Set(["install", "recover", "verify", "prepare_profile", "prepare_disable", "prepare_remove"]);
 function deliveryReport(request, result, method) {
   const features = String(process.env.EVEJS_LAUNCHER_HELPER_FEATURES || "").split(",");
@@ -30,6 +31,13 @@ function profileEnvironment(request) {
 function execute(request) {
   if (!ACTIONS.has(request.action)) throw Error("Unsupported AutoMining helper action");
   const root = request.runtime.evejsRoot || request.mod.root;
+  // A working login builder alone does not prove the server bridge can load.
+  // Report this during preparation instead of silently losing every menu/job.
+  // Cleanup must remain available even on an unsupported server.
+  if (!["prepare_disable", "prepare_remove"].includes(request.action) &&
+      !supportsMiningSource(fs.readFileSync(path.join(root, "server/src/services/mining/miningRuntime.js")))) {
+    throw Error("AutoMining cannot activate on this miningRuntime.js. Install an AutoMining package supporting this EveJS runtime.");
+  }
   // Protect state before a server update can sweep legacy config files. Run
   // before client-side preparation so a failed migration leaves it untouched.
   if (["install", "recover"].includes(request.action)) migrateState(root);
