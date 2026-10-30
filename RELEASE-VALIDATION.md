@@ -1,3 +1,55 @@
+# AutoMining 1.2.23: queued native Stop on hauling return
+
+Release 1.2.23, validated on 30 October 2026.
+
+The release uses the exact installed/tested ZIP, SHA-256
+`bc71a954e55c4b0f305cc4f140082576feeb3fc7fc9d435bc40d48046bff3ac4`.
+Its bundled README and validation document are pre-publication snapshots.
+Only these two public source documents were updated for publication; runtime,
+client, descriptor and artwork members match the tested package.
+
+The unchanged 1.2.22 build reproduced the reported failure in an isolated real
+EVE client under GridCheck 0.3.6 / EveJS 261028.1 / client build 3396210:
+station unload, undock, return to the saved position, then OFF with
+`Hauling paused: Mining position has not been reached.`
+
+261028.1 queues movement until the next Destiny tick. The old hauling code
+acknowledged arrival as soon as native Stop accepted the order, even while the
+ship remained in GOTO. The client's immediate completion RPC then rejected it.
+`lib/hauling.js` now waits for queued movement to apply and for native STOP mode
+before acknowledging arrival. Repeated polls do not queue duplicate Stops.
+Later manual commands retain priority, and pending movement cannot authorize
+mining or completion. Earlier immediate-Stop scenes retain their existing flow.
+
+The candidate completed **two automatic station unload-and-return trips** with
+a Retriever, two Strip Miner Is, a blank ore filter and automatic approach.
+After the first return, actual mining filled the disposable test threshold and
+started the second trip without another Start. After the second return it stayed
+ON for 195 seconds and gained **17787 committed ore units**, while mining
+remained active. The temporary 1% test threshold was raised to 95% only on the
+last departure so sustained post-return mining could be measured.
+
+54 focused server checks and 9 client-companion checks pass. The reusable
+`tests/native-queued-hauling-return.cjs` also reproduces the original error using
+the actual native movement queue and Stop implementation, then passes with the
+fix, including a later manual movement command. The existing immediate-Stop,
+landing, timeout, cargo confirmation, defense and fuel cases remain covered.
+All packaged client and translation bytes are unchanged from 1.2.22.
+
+GridCheck used a fresh game store, a test-only market with static catalogues and
+no copied orders/trades/receipts, dedicated account/profile and ports 31140-31150.
+No player service was controlled. Player package/state/core/database hashes were
+checked unchanged before installation. Raw ErrorReports, RPC state samples,
+native GridCheck timelines, the baseline capture and final acceptance receipt
+remain local. Offline client content/chat timeouts were observed separately;
+they do not establish a clean full-client integration or chat result.
+
+This is targeted GridCheck evidence, not a guarantee for every hull, remote
+station route, corporation storage, Docker environment or extended session.
+The only runtime file changed by this fix is `lib/hauling.js`.
+
+---
+
 # AutoMining 1.2.22: native grid lookup runtime fix
 
 **Release status, 30 October 2026:** the installed 1.2.22 build was reported

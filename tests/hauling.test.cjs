@@ -158,6 +158,56 @@ function returningFixture() {
   return f;
 }
 
+function queuedReturnFixture() {
+  const f = returningFixture(), queued = [];
+  f.session._space.pilotWarpVisibilityHandoff.landingPending = false;
+  f.ship.position = { ...f.s.haul.origin, x: f.s.haul.origin.x + 900 };
+  f.ship.mode = "GOTO"; f.ship.targetPoint = f.s.haul.origin;
+  f.s.haul.moving = "approach";
+  f.scene.hasQueuedMovementChange = () => queued.length > 0;
+  f.scene.stop = () => { f.moves.push("queued-stop"); queued.push(() => { f.ship.mode = "STOP"; }); return true; };
+  f.flush = () => { for (const apply of queued.splice(0)) apply(); };
+  f.queueManual = () => queued.push(() => { f.ship.mode = "FOLLOW"; f.ship.targetPoint = null; });
+  return f;
+}
+
+test("queued native Stop is not arrival: wait for its tick before acknowledging completion", () => {
+  const f = queuedReturnFixture();
+  for (let n = 0; n < 3; n++) assert.notEqual(f.action("position").atOrigin, true);
+  assert.equal(f.ship.mode, "GOTO");
+  assert.equal(f.moves.filter(x => x === "queued-stop").length, 1);
+  assert.equal(f.hauling.canMine(f.session, f.s, f.scene, f.ship), false);
+  assert.throws(() => f.action("complete"), /not been reached/);
+  f.flush();
+  assert.equal(f.action("position").atOrigin, true);
+  f.action("complete");
+  assert.equal(f.s.enabled, true); assert.equal(f.s.haul, null);
+});
+
+test("a queued Stop while already in STOP still needs to apply before arrival", () => {
+  const f = queuedReturnFixture(); f.ship.mode = "STOP";
+  assert.notEqual(f.action("position").atOrigin, true);
+  f.flush(); assert.equal(f.action("position").atOrigin, true);
+});
+
+test("manual movement queued after return braking wins without a replacement Stop", () => {
+  const f = queuedReturnFixture();
+  f.action("position"); f.queueManual();
+  assert.notEqual(f.action("position").atOrigin, true);
+  f.flush();
+  assert.throws(() => f.action("position"), /changed manually/);
+  assert.equal(f.ship.mode, "FOLLOW");
+  assert.equal(f.moves.filter(x => x === "queued-stop").length, 1);
+});
+
+test("completion refuses pending manual movement after acknowledged arrival", () => {
+  const f = queuedReturnFixture(); f.action("position"); f.flush();
+  assert.equal(f.action("position").atOrigin, true);
+  f.queueManual();
+  assert.throws(() => f.action("complete"), /not been reached/);
+  assert.equal(f.hauling.canMine(f.session, f.s, f.scene, f.ship), false);
+});
+
 test("return waits through the post-warp landing handoff, then approaches and resumes automatically", () => {
   const f = returningFixture(), tripID = f.s.haul.id;
   const approach = f.space.gotoPoint;
