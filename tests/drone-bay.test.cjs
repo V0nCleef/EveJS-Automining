@@ -32,3 +32,27 @@ test("drone bay survives a failing inventory projection", () => {
   assert.deepEqual(result.itemIDs, []);
   assert.match(result.error, /boom/);
 });
+
+test("native assembled drones remain visible while docked and in space", () => {
+  // Native inventory stores each assembled drone as one singleton, not a
+  // positive-quantity stack. This is the shape observed in a real ship bay.
+  const rows = Array.from({ length: 10 }, (_, index) => ({
+    itemID: 9000000000000 + index, typeID: index < 5 ? 10250 : 2203,
+    categoryID: 18, singleton: 1, quantity: -1, stacksize: 1
+  }));
+  const api = bay(rows);
+  const expected = { shipID: 100, itemIDs: rows.map(row => row.itemID) };
+  assert.deepEqual(api({ shipID: 100, stationID: 600 }), expected);
+  assert.deepEqual(api({ shipid: 100, stationID: null }), expected);
+});
+
+test("mixed native bay rows exclude empty stacks and non-drone singletons", () => {
+  const api = bay([
+    { itemID: 11, categoryID: 18, singleton: 1, quantity: -1, stacksize: 1 },
+    { itemID: 12, categoryID: 18, singleton: 0, quantity: 3, stacksize: 3 },
+    { itemID: 13, categoryID: 18, singleton: 0, quantity: 0, stacksize: 0 },
+    { itemID: 14, categoryID: 6, singleton: 1, quantity: -1, stacksize: 1 },
+    { itemID: 15, categoryID: 18, singleton: 0, quantity: -1, stacksize: 0 }
+  ]);
+  assert.deepEqual(api({ shipID: 100 }).itemIDs, [11, 12]);
+});

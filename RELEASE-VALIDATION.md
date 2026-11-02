@@ -1,3 +1,53 @@
+# AutoMining 1.2.24: commands, compressors and drone groups
+
+Validated on 2 November 2026 against the contribution in PR #1, head
+`71f3afeacd3babefea240ef4d0e87b7e7c093dbb`, plus the release fixes below.
+
+## Reported failure and fix
+
+The unmodified contribution loaded in the user's Native EveJS 261028.1 session.
+The server recorded successful `!atm` opening and `AutoMiningDroneBay` calls,
+but the docked drone dropdown showed the full saved list without counts.
+A read-only inventory inspection found ten category-18 drone singletons in the
+active ship's bay, each with `singleton: 1`, `quantity: -1`, `stacksize: 1`.
+The new bay lookup discarded every row because it required positive quantity.
+
+The release accepts native singleton drones as well as positive-quantity drone
+stacks, while continuing to exclude empty stacks and non-drone items. Regression
+tests cover the ten-drone native shape both docked and in space, mixed inventory
+rows, the client RPC/group intersection, counts, ship changes and fallback lists.
+The original code failed the new singleton tests before the fix.
+
+Review also found that the slash-list sanitizer rejected printable ASCII names
+containing punctuation. It now preserves those names while excluding non-ASCII
+and control characters. The original code failed the new preservation test.
+The standalone Chinese compressor fallback and the HUD's old drone-reader test
+doubles were updated to the new labels and interface.
+
+## Automated validation
+
+- 508 checks across 52 Node test files passed against reviewed 261028.1 sources.
+- Both 261018.1 source-compatibility checks passed separately: 510 total.
+- All 14 Python client test scripts passed, including the actual drone-group
+  reader, HUD behavior, translations, login, shared menu, fleet, hauling and PVE.
+  The transport suite retains one skip requiring an external marshal fixture.
+- Native passive loader/recall hooks passed with filesystem writes blocked;
+  native spatial/controller regression and queued hauling-return regression passed.
+- The complete emitted login companion builds and all nine language catalogues
+  pass validation. Saved settings formats and update compatibility are unchanged.
+
+The legacy `mining-compatibility.test.cjs` suite requires the historical original
+and patched legacy server fixtures and was not run for this release.
+
+## Limits
+
+The original fork's issue was observed in a real client, but the corrected
+dropdown has not yet received a fresh in-game rendering/gameplay test. New
+compressor families were checked with module-effect fixtures, not fresh live
+activation of every compressor. Docker, extended sessions and broad hull/route
+coverage were not newly tested. Earlier GridCheck results below remain historical.
+No player database, wallet or client archive was modified by these checks.
+
 # AutoMining 1.2.23: queued native Stop on hauling return
 
 Release 1.2.23, validated on 30 October 2026.

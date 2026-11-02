@@ -1,7 +1,10 @@
 # Local modifications
 
-Two changes are carried on top of upstream **v1.2.23**. Neither changes the mod
-version. Both are self-contained and are offered upstream as a pull request.
+HalCyonNJ contributed the following five changes on top of upstream **v1.2.23**
+in [PR #1](https://github.com/V0nCleef/EveJS-Automining/pull/1). They are included
+in **1.2.24**, with the native singleton-drone lookup, printable ASCII command
+preservation and standalone Chinese fallback corrected during integration.
+See [release validation](../RELEASE-VALIDATION.md) for the release checks.
 
 | # | File | Change | Size |
 |---|---|---|---|
@@ -260,7 +263,7 @@ existing labels are reused.
 
 ---
 
-## Verification
+## Contributor-reported verification before 1.2.24 integration
 
 On top of tag `v1.2.23`:
 

@@ -240,18 +240,21 @@ assert w._toggles['autoBoost'].parent is w.tabs.tabs[5][1]
 assert w._toggles['inviteFleet'].parent is w.tabs.tabs[5][1]
 session.charid=42;w.destroyed=False;w.oreModeEdit.SelectItemByValue('leave')
 group_key=json.dumps(['Miners','123'],separators=(',',':'))
-scope['_am_drone_groups']=lambda:[(group_key,'Miners')]
+scope['_am_drone_bay']=lambda:dict(shipID=100,itemIDs=[11,12])
+scope['_am_drone_groups']=lambda bay:[(group_key,'Miners',2)]
 w.RefreshDroneGroupsWork();w.droneGroupEdit.SelectItemByValue(group_key)
+assert w._droneGroups==[(group_key,'Miners',2)]
+assert ('Miners (2)',group_key) in w.droneGroupEdit.options
 w._toggles['launchDrones'].SetChecked(True);w.Changed();w.Save()
 assert state['settings']['launchDrones'] and state['settings']['droneGroupKey']==group_key
 w._dirty=True;w.RefreshDroneGroupsWork();assert w._dirty and w.droneGroupEdit.GetValue()==group_key
-scope['_am_drone_groups']=lambda:[]
+scope['_am_drone_groups']=lambda bay:[]
 w.RefreshDroneGroupsWork();assert w.droneGroupEdit.GetValue()==group_key
 assert 'unavailable' in w.droneGroupEdit.options[1][0]
 print('PASS: Drones tab, group selection, launch/recall settings, and missing-group draft preservation.')
 
 fighter_key=json.dumps(['Fighters','456'],separators=(',',':'))
-scope['_am_drone_groups']=lambda:[(group_key,'Miners'),(fighter_key,'Fighters')]
+scope['_am_drone_groups']=lambda bay:[(group_key,'Miners',2),(fighter_key,'Fighters',1)]
 w.RefreshDroneGroupsWork()
 w.ratMiningGroupEdit.SelectItemByValue(group_key)
 w.ratFighterGroupEdit.SelectItemByValue(fighter_key)
@@ -988,7 +991,7 @@ state.update(settings=dict(state['settings'],job='mining',shipRole='boosting',or
     ratMiningGroupKey=group_key,ratFighterGroupKey=fighter_key,pveDronesEnabled=False,pveDroneGroupKey='',
     defenseEnabled=False,fuelEnabled=False,actionNotifications=True),revision='profiles-r1',enabled=True,status='Mining with 2 module(s).')
 rig=cls();rig.ApplyAttributes({});rig.ShowResponse(dict(state),True);rig.SelectJobDraft('mining')
-old_group_reader=scope['_am_drone_groups'];scope['_am_drone_groups']=lambda:[]
+old_group_reader=scope['_am_drone_groups'];scope['_am_drone_groups']=lambda bay:[]
 rig._droneGroups=[];rig.RefreshDroneGroupsWork()
 rig._toggles['actionNotifications'].SetChecked(False);rig.defenseShieldEdit.SetValue(77);rig.Changed()
 activity=[];scope['_am_activity_set_state']=lambda *args:activity.append(args)

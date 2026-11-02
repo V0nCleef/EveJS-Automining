@@ -1026,3 +1026,10 @@ test("atm is registered in the ASCII-only slash list",()=>{
   installChat(slash,f.controller);
   assert.deepEqual(slash.AVAILABLE_SLASH_COMMANDS,["ash","automining","atm"]);
 });
+
+test("ASCII slash registration preserves other mods' printable command names",()=>{
+  const f=fixture();
+  const slash={executeChatCommand:()=>"original",AVAILABLE_SLASH_COMMANDS:["other-mod","mod.command","自動採掘","bad\ncommand"]};
+  installChat(slash,f.controller);
+  assert.deepEqual(slash.AVAILABLE_SLASH_COMMANDS,["other-mod","mod.command","automining","atm"]);
+});
