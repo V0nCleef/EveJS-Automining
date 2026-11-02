@@ -8,6 +8,8 @@ version. Both are self-contained and are offered upstream as a pull request.
 | 1 | `lib/commands.js` | Register only ASCII names in `AVAILABLE_SLASH_COMMANDS` | +13 / −2 |
 | 2 | `lib/commands.js`, `lib/controller.js` | Let the plain-chat form `!automining` open the settings window before the client reports `hudReady` | +10 / −1 |
 | 3 | `lib/commands.js` | Add `atm` as a plain alias of `automining` (same `hudReady` rule) | +3 / −0 |
+| 4 | `lib/industrialAutomation.js` | Identify compressors by the native effect only (all fitted compressor types), no type whitelist | +10 / −5 |
+| 5 | `lib/droneBay.js` (new), `lib/controller.js`, `lib/hud.js`, `client/drones.py`, `client/hud.py` | Filter the drone-group list by the active ship's bay and show counts | new |
 
 `lib/commands.js` also carries two diagnostic lines (`plain-chat …` and
 `plain-chat open …`) that make the two code paths visible in the server log.
@@ -173,6 +175,90 @@ for (const asciiName of ["automining", "atm"]) {
 
 ---
 
+## 4. Compressor detection follows the fitting, not a type list
+
+### Symptom
+
+Only three asteroid-ore compressors were recognised. Fitting an ice, gas,
+mercoxit or moon-ore compressor left the whole industrial section unusable: no
+module row, no interval setting, and the automation never started.
+
+### Root cause
+
+The module scan required a hard-coded type list:
+
+```js
+const ORE_COMPRESSOR_TYPES = new Set([62622, 62625, 62632]); // asteroid ore only
+find(e => CORE_EFFECTS.has(e.effectID) ||
+  ORE_COMPRESSOR_TYPES.has(typeID) && Number(e.effectID) === 8364)
+```
+
+### Evidence
+
+In SDE build 3396210 every published compressor (group 4174, 12 types:
+asteroid ore, ice, gas, mercoxit and moon ore in Medium/Large/Capital) carries
+`effectID 8364 = industrialItemCompression`; nothing else uses that effect.
+
+### Change
+
+Identify the module by the effect alone; the type list is gone:
+
+```js
+const effect = fit.getTypeEffectRecords(item.typeID).find(e =>
+  CORE_EFFECTS.has(Number(e.effectID)) || Number(e.effectID) === COMPRESSOR_EFFECT);
+```
+
+With no compressor fitted the scan returns no compressor module, so the feature
+stays idle instead of pretending to run. Names come from the fitted item itself,
+and the nine-language catalogue now says "Compressor" / "Automatic Compressor"
+instead of "Asteroid Ore Compressor".
+
+---
+
+## 5. Drone groups follow the active ship's bay
+
+### Symptom
+
+The "drone group to launch" dropdown listed every group the character had ever
+saved — often ten or more — including groups for other ships. While docked the
+native drone-bay view has no data at all, so the list was the only thing to go on.
+
+### Root cause
+
+The client enumerated the native group store with no ship context:
+
+```python
+groups = GetDroneGroupsController().GetGroupsByName()   # all saved groups
+```
+
+Group membership is drone item IDs, and the server (not the client) knows which
+drones are in the active ship's bay.
+
+### Change
+
+A new request returns the bay contents from the server inventory projection, which
+is authoritative docked and in space:
+
+```js
+// lib/droneBay.js
+listContainerItems(null, shipID, DRONE_BAY_FLAG)   // item IDs of this ship's bay
+// lib/hud.js
+Handle_AutoMiningDroneBay → { bay: { shipID, itemIDs } }
+```
+
+The client intersects those IDs with each group's `droneIDs`:
+
+- groups with at least one drone in the bay are listed, sorted by how many they
+  contain, labelled `Name (n)`;
+- groups belonging to other ships disappear;
+- if the bay is empty, the full list is kept so a group can still be preselected;
+- duplicate placeholder rows are dropped.
+
+No new catalogue entry is required: the count is language neutral, and the
+existing labels are reused.
+
+---
+
 ## Verification
 
 On top of tag `v1.2.23`:
@@ -181,6 +267,8 @@ On top of tag `v1.2.23`:
 node --check lib/controller.js
 node --check lib/commands.js
 node tests/automining.test.cjs        # 79/79
+node tests/industrial-automation.test.cjs  # 10/10
+node tests/drone-bay.test.cjs         # 3/3
 node tests/command-locales.test.cjs   # 1/1
 ```
 
@@ -188,9 +276,13 @@ node tests/command-locales.test.cjs   # 1/1
 applied by `installPlainChat()`, the tagged command opens while `hudReady` is
 false, `atm` opens from slash / plain chat / bare form, and `atm` stays in the
 ASCII-only slash list. The original gate test was extended rather than removed,
-so the bare/slash contract stays pinned.
+so the bare/slash contract stays pinned. `tests/industrial-automation.test.cjs`
+checks all twelve compressor types and the idle state when none is fitted;
+`tests/drone-bay.test.cjs` covers the bay request and its failure modes. The
+nine-language catalogue is validated by `buildClientSource()` on every login
+delivery (matching key count, placeholders and whitespace per entry).
 
-The focused suite was run in full: 51 of 58 files pass. The 7 failures
+The focused suite was run in full: 47 of 54 files pass. The 7 failures
 (`compat-261018`, `compat-261028`, `future-version`, `login-delivery`,
 `login-emission`, `mining-compatibility`, `state-preservation`) require the
 reviewed EveJS server trees via `AUTOMINING_NATIVE_ROOT` / `EVEJS_TEST_ROOT` and
