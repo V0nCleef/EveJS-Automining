@@ -11,9 +11,10 @@ version. Both are self-contained and are offered upstream as a pull request.
 | 4 | `lib/industrialAutomation.js` | Identify compressors by the native effect only (all fitted compressor types), no type whitelist | +10 / −5 |
 | 5 | `lib/droneBay.js` (new), `lib/controller.js`, `lib/hud.js`, `client/drones.py`, `client/hud.py` | Filter the drone-group list by the active ship's bay and show counts | new |
 
-`lib/commands.js` also carries two diagnostic lines (`plain-chat …` and
-`plain-chat open …`) that make the two code paths visible in the server log.
-They can be dropped without changing behaviour.
+Three diagnostic log lines make the code paths visible in the server log:
+`slash list registered: … (ascii-only)` and `plain-chat … char=…` from
+`lib/commands.js`, and `plain-chat open char=… hudReady=…` from
+`lib/controller.js`. They can be dropped without changing behaviour.
 
 ---
 
