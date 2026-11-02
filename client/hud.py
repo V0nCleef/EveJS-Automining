@@ -1631,9 +1631,9 @@ def _am_build_window_class():
             EveLabelSmall(parent=panel, align=C.TOTOP, autoFitToText=True, padBottom=8,
                 text='The active core cycle can block warp. Stop prevents future cycles.')
             coreModules = ContainerAutoSize(parent=panel, align=C.TOTOP, minHeight=30)
-            Section(parent=panel, text='Asteroid Ore Compressor')
+            Section(parent=panel, text='Compressor')
             self.compressorToggle = Checkbox(parent=panel, align=C.TOTOP, height=32,
-                text='Automatic Asteroid Ore Compressor', checked=False, callback=self.Changed)
+                text='Automatic Compressor', checked=False, callback=self.Changed)
             EveLabelSmall(parent=panel, align=C.TOTOP, autoFitToText=True, padBottom=8,
                 text='Activation interval follows successful starts; native cycle duration is the minimum.')
             self.modulePanel = ContainerAutoSize(parent=panel, align=C.TOTOP, minHeight=30)
@@ -2042,7 +2042,7 @@ def _am_build_window_class():
                 (1, 'Drone target priority', self.mineDroneOrderEdit), (1, 'Drone targeting mode', self.mineDroneModeEdit),
                 (2, 'Mining Filter', self.availableSearch), (3, 'Drone group to launch', self.droneGroupEdit),
                 (4, 'Shield at or below (%)', self.defenseShieldEdit), (4, 'Armor at or below (%)', self.defenseArmorEdit),
-                (5, 'Automatic Industrial Core', self.coreToggle), (5, 'Automatic Asteroid Ore Compressor', self.compressorToggle),
+                (5, 'Automatic Industrial Core', self.coreToggle), (5, 'Automatic Compressor', self.compressorToggle),
                 (5, 'Receive fleet ore', self.receiveFleetOre),
                 (5, 'Accept compressed ore', self.receiveFleetAcceptCompressed),
                 (5, 'Accept uncompressed ore', self.receiveFleetAcceptUncompressed),
