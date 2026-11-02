@@ -2,8 +2,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createIndustrialAutomation, validateIntervalSeconds } = require("../lib/industrialAutomation");
-function fixture({ gap = false, quantity = 2000 } = {}) {
-  const fitted = [{ itemID: 1, typeID: 62590, itemName: "Medium core" }, { itemID: 2, typeID: 62622, itemName: "Compressor" }];
+function fixture({ gap = false, quantity = 2000, compressorType = 62622 } = {}) {
+  const fitted = [{ itemID: 1, typeID: 62590, itemName: "Medium core" }];
+  if (compressorType) fitted.push({ itemID: 2, typeID: compressorType, itemName: "Compressor" });
   const ship = { kind: "ship", itemID: 100, activeModuleEffects: new Map() };
   const session = { characterID: 42 };
   const s = { enabled: true, coreEnabled: true, compressorEnabled: true, coreIntervals: gap ? { 62590: 150 } : {}, compressorIntervals: {}, fuelReserveCycles: 2, fuelTargetCycles: 20 };
@@ -80,4 +81,18 @@ test("compressor automation can use an active manual core without owning it", ()
   f.tick(0); assert.deepEqual(f.calls, [["start", 2, undefined]]);
   f.api.stop(f.session, f.s, f.scene, f.ship, 1000); assert.deepEqual(f.calls.slice(1), [["stop", 2, true]]);
   assert.match(f.api.snapshot(f.session, f.s, f.scene, f.ship, 1000).status, /Manual industrial core/);
+});
+
+test("every fitted compressor type is recognised without a whitelist", () => {
+  for (const typeID of [62622, 62624, 62625, 62626, 62628, 62630, 62631, 62632, 62633, 62634, 62635, 62636]) {
+    const f = fixture({ compressorType: typeID }); f.tick(0);
+    const view = f.api.snapshot(f.session, f.s, f.scene, f.ship, 0);
+    assert.deepEqual(view.modules.map(m => m.kind), ["core", "compressor"]);
+    assert.equal(view.modules[1].typeID, typeID);
+  }
+});
+test("no fitted compressor keeps compressor automation idle", () => {
+  const f = fixture({ compressorType: null }); f.tick(0);
+  assert.deepEqual(f.calls, [["start", 1, undefined]]);
+  assert.deepEqual(f.api.snapshot(f.session, f.s, f.scene, f.ship, 0).modules.map(m => m.kind), ["core"]);
 });

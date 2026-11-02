@@ -907,12 +907,26 @@ test("haul trigger is configurable per character and rejects invalid percentages
     assert.equal(restored.controller.snapshot(restored.session).settings.haulThreshold, 80);
   } finally { fs.rmSync(root, {recursive: true, force: true}); }
 });
-test("bare command opens HUD only when the client advertises support; status remains a shortcut",()=>{
+test("plain chat opens the window without the client handshake; bare and slash keep the gate",()=>{
   const f=fixture(),events=[];f.session.sendNotification=(...args)=>events.push(args);
   assert.match(f.command("automining"),/OFF/);assert.equal(events.length,0);
   f.controller.clientReady(f.session,true);assert.match(f.command("/automining"),/opened/);
   assert.deepEqual(events,[["OnAutoMiningOpen","clientID",[]]]);
   assert.match(f.command("!automining status"),/OFF/);assert.equal(events.length,1);
+  const g=fixture(),opened=[];g.session.sendNotification=(...args)=>opened.push(args);
+  assert.match(g.controller.command(g.session,{action:"help",plainChat:true}),/opened/);
+  assert.deepEqual(opened,[["OnAutoMiningOpen","clientID",[]]]);
+});
+test("plain chat tags the parsed command so the opener can skip the handshake",()=>{
+  const { installPlainChat } = require("../lib/commands");
+  const seen=[];const controller={command(session,cmd){seen.push(cmd);return "ok";},feedback(){}};
+  const ex={broadcastLocalMessage(){}};
+  installPlainChat(ex,controller);
+  assert.throws(()=>ex.broadcastLocalMessage({characterID:1},"!automining"),/ok/);
+  assert.equal(seen.length,1);assert.equal(seen[0].action,"help");assert.equal(seen[0].plainChat,true);
+  // Without the ! prefix the command keeps the upstream gate and is not tagged.
+  assert.throws(()=>ex.broadcastLocalMessage({characterID:1},"automining"),/ok/);
+  assert.equal(seen.length,2);assert.equal(seen[1].action,"help");assert.equal(seen[1].plainChat,undefined);
 });
 test("changed survey default does not reapply an unchanged legacy Launcher preset",()=>{
   const oldStamp=JSON.stringify([["veldspar"],"nearest",true,true,false,false]);
@@ -991,4 +1005,24 @@ test("HUD rejects malformed, oversized and stale client requests without overwri
   }
   const reply=JSON.parse(svc.Handle_AutoMiningSetSettings([Buffer.from(JSON.stringify({revision:"stale",settings:{...before.settings,surveySeconds:180}}))],f.session));
   assert.equal(reply.success,false);assert.match(reply.message,/changed elsewhere/);assert.deepEqual(f.controller.snapshot(f.session),before);
+});
+
+test("atm is a plain alias of automining under the same hudReady rule",()=>{
+  const f=fixture(),events=[];f.session.sendNotification=(...args)=>events.push(args);
+  // Not ready: every form falls through to the status line, exactly like automining.
+  assert.match(f.command("atm"),/OFF/);assert.match(f.command("!atm"),/OFF/);assert.match(f.command("/atm"),/OFF/);
+  assert.equal(events.length,0);
+  assert.match(f.command("atm status"),/OFF/);assert.match(f.command("atm on"),/ON/);
+  assert.equal(events.length,0);
+  // Ready: the same forms open the window.
+  f.controller.clientReady(f.session,true);
+  assert.match(f.command("atm"),/opened/);assert.match(f.command("!atm"),/opened/);assert.match(f.command("/atm"),/opened/);
+  assert.equal(events.length,3);
+  assert.deepEqual(events[0],["OnAutoMiningOpen","clientID",[]]);
+});
+test("atm is registered in the ASCII-only slash list",()=>{
+  const f=fixture();
+  const slash={executeChatCommand:()=>"original",AVAILABLE_SLASH_COMMANDS:["ash","自動採掘"]};
+  installChat(slash,f.controller);
+  assert.deepEqual(slash.AVAILABLE_SLASH_COMMANDS,["ash","automining","atm"]);
 });

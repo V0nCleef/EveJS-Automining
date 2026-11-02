@@ -1,9 +1,39 @@
 # Python 2.7. Use the player's native named groups and normal launch command.
-def _am_drone_groups():
+def _am_drone_bay():
+    # The native bay view only exists in space. The server can report the
+    # active ship's bay in both states, so ask it before filtering groups.
+    try:
+        response = _am_json.loads(sm.RemoteSvc('miningScanMgr').AutoMiningDroneBay() or '{}')
+        if response.get('success') and isinstance(response.get('bay'), dict):
+            return response['bay']
+    except Exception as error:
+        print('AUTOMINING_DRONE_BAY: ' + str(error))
+    return None
+
+
+def _am_drone_groups(bay=None):
+    # Groups are client-side; membership is drone item IDs. When the server
+    # reports this ship's bay, keep only groups that actually have drones in
+    # it and show how many, so the list is short and ship-specific.
     from eve.client.script.ui.inflight.drones.droneGroupsController import GetDroneGroupsController
     groups = GetDroneGroupsController().GetGroupsByName()
-    return sorted([(_am_json.dumps(list(group['id']), ensure_ascii=True, separators=(',', ':')), unicode(name))
-                   for name, group in groups.items() if group.get('id')], key=lambda row: row[1].lower())
+    in_bay = None
+    if isinstance(bay, dict) and isinstance(bay.get('itemIDs'), list):
+        in_bay = set([int(x) for x in bay.get('itemIDs')])
+    rows = []
+    for name, group in groups.items():
+        if not group.get('id'):
+            continue
+        key = _am_json.dumps(list(group['id']), ensure_ascii=True, separators=(',', ':'))
+        members = set([int(x) for x in (group.get('droneIDs') or [])])
+        rows.append((key, unicode(name), len(members & in_bay) if in_bay is not None else None))
+    if in_bay is not None:
+        matched = [row for row in rows if row[2] > 0]
+        # An empty bay would hide every group; keep the full list so a
+        # selection can still be made before drones are moved aboard.
+        rows = matched if matched else [(key, name, None) for key, name, _ in rows]
+    rows.sort(key=lambda row: (row[2] is None, -(row[2] or 0), row[1].lower()))
+    return rows
 
 
 def _am_drones_ready():
