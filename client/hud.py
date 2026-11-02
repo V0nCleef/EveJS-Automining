@@ -1280,9 +1280,12 @@ def _am_build_window_class():
             self.pveBeltLabel.text = self.BeltLabel(node.belt)
             self.Changed()
 
+        def DroneGroupLabel(self, name, count):
+            return name if count is None else u'%s (%s)' % (name, count)
+
         def LoadPVEDroneGroups(self, value=None):
             value = self.pveDroneGroup.GetValue() if value is None else value
-            options = [(text(name), key) for key, name in self._droneGroups]
+            options = [(text(self.DroneGroupLabel(name, count)), key) for key, name, count in self._droneGroups]
             if value and value not in [key for label, key in options]:
                 options.insert(0, (_am_tr('Saved group unavailable - refresh or choose again'), value))
             self.pveDroneGroup.LoadOptions(options or [(_am_tr('No groups found - refresh'), '')], select=value or '')
@@ -2145,13 +2148,19 @@ def _am_build_window_class():
                 miningSelected = self.ratMiningGroupEdit.GetValue() or ''
             if fighterSelected is None:
                 fighterSelected = self.ratFighterGroupEdit.GetValue() or ''
-            options = [(text(name), key) for key, name in self._droneGroups]
+            options = [(text(self.DroneGroupLabel(name, count)), key) for key, name, count in self._droneGroups]
             def load(widget, value):
                 choices = list(options)
                 if value and value not in [key for label, key in choices]:
                     choices.insert(0, (_am_tr('Saved group unavailable - refresh or choose again'), value))
                 choices.insert(0, (_am_tr('Choose a drone group'), ''))
-                widget.LoadOptions(choices, select=value)
+                seen, unique = set(), []
+                for label, key in choices:
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    unique.append((label, key))
+                widget.LoadOptions(unique, select=value)
             load(self.droneGroupEdit, selected)
             load(self.ratMiningGroupEdit, miningSelected)
             load(self.ratFighterGroupEdit, fighterSelected)
@@ -2163,7 +2172,7 @@ def _am_build_window_class():
             if not self.ValidCharacter():
                 return
             try:
-                groups = _am_drone_groups()
+                groups = _am_drone_groups(_am_drone_bay())
                 if not self.ValidCharacter():
                     return
                 self._droneGroups = groups
