@@ -907,12 +907,23 @@ test("haul trigger is configurable per character and rejects invalid percentages
     assert.equal(restored.controller.snapshot(restored.session).settings.haulThreshold, 80);
   } finally { fs.rmSync(root, {recursive: true, force: true}); }
 });
-test("bare command opens HUD only when the client advertises support; status remains a shortcut",()=>{
+test("plain chat opens the window without the client handshake; bare and slash keep the gate",()=>{
   const f=fixture(),events=[];f.session.sendNotification=(...args)=>events.push(args);
   assert.match(f.command("automining"),/OFF/);assert.equal(events.length,0);
   f.controller.clientReady(f.session,true);assert.match(f.command("/automining"),/opened/);
   assert.deepEqual(events,[["OnAutoMiningOpen","clientID",[]]]);
   assert.match(f.command("!automining status"),/OFF/);assert.equal(events.length,1);
+  const g=fixture(),opened=[];g.session.sendNotification=(...args)=>opened.push(args);
+  assert.match(g.controller.command(g.session,{action:"help",plainChat:true}),/opened/);
+  assert.deepEqual(opened,[["OnAutoMiningOpen","clientID",[]]]);
+});
+test("plain chat tags the parsed command so the opener can skip the handshake",()=>{
+  const { installPlainChat } = require("../lib/commands");
+  const seen=[];const controller={command(session,cmd){seen.push(cmd);return "ok";},feedback(){}};
+  const ex={broadcastLocalMessage(){}};
+  installPlainChat(ex,controller);
+  assert.throws(()=>ex.broadcastLocalMessage({characterID:1},"!automining"),/ok/);
+  assert.equal(seen.length,1);assert.equal(seen[0].action,"help");assert.equal(seen[0].plainChat,true);
 });
 test("changed survey default does not reapply an unchanged legacy Launcher preset",()=>{
   const oldStamp=JSON.stringify([["veldspar"],"nearest",true,true,false,false]);
