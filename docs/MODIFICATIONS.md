@@ -7,6 +7,7 @@ version. Both are self-contained and are offered upstream as a pull request.
 |---|---|---|---|
 | 1 | `lib/commands.js` | Register only ASCII names in `AVAILABLE_SLASH_COMMANDS` | +13 / −2 |
 | 2 | `lib/commands.js`, `lib/controller.js` | Let the plain-chat form `!automining` open the settings window before the client reports `hudReady` | +10 / −1 |
+| 3 | `lib/commands.js` | Add `atm` as a plain alias of `automining` (same `hudReady` rule) | +3 / −0 |
 
 `lib/commands.js` also carries two diagnostic lines (`plain-chat …` and
 `plain-chat open …`) that make the two code paths visible in the server log.
@@ -94,12 +95,13 @@ is late or missing, that path produced no window.
 
 ### Change
 
-The plain-chat wrapper tags the parsed command, and only that path skips the
-gate:
+The plain-chat wrapper tags the parsed command when the player actually prefixed
+it with `!`, and only that path skips the gate:
 
 ```js
 // lib/commands.js — installPlainChat()
-const reply = controller.command(args[0], { ...command, plainChat: true });
+const plainChat = /^\s*!/.test(String(args[index] ?? ""));
+const reply = controller.command(args[0], plainChat ? { ...command, plainChat: true } : command);
 
 // lib/controller.js
 if (cmd.action === "help" && (s.hudReady || cmd.plainChat === true)) {
@@ -132,6 +134,45 @@ the settings window. The native GM check on `/automining` is unchanged.
 
 ---
 
+## 3. `atm`: an alias for `automining`
+
+### Why
+
+A shorter name for the same command, nothing more. It is a plain alias: it has no
+dedicated semantics and follows exactly the same rule as `automining`.
+
+### Change
+
+`atm` is added to `COMMAND_NAMES` and to the ASCII slash list
+(`["automining", "atm"]`), and that is the whole change. `parse()` is untouched —
+a bare `atm` returns `help` exactly like `automining`, so the window opens under
+the same `hudReady` rule and the status line is printed until the client
+companion reports ready. Any argument keeps the normal parser, so `atm on`,
+`atm status` and `atm veldspar` behave exactly like their `automining`
+equivalents.
+
+```js
+for (const asciiName of ["automining", "atm"]) {
+  if (!exports.AVAILABLE_SLASH_COMMANDS.includes(asciiName)) exports.AVAILABLE_SLASH_COMMANDS.push(asciiName);
+}
+```
+
+### Behaviour matrix (identical to `automining`)
+
+| Input | `hudReady` false | `hudReady` true |
+|---|---|---|
+| `atm` (bare) | status line | opens window |
+| `!atm` (plain chat) | opens window (change 2 path) | opens window |
+| `/atm` (slash) | status line (after the native GM check) | opens window |
+| `atm status` | status (unchanged) | status (unchanged) |
+| `atm on` / `atm off` | toggles (unchanged) | toggles (unchanged) |
+
+> Note: `/atm` still passes through the server's native slash handling and its GM
+> check. Non-staff accounts have no way to use any `/` command, so for them the
+> usable form remains `!atm`, exactly as with `!automining`.
+
+---
+
 ## Verification
 
 On top of tag `v1.2.23`:
@@ -139,9 +180,15 @@ On top of tag `v1.2.23`:
 ```sh
 node --check lib/controller.js
 node --check lib/commands.js
-node tests/automining.test.cjs        # 77/77
+node tests/automining.test.cjs        # 79/79
 node tests/command-locales.test.cjs   # 1/1
 ```
+
+`tests/automining.test.cjs` covers the new behaviour: the `plainChat` tag is
+applied by `installPlainChat()`, the tagged command opens while `hudReady` is
+false, `atm` opens from slash / plain chat / bare form, and `atm` stays in the
+ASCII-only slash list. The original gate test was extended rather than removed,
+so the bare/slash contract stays pinned.
 
 The focused suite was run in full: 51 of 58 files pass. The 7 failures
 (`compat-261018`, `compat-261028`, `future-version`, `login-delivery`,
@@ -152,8 +199,8 @@ not regressions.
 
 Runtime check on a Docker deployment: the loader logs
 `[AutoMining] v1.2.23 loaded.` followed by
-`[AutoMining] slash list registered: <existing>,automining (ascii-only)`, and a
-non-staff character gets `AutoMining settings opened.` plus `OnAutoMiningOpen`.
+`[AutoMining] slash list registered: <existing>,automining,atm (ascii-only)`, and
+a non-staff character gets `AutoMining settings opened.` plus `OnAutoMiningOpen`.
 
 ## Notes
 
