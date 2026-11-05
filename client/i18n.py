@@ -1009,3 +1009,5 @@ _AM_ZH.update({
     'Next activation: %s s': u'下次激活：%s 秒',
     'Fleet order active: %s. Your personal filter stays saved.': u'舰队指令生效：%s。您的个人筛选已保留。',
 })
+
+_AM_ZH.update({'Paused manually. Use Start / Resume.': u'已手动暂停。请点击“开始 / 继续”。'})

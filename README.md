@@ -1,18 +1,15 @@
 # AutoMining for EveJS
 
-**AutoMining 1.2.24** adds `!atm`, improves chat opening and slash-command
-registration, recognizes all fitted compressor types, and shows ship-specific
-drone groups with counts. Thanks to [HalCyonNJ](https://github.com/HalCyonNJ)
-for [the contribution](https://github.com/V0nCleef/EveJS-Automining/pull/1).
+**AutoMining 1.2.25** fixes stacked drone groups launching five drones but only
+ordering one to mine. Boosters now exposes automatic compression for the ship's
+own cargo, and manually stopped industrial modules stay paused until Start / Resume.
 
-The release fixes native assembled drones being mistaken for an empty bay:
-EveJS stores these as singletons with quantity `-1`. Existing settings and
-saved group selections are preserved. See [release validation](RELEASE-VALIDATION.md)
-for automated coverage and the remaining in-game testing limits.
+**Testing: isolated Grid Check with a real EVE client. Normal fleet gameplay
+validation is still pending.** See [release validation](RELEASE-VALIDATION.md).
 
 **Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
 
-[**Download AutoMining 1.2.24**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
+[**Download AutoMining 1.2.25**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
 
 [**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
 
@@ -22,6 +19,25 @@ for automated coverage and the remaining in-game testing limits.
 | Pick resources and manage yield. | Collect fleet ore and deliver it. | Run industrial equipment and receive ore. | Patrol belts, escort pilots or answer calls. |
 
 The ship cards are illustrated job artwork. AutoMining assists the configured jobs using EveJS's native movement, modules, inventory and fleet operations. Fitting, skills, range, capacity and access permissions still matter.
+
+## New in 1.2.25
+
+- Track every drone created when a native inventory stack is launched. All
+  visible members of the selected group receive automatic mining orders.
+- Count drones inside stacks correctly in the ship-specific group dropdown.
+- Add **Automatic compression** to **Boosters** for resources aboard the boosting
+  ship itself, including a Rorqual. This is separate from activating the fitted
+  compressor and continues to use native facility, range and material checks.
+- **Jettison now** works with **Request fleet pickup** or **Put into booster's
+  fleet hangar** selected, including inside ore anomalies. Actual travel, cloak
+  and Defense retreat restrictions remain in place.
+- Manually stop a burst, core or compressor to pause only that module. Other
+  Boosting work continues. **Start / Resume** re-arms paused modules; Apply and
+  automatic travel resumes preserve the pause. The module card shows a notice
+  in the client's language. Native cycle shutdown rules still apply.
+
+The earlier 1.2.24 command aliases, compressor detection and drone-bay fixes are
+retained, including [HalCyonNJ's contribution](https://github.com/V0nCleef/EveJS-Automining/pull/1).
 
 ## New in 1.2.24
 
@@ -78,7 +94,7 @@ Restart the game server and log in again after updating so both server and clien
 
 ## Compatibility
 
-- **This update:** 510 automated server checks, all 14 client test scripts, native loader/grid/queued-return checks, and all nine language checks passed. The drone fix also uses native inventory rows from the reported failure. Fresh in-game verification of the corrected drone dropdown is pending; see [release validation](RELEASE-VALIDATION.md).
+- **This update:** 81 focused server checks, drone/group/HUD/login client checks and all nine language checks passed. Real-client Grid Check verifies five stacked mining drones returning ore, anomaly jettison, per-module manual stops, and a Rorqual compressing its own cargo. Normal gameplay and broader hull/backend coverage are pending; see [release validation](RELEASE-VALIDATION.md).
 - **Launcher:** package minimum **1.0.69**, using Launcher API **v1** and client-menu API **v1**. Use an **up-to-date Launcher** for the current Neocom Mods icon and category.
 - **Also declared by the mod:** EveJS **0.12.8** and Launcher-managed **Docker**. This release has no fresh live gameplay coverage on those paths.
 
@@ -86,7 +102,7 @@ The shared Mods menu comes from the Launcher. AutoMining provides its menu adapt
 
 ## Install or update
 
-1. Download **AutoMining-1.2.24.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
+1. Download **AutoMining-1.2.25.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
 2. Stop the server and close EVE clients before changing the mod. Keep the previous ZIP and back up the existing server configuration and Launcher profile settings.
 3. In the Launcher, open **Mods > Add ZIP**, select the ZIP and enable **AutoMining**. For an existing installation, update the same AutoMining entry; its configured GitHub update channel also points to this repository.
 4. Start the server with that profile and log in again so the client receives the current companion.

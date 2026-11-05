@@ -1304,3 +1304,19 @@ for job in ['mining','boosting']:
     assert receiver.mineDroneOrderEdit.GetValue()=='nearest' and receiver.mineDroneModeEdit.GetValue()=='spread'
     assert receiver.mineDroneOrderEdit.state=='UI_NORMAL' and receiver._fleetOrderNotices[1][0].state=='UI_HIDDEN'
 print('PASS: fleet drone page sends only target priority/mode; miners and boosters show effective values and commander notices, preserve personal Apply settings and restore independently.')
+
+boost_self=cls();boost_self.ApplyAttributes({})
+boost_prefs=dict(personal_settings,job='boosting',compress=False)
+boost_response=dict(base,settings=boost_prefs,fleetOverride=None,fleetFilter=None)
+boost_self.ShowResponse(boost_response,True)
+assert not boost_self.boosterCompressToggle.GetValue()
+boost_self.boosterCompressToggle.SetChecked(True);boost_self.BoosterCompressionChanged()
+assert boost_self.ReadSettings()['compress'] and boost_self._toggles['compress'].GetValue()
+boost_self.ShowResponse(dict(boost_response,settings=dict(boost_prefs,compress=True)),True)
+assert boost_self.boosterCompressToggle.GetValue()
+boost_self.ShowResponse(boost_response,True)
+assert not boost_self.boosterCompressToggle.GetValue() and not boost_self.ReadSettings()['compress']
+boost_self.RenderIndustrial(dict(modules=[dict(itemID=888,typeID=62590,kind='core',durationSeconds=75,
+    defaultSeconds=75,intervalSeconds=75,active=False,manualPaused=True)],fuel={}),True)
+assert boost_self._moduleRows[888].text==scope['_am_tr']('Paused manually. Use Start / Resume.')
+print('PASS: Boosting self-compression edits and reloads the existing job setting; manually paused equipment shows a translated restart notice.')

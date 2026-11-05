@@ -26,7 +26,9 @@ def _am_drone_groups(bay=None):
             continue
         key = _am_json.dumps(list(group['id']), ensure_ascii=True, separators=(',', ':'))
         members = set([int(x) for x in (group.get('droneIDs') or [])])
-        rows.append((key, unicode(name), len(members & in_bay) if in_bay is not None else None))
+        quantities = bay.get('quantities') if isinstance(bay, dict) else None
+        count = sum(max(1, int((quantities or {}).get(str(itemID), 1))) for itemID in members & in_bay) if in_bay is not None else None
+        rows.append((key, unicode(name), count))
     if in_bay is not None:
         matched = [row for row in rows if row[2] > 0]
         # An empty bay would hide every group; keep the full list so a
@@ -71,10 +73,12 @@ def _am_launch_drones_work(message):
         from eve.client.script.ui.inflight.drones.dronesUtil import GetDronesInBay
         from eve.client.script.ui.services.menuSvcExtras.droneFunctions import LaunchDrones
         groupID = tuple(_am_json.loads(request['groupKey']))
-        group = GetDroneGroupsController().GetGroupByID(groupID)
+        control = GetDroneGroupsController()
+        group = control.GetGroupByID(groupID)
         if group is None:
             raise RuntimeError('Selected drone group is unavailable. Select it again in Drones.')
-        ids = [item.itemID for item in GetDronesInBay() if item.itemID in group['droneIDs']]
+        bay = [item for item in GetDronesInBay() if item.itemID in group['droneIDs']]
+        ids = [item.itemID for item in bay]
         if not ids:
             raise RuntimeError('No drones from the selected group are in this ship\'s drone bay.')
         if not valid():
@@ -86,24 +90,34 @@ def _am_launch_drones_work(message):
             return
         if michelle.InWarp():
             raise RuntimeError('Warp started before launch. Waiting for the next arrival.')
+        def members():
+            current = control.GetGroupByID(groupID)
+            return sorted(current.get('droneIDs', [])) if current else []
+        def visible():
+            drones = michelle.GetDrones() or {}
+            return [itemID for itemID in members() if itemID in drones and
+                    getattr(drones[itemID], 'ownerID', None) == session.charid and
+                    getattr(drones[itemID], 'controllerID', None) == session.shipid]
+        expected = len(visible()) + sum(max(1, int(getattr(item, 'stacksize', 1) or 1)) for item in bay)
         # No combat/mining orders: Alternate Mining Drones can take over normally.
         LaunchDrones(ids)
         # The server may launch before Michelle records the drone-state batch.
-        # Confirm against the same state the native Drones window reads.
+        # Launching a stack creates new item IDs. The native group follows those
+        # splits; reread it instead of tracking only the original stack ID.
         for attempt in range(4):
             if not valid():
                 return
-            launched = [itemID for itemID in ids if itemID in (michelle.GetDrones() or {})]
-            if len(launched) == len(ids):
+            launched = visible()
+            if len(launched) >= expected:
                 break
             _am_blue.pyos.synchro.SleepWallclock(500)
-        if len(launched) != len(ids) and not michelle.InWarp():
-            remote.AutoMiningDroneSync(request['id'], ids)
+        if len(launched) < expected and not michelle.InWarp():
+            remote.AutoMiningDroneSync(request['id'], members()[:25])
             for attempt in range(4):
                 if not valid():
                     return
-                launched = [itemID for itemID in ids if itemID in (michelle.GetDrones() or {})]
-                if len(launched) == len(ids):
+                launched = visible()
+                if len(launched) >= expected:
                     break
                 _am_blue.pyos.synchro.SleepWallclock(500)
         result = ('%s drone(s) visible in the native Drones window.' % len(launched) if launched else

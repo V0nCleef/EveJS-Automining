@@ -1,3 +1,62 @@
+# AutoMining 1.2.25: stacked drones and industrial controls
+
+Validated on 5 November 2026 using isolated Grid Check 0.3.6, EveJS 261028.1,
+and an actual EVE client, build 3396210. This is not normal fleet gameplay testing.
+
+## Proven behavior
+
+- A fresh Mining Drone I stack of five launched five drones, while the old code
+  only reported the original stack ID. The candidate tracks all five native
+  group members; all five entered mining state and returned 234.5 m3 of ore.
+  The test Retriever had no strip miners. This was rechecked on the current
+  1.2.24 public baseline with the combined candidate.
+- A native warp entered an actual ore anomaly in Amamake (archetype 27, template
+  1466). Jettison created a can with pickup selected and then transferred another
+  100 units to the same can with fleet-hangar mode selected. Each operation had
+  a distinct confirmed native transfer receipt. The client can inventory listing
+  briefly remained cached; those displayed rows alone are not the transfer proof.
+- On a Porpoise with two mining bursts and a Medium Industrial Core I, native
+  ship controls stopped one burst and the core. Only those modules stayed paused
+  after their cycles ended; the other burst and main job remained active. Apply
+  preserved the pause, and explicit Start / Resume re-armed the modules.
+- The real Boosters checkbox saved automatic compression on a Rorqual fitted
+  with a Capital Industrial Core I and Capital Asteroid Ore Compressor I. Its
+  own 1000 Veldspar became 1000 compressed Veldspar without another Start.
+
+The separate Fleet Stop report did not reproduce continued automatic core
+cycling: its current 75-second cycle finished and stayed off. Manual deactivation
+is the new behavior above; no claim is made that Fleet Stop itself was repaired.
+
+## Focused checks
+
+81 Node checks cover drone launch/mining, bay counts, ore handling, industrial
+automation, manual Dogma observation, fleet/module controller behavior and login
+delivery. Eight drone-launch client regressions, four group-count checks, the HUD
+suite, sixteen encoded login companion checks and all nine language checks pass.
+Native runtime/client files in this package match the combined tested source.
+Only the descriptor version and public documentation changed after that test.
+
+The earlier stacked-drone candidate used 1.2.23. Public 1.2.24 was discovered at
+release preparation, its changes were retained, and the combined native checks
+above were run before packaging. Saved settings formats and compatibility
+declarations are unchanged. Manual pauses are temporary session state.
+
+## Limits and test setup details
+
+Normal gameplay, Docker, other client/server builds, every drone/compressor
+variant, extended sessions and multi-fleet scale were not freshly verified.
+The native Drones window was visually stale in this dev-loadout fixture; mining
+proof uses Michelle's individual drone records, targets and returned inventory.
+The Rorqual fixture initially tried to move station-created ore using the ship
+as source, so no ore was aboard. After seeding it in space, the existing running
+job compressed it without a restart; the script's setup order is corrected.
+One test expected a Boolean checkbox value, while native controls return 1;
+the harness now accepts the native checked representation.
+
+Only disposable Grid Check accounts, ships and data were changed. Test clients
+and server were stopped. The normal Launcher/server installation was not updated.
+Private logs and ErrorReports are retained locally and are not release assets.
+
 # AutoMining 1.2.24: commands, compressors and drone groups
 
 Validated on 2 November 2026 against the contribution in PR #1, head

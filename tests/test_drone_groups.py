@@ -53,6 +53,11 @@ class DroneGroupsTests(unittest.TestCase):
         rows = self.scope['_am_drone_groups']({'shipID': 200, 'itemIDs': [99]})
         self.assertEqual([(name, count) for _, name, count in rows], [('Other ship', 1)])
 
+    def test_stacked_drones_count_units_instead_of_inventory_rows(self):
+        rows = self.scope['_am_drone_groups']({'shipID': 100, 'itemIDs': [11, 12, 21],
+                                              'quantities': {'11': 5, '12': 1, '21': 10}})
+        self.assertEqual([(name, count) for _, name, count in rows], [('Fighters', 10), ('Miners', 6)])
+
     def test_empty_unknown_and_unmatched_bays_preserve_preselection(self):
         for bay in (None, {'itemIDs': []}, {'itemIDs': [555]}):
             with self.subTest(bay=bay):

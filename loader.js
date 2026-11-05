@@ -18,6 +18,7 @@ const { SUPPORTED_HASH, supportsMiningSource, prepareMiningSource } = require(".
 const loginDelivery = require("./lib/loginDelivery");
 const { createStatistics } = require("./lib/statistics");
 const { createActivity } = require("./lib/activity");
+const { installManualModuleStops } = require("./lib/manualModules");
 const { migrateState } = require("./lib/statePaths");
 const key = Symbol.for("evejs.automining.loader.v1");
 function canonical(file) { return process.platform === "win32" ? path.resolve(file).toLowerCase() : path.resolve(file); }
@@ -92,6 +93,7 @@ function install(root = path.resolve(__dirname, "../..")) {
     [canonical(path.join(root, "server/src/_secondary/chat/chatRuntime.js")), "plain"],
     [canonical(path.join(root, "server/src/services/mining/miningScanMgrService.js")), "scanService"],
     [canonical(path.join(root, "server/src/services/ship/beyonceService.js")), "movement"],
+    [canonical(path.join(root, "server/src/services/dogma/dogmaService.js")), "dogma"],
     [canonical(path.join(root, "server/src/services/mining/miningLedgerState.js")), "miningLedger"],
     ...(!combatAlreadyLoaded ? [[canonical(combatPath), "combatDamage"]] : []),
     [canonical(path.join(root, "server/src/network/clientSession.js")), "clientSession"],
@@ -175,6 +177,7 @@ function install(root = path.resolve(__dirname, "../..")) {
     if (canonical(filename) === canonical(path.join(root, "server/src/services/ship/beyonceService.js"))) {
       installMovement(this.exports);
     }
+    if (targets.get(canonical(filename)) === "dogma") installManualModuleStops(this.exports, controller);
     installStatistics(this.exports, targets.get(canonical(filename)));
     return result;
   };
@@ -202,6 +205,8 @@ function install(root = path.resolve(__dirname, "../..")) {
       installJobArtwork(exports, __dirname);
     } else if (target === "movement" && typeof exports === "function") {
       installMovement(exports);
+    } else if (target === "dogma" && typeof exports === "function") {
+      if (!installManualModuleStops(exports, controller)) return exports;
     } else if (target === "mining" && exports.__autoMiningBridge) {
       mining = exports;
       const original = exports.tickScene;

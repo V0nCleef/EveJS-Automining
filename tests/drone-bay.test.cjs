@@ -25,6 +25,12 @@ test("drone bay is empty without an active ship", () => {
   assert.deepEqual(api({}), { shipID: 0, itemIDs: [] });
 });
 
+test("stack quantities count actual drones while native singletons remain one",()=>{
+ const api=bay([{itemID:11,categoryID:18,quantity:5,stacksize:5,singleton:0},
+  {itemID:12,categoryID:18,quantity:-1,stacksize:1,singleton:1}]);
+ assert.deepEqual(api({shipID:100}),{shipID:100,itemIDs:[11,12],quantities:{11:5,12:1}});
+});
+
 test("drone bay survives a failing inventory projection", () => {
   const api = createDroneBay("unused", { native: { listContainerItems: () => { throw new Error("boom"); } } });
   const result = api({ shipID: 7 });

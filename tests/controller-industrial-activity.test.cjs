@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createController } = require("../lib/controller");
-function fixture() {
+function fixture({ modules = [] } = {}) {
   let state, time = 0, visible = true, serial = 0;
   const calls = [], errors = [];
   const session = { characterID: 42, shipid: 100, sendNotification() {} };
@@ -11,7 +11,7 @@ function fixture() {
   const scene = { systemID: 300, sessions: new Map([[42, session]]), getShipEntityForSession: () => visible ? ship : null,
     getCurrentSimTimeMs: () => 100000 + time, removeTarget() {}, cancelAddTarget() {}, stop: () => true };
   let blocked = false;
-  const industrial = { snapshot(session, s, scene, entity, now) { state = s; calls.push(["snapshot", entity, now]); return { modules: [], fuel: {}, status: blocked ? "Waiting for industrial core cycle before departure." : "", travelBlocked: blocked }; },
+  const industrial = { snapshot(session, s, scene, entity, now) { state = s; calls.push(["snapshot", entity, now]); return { modules: [...modules], fuel: {}, status: blocked ? "Waiting for industrial core cycle before departure." : "", travelBlocked: blocked }; },
     tick(session, s, scene, ship, now) { calls.push(["tick", now]); }, resume(s, ship) { calls.push(["resume", ship]); }, stop() {},
     requestDeparture() { return !blocked; } };
   const activity = { emit(session, s, event) { calls.push(["event", event]); }, observe() {} };
@@ -47,6 +47,32 @@ test("confirmed automatic and manual ore events use distinct operation ids", () 
   const events = f.events();
   assert.deepEqual(events.map(e => e.key), ["jettisonComplete", "stackComplete", "jettisonComplete", "stackComplete", "jettisonComplete"]);
   assert.equal(new Set(events.map(e => e.id)).size, events.length);
+});
+
+test("manual jettison works in pickup and fleet-hangar modes without changing the saved mode",()=>{
+ for(const mode of ["pickup","fleetHangar"]){
+  const f=fixture();f.s.oreMode=mode;f.ship.mode="FOLLOW";
+  f.controller.jettison(f.session);
+  assert.equal(f.events().at(-1).key,"jettisonComplete");assert.equal(f.s.oreMode,mode);
+ }
+});
+
+test("manual jettison still refuses actual travel, docking, cloak and Defense retreat",()=>{
+ for(const changes of [{pendingWarp:true},{mode:"WARP"},{pendingDock:true},{dockingTargetID:600},{cloaked:true}]){
+  const f=fixture();Object.assign(f.ship,changes);assert.throws(()=>f.controller.jettison(f.session),/travel or Defense/);
+ }
+ const f=fixture();f.s.defenseEnabled=true;f.s.defenseShieldEnabled=true;f.s.defenseShieldThreshold=30;
+ f.ship.shieldCapacity=100;f.ship.conditionState={shieldCharge:0.1};
+ assert.throws(()=>f.controller.jettison(f.session),/travel or Defense/);
+});
+
+test("manual pause accepts only this boosting ship's industrial modules and Start clears it",()=>{
+ const f=fixture({modules:[{itemID:501,typeID:62590,kind:"core"}]});f.s.job="boosting";f.tick(1000);
+ assert.equal(f.controller.manualModuleStop(f.session,501),true);
+ assert.equal(f.s.manualModuleStops.get(501),100);assert.equal(f.s.enabled,true);
+ assert.equal(f.controller.manualModuleStop(f.session,999),false);
+ f.s.job="mining";assert.equal(f.controller.manualModuleStop(f.session,501),false);f.s.job="boosting";
+ f.controller.command(f.session,{action:"on"});assert.equal(f.s.manualModuleStops.size,0);
 });
 test("verified unloading and restocking phases emit completion and returned position emits resumed", () => {
   const f = fixture(); const id = "trip-1";

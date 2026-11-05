@@ -59,6 +59,23 @@ test("manual or replaced effects are never taken over or stopped", () => {
   assert.equal(f.api.requestDeparture(f.session, f.s, f.scene, f.ship, 1000), false);
   assert.deepEqual(f.calls.slice(2), [["stop", 2, true]]); assert.equal(manual.deactivateAtMs, undefined);
 });
+
+test("manual core pause survives settings and travel resumes until explicit Start clears it",()=>{
+ const f=fixture();f.tick(0);
+ f.s.manualModuleStops=new Map([[1,100]]);f.ship.activeModuleEffects.clear();
+ f.api.resume(f.s,f.ship);f.tick(80000);assert.equal(f.calls.filter(c=>c[0]==="start"&&c[1]===1).length,1);
+ assert.equal(f.api.snapshot(f.session,f.s,f.scene,f.ship,80000).modules[0].manualPaused,true);
+ f.s.manualModuleStops.clear();f.tick(81000);
+ assert.equal(f.calls.filter(c=>c[0]==="start"&&c[1]===1).length,2);
+});
+
+test("pausing a compressor leaves the core automated and applies only to the matching ship",()=>{
+ const f=fixture();f.tick(0);f.s.manualModuleStops=new Map([[2,100]]);f.ship.activeModuleEffects.delete(2);f.tick(80000);
+ assert.equal(f.calls.filter(c=>c[0]==="start"&&c[1]===2).length,1);
+ assert.equal(f.ship.activeModuleEffects.has(1),true);
+ f.s.manualModuleStops.set(2,101);f.tick(81000);
+ assert.equal(f.calls.filter(c=>c[0]==="start"&&c[1]===2).length,2);
+});
 test("low fuel stops future owned cycles without cutting the current cycle", () => {
   const f = fixture({ quantity: 200 }); f.tick(0); f.s.fuelEnabled = true; f.tick(1000);
   const fuel = f.api.snapshot(f.session, f.s, f.scene, f.ship, 1000).fuel;

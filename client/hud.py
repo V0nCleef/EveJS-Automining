@@ -1643,6 +1643,9 @@ def _am_build_window_class():
             self._modulePanels = {'core': coreModules, 'compressor': self.modulePanel, 'burst': self.burstModules}
             self.moduleEmpty = EveLabelSmall(parent=self.modulePanel, align=C.TOTOP,
                 autoFitToText=True, text='No supported fitted modules.')
+            self.boosterCompressToggle = Checkbox(parent=panel, align=C.TOTOP, height=32,
+                text='Automatic compression', checked=False, callback=self.BoosterCompressionChanged)
+            self.boosterCompressionStatus = EveLabelSmall(parent=panel, align=C.TOTOP, autoFitToText=True, text='')
             self._moduleRows = {}
             self.industrialStatus = EveLabelSmall(parent=panel, align=C.TOTOP, autoFitToText=True, text='')
             Section(parent=panel, text='Fleet ore collection')
@@ -1746,6 +1749,8 @@ def _am_build_window_class():
                     value = _am_tr('Active: %s s remaining', int(module.get('remainingSeconds', 0))) if module.get('active') else _am_tr('Waiting')
                     if module.get('cooldownSeconds', 0) > 0 and not module.get('active'):
                         value = _am_tr('Next activation: %s s', int(__import__('math').ceil(module['cooldownSeconds'])))
+                    if module.get('manualPaused'):
+                        value = _am_tr('Paused manually. Use Start / Resume.')
                     if label.text != value:
                         label.text = value
             self.industrialStatus.text = text(_am_status(industrial.get('status', '')))
@@ -2046,6 +2051,7 @@ def _am_build_window_class():
                 (2, 'Mining Filter', self.availableSearch), (3, 'Drone group to launch', self.droneGroupEdit),
                 (4, 'Shield at or below (%)', self.defenseShieldEdit), (4, 'Armor at or below (%)', self.defenseArmorEdit),
                 (5, 'Automatic Industrial Core', self.coreToggle), (5, 'Automatic Compressor', self.compressorToggle),
+                (5, 'Automatic compression', self.boosterCompressToggle),
                 (5, 'Receive fleet ore', self.receiveFleetOre),
                 (5, 'Accept compressed ore', self.receiveFleetAcceptCompressed),
                 (5, 'Accept uncompressed ore', self.receiveFleetAcceptUncompressed),
@@ -2499,6 +2505,7 @@ def _am_build_window_class():
             self.RenderFleet(response.get('fleet') or {})
             self.RenderTransport(response.get('transport') or {})
             self.RenderIndustrial(response.get('industrial') or {})
+            self.boosterCompressionStatus.text = text(_am_status(response.get('compressionStatus', ''))) if response.get('settings', {}).get('compress') else ''
             self.fleetFilterNotice.text = (_am_tr('Fleet order active: %s. Your personal filter stays saved.',
                 ', '.join(response['fleetFilter'])) if response.get('fleetFilter') is not None else '')
             self.fleetOreStatus.text = text(_am_status((response.get('fleetOre') or {}).get('status', 'Fleet ore collection is off.')))
@@ -2567,6 +2574,7 @@ def _am_build_window_class():
                         self._selected.append(key)
                 for key, widget in self._toggles.items():
                     widget.SetChecked(prefs.get(key, key in ('recallDrones', 'defenseShieldEnabled', 'actionNotifications')), report=False)
+                self.boosterCompressToggle.SetChecked(prefs.get('compress', False), report=False)
                 self.UpdateDroneJobControls()
                 self.orderEdit.SelectItemByValue(prefs['order'])
                 self.mineDroneOrderEdit.SelectItemByValue(prefs.get('mineDroneOrder', 'nearest'))
@@ -2653,6 +2661,7 @@ def _am_build_window_class():
 
         def Changed(self, *args):
             if not self._loading:
+                self.boosterCompressToggle.SetChecked(self._toggles['compress'].GetValue(), report=False)
                 self.UpdateDroneJobControls()
                 self.UpdateOreModeHint()
                 self.UpdatePriorityHint()
@@ -2660,6 +2669,11 @@ def _am_build_window_class():
                 self._editSerial += 1
                 if hasattr(self, 'notice'):
                     self.SetNotice(_am_tr('Unsaved changes. Click Apply, or Reload to discard.'))
+
+        def BoosterCompressionChanged(self, *args):
+            if not self._loading:
+                self._toggles['compress'].SetChecked(self.boosterCompressToggle.GetValue(), report=False)
+                self.Changed()
 
         def UpdateDroneJobControls(self):
             pve = self._job == 'pve'
