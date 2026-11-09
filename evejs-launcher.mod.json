@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "id": "automining",
   "displayName": "AutoMining",
-  "version": "1.2.25",
+  "version": "1.2.26",
   "description": "Mining, hauling, boosting and PVE jobs with Fleet Command, temporary mining orders, equipment timers, fleet ore handling and pilot/fleet statistics.",
   "kind": "loader",
   "supportedBackends": [
@@ -18,7 +18,8 @@
       "0.12.8",
       "0.12.9",
       "261018.1",
-      "261028.1"
+      "261028.1",
+      "261108.1"
     ]
   },
   "launcherApi": {

@@ -99,6 +99,9 @@ try {
   const ClientSession = require(path.join(root, "server/src/network/clientSession.js"));
   assert.match(ClientSession.prototype.sendSessionChange.toString(), /statistics\.observeDock/);
   const ScanService = require(path.join(root, "server/src/services/mining/miningScanMgrService.js"));
+  const DogmaService = require(path.join(root, "server/src/services/dogma/dogmaService.js"));
+  assert.equal(DogmaService.prototype.Handle_Deactivate[Symbol.for("evejs.automining.manualModuleStops.v1")],automining.controller,
+    "Manual module stop observation must attach to the native Dogma mixin method");
   for (const rpc of ["AutoMiningJettison", "AutoMiningStatistics", "AutoMiningResetStatistics", "AutoMiningStatisticsSessions",
     "AutoMiningTransportReady", "AutoMiningTransportRequest", "AutoMiningTransportAction", "AutoMiningJobArtwork"])
     assert.equal(typeof ScanService.prototype["Handle_" + rpc], "function", "Missing HUD RPC " + rpc);

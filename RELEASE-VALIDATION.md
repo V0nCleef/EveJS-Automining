@@ -1,3 +1,34 @@
+# AutoMining 1.2.26: EveJS 261108.1 compatibility
+
+Validated on 9 November 2026 using the actual EveJS 261108.1 release and isolated
+GridCheck with an existing real EVE client. Josh also reported a successful basic
+in-game check before approving publication.
+
+- One stack launched five mining drones; all five mined and delivered ore.
+- Native ore-anomaly jettison passed in pickup and fleet-hangar modes.
+- Selected Porpoise core/burst stayed paused after cycle end while the other
+  burst continued; Apply preserved pauses and Start/Resume re-armed them.
+- The actual Rorqual Boosters checkbox enabled self-compression of 1000 Veldspar.
+- Two automatic station unload/return trips stayed ON and resumed mining,
+  followed by 592.8 m3 fresh ore over 195 seconds after the final return.
+- 521 Node checks, nine native adapter programs and 15 Python suites passed.
+
+Runtime changes from 1.2.25 are reviewed mining/login source identities and
+compatibility metadata. Native settlement, replay protection, module shutdown
+rules, ownership/recovery guards and saved-state formats remain intact.
+
+This is focused qualification, not exhaustive fleet gameplay coverage. Fresh
+two-client miner-to-booster intake/compression and Docker gameplay were not run.
+Forced fixture changes produced recorded XMPP/HUD/session-change exceptions.
+An invalid fixture group label and premature HUD assertion were corrected before
+the corresponding real-client checks passed; no zero-exception claim is made.
+
+The published ZIP is the already-qualified package unchanged; its bundled
+validation notes precede the final gameplay run. This document records the final
+qualification.
+
+---
+
 # AutoMining 1.2.25: stacked drones and industrial controls
 
 Validated on 5 November 2026 using isolated Grid Check 0.3.6, EveJS 261028.1,

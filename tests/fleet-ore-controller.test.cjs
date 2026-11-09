@@ -12,7 +12,7 @@ function fixture({destinations=null,pve=null,industrial=null}={}) {
  const controller=createController(()=>api,()=>({getSceneForSession:()=>scene}),e=>errors.push(e),
    {get:()=>({job:"mining",stackOreHold:false,stackFleetHangar:false,oreMode:"fleetHangar"}),save(){}},null,destinations,null,null,{
    pve,industrial,
-   oreHandling:{tick:()=>calls.push(["ore"]),view:()=>({})},
+   oreHandling:{tick:()=>calls.push(["ore"]),view:()=>({}),jettison:(...args)=>{calls.push(["jettison",...args]);return {success:true};}},
    transport:{tick:()=>calls.push(["transport"]),request:()=>calls.push(["pickup"]),view:()=>({}),cancel(){},eligibility:()=>({eligible:true})},
    fleetOre:{tick(){},waitingForCompression:()=>waiting,view:state=>{s=state;return {};}}});
  controller.snapshot(session);controller.command(session,{action:"on"});
@@ -59,9 +59,12 @@ test("per-job reception and profile archives persist sanitized without accepting
  assert.equal(restored.oreMode,"fleetHangar");assert.equal(restored.haulEnabled,false);assert.equal(restored.jobProfiles.mining.oreMode,"fleetHangar");
 });
 
-test("fleet hangar mode rejects manual jettison and does not start stale unloading",()=>{
+test("fleet hangar mode permits manual jettison without starting stale unloading",()=>{
  const f=fixture();f.waiting(false);f.s.haulEnabled=true;
- assert.throws(()=>f.controller.jettison(f.session),/unavailable/);f.tick(1000);assert.equal(f.calls.some(c=>c[0]==="pickup"),false);
+ assert.equal(f.controller.jettison(f.session).success,true);
+ assert.equal(f.calls.filter(c=>c[0]==="jettison").length,1);
+ assert.equal(f.calls.find(c=>c[0]==="jettison").at(-1).manual,true);
+ f.tick(1000);assert.equal(f.calls.some(c=>c[0]==="pickup"),false);
 });
 
 test("booster arrival at a mining site resumes without a mineable resource",()=>{

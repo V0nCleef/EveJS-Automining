@@ -13,11 +13,12 @@ assert.equal(fit.isChargeCompatibleWithModule(rail.typeID,ammo.typeID),true);ass
 assert.ok(fit.getModuleChargeGroupIDs(rail.typeID).has(ammo.groupID));assert.ok(fit.getModuleChargeCapacity(rail.typeID,ammo.typeID)>1);
 assert.equal(typeof Dogma._testing.getPendingModuleReloads,'function');assert.equal(typeof Dogma.prototype.Handle_LoadAmmo,'function');
 const noop=()=>{},log=new Proxy({},{get:()=>noop}),session={characterID:900000001,shipID:900000010,stationID:900000020};
+const custody={incursionCargo:load('services/incursion/incursionCargo.js'),fracturedLegacyCargo:load('services/inventory/fracturedLegacyCargo.js'),incursionFactoryCustody:load('services/inventory/incursionFactoryCustody.js')};
 // Exercise the exact factory binding shim with the real native bind/capacity
 // bodies, supplying only isolated ship lookup and capacity inputs.
 let bound=null;
 const record={itemID:session.shipID,locationID:session.stationID,ownerID:session.characterID};
-const bindGlobals={log,Number,Boolean,ITEM_FLAGS:items.ITEM_FLAGS,findCharacterShip:()=>record,findShipItemById:()=>record,findItemById:()=>record,
+const bindGlobals={...custody,log,Number,Boolean,ITEM_FLAGS:items.ITEM_FLAGS,findCharacterShip:()=>record,findShipItemById:()=>record,findItemById:()=>record,
   describeSessionHydrationState:()=> 'isolated',throwWrappedUserError:key=>{throw Error(key);}};
 const bind=vm.runInNewContext('({'+Broker.prototype.Handle_GetInventoryFromId.toString()+'}).Handle_GetInventoryFromId',bindGlobals);
 const shim=Object.create(Broker.prototype);shim._boundContexts=new Map();shim._getBoundContext=()=>bound;shim._makeBoundSubstruct=value=>{bound=value;return value;};
@@ -26,7 +27,7 @@ shim._isControlledStructureInventoryID=()=>false;shim._getCharacterId=()=>sessio
 bind.call(shim,[session.shipID],session,{});
 assert.equal(bound.inventoryID,session.shipID);assert.equal(bound.kind,'shipInventory');assert.equal(bound.locationID,session.stationID);assert.equal(bound.flagID,5);
 shim._ensureSecureContainerGeneralAccess=noop;shim._calculateCapacity=(sess,context,flag)=>{assert.equal(context,bound);assert.equal(flag,5);return shim._buildCapacityInfo(50,12);};
-const capacity=vm.runInNewContext('({'+Broker.prototype.Handle_GetCapacity.toString()+'}).Handle_GetCapacity',{log,String,JSON});
+const capacity=vm.runInNewContext('({'+Broker.prototype.Handle_GetCapacity.toString()+'}).Handle_GetCapacity',{...custody,findItemById:()=>record,log,String,JSON});
 assert.deepEqual(Object.fromEntries(capacity.call(shim,[5],session,{}).args.entries),{capacity:50,used:12});
 let nativeMoveCount=0,allowed=true;
 const source={itemID:900000030,ownerID:session.characterID,typeID:ammo.typeID,locationID:session.stationID,flagID:4,quantity:50,singleton:0};
@@ -42,7 +43,7 @@ const move={_traceInventory:noop,_getBoundContext:()=>({inventoryID:session.ship
   _resolveMovedItemID:()=>cargo.itemID};
 const proxy=new Proxy(move,{get:(o,key)=>key in o?o[key]:String(key).startsWith('_validate')||key==='_evaluatePlayerSpaceContainerLootMove'||key==='_syncStructureServiceModuleMove'?()=>({success:true}):noop});
 let homefrontChecks=0;
-const addGlobals={log,Number,Set,Array,JSON,ITEM_FLAGS:items.ITEM_FLAGS,SLOT_FAMILY_FLAGS:{rig:[]},starbaseInventoryRuntime:{isStarbaseStorage:()=>false},
+const addGlobals={...custody,...load('services/inventory/missionRescueCargo.js'),findItemById:()=>record,log,Number,Set,Array,JSON,ITEM_FLAGS:items.ITEM_FLAGS,SLOT_FAMILY_FLAGS:{rig:[]},starbaseInventoryRuntime:{isStarbaseStorage:()=>false},
   require:id=>{assert.equal(id,'../homefront/homefrontHooks');homefrontChecks++;return load('services/homefront/homefrontHooks.js');},
   isDirectSpaceUnanchoredStructureHullInventoryRecord:()=>false,isShipFittingFlag:()=>false,maybeExpireEmptySpaceContainer:noop,
   buildCrpAccessDeniedInsufficientRolesValues:()=>({}),throwWrappedUserError:key=>{throw Error(key);}};

@@ -1,15 +1,16 @@
 # AutoMining for EveJS
 
-**AutoMining 1.2.25** fixes stacked drone groups launching five drones but only
-ordering one to mine. Boosters now exposes automatic compression for the ship's
-own cargo, and manually stopped industrial modules stay paused until Start / Resume.
+**AutoMining 1.2.26 adds support for EveJS 261108.1.** Existing stacked-drone,
+compression, anomaly-jettison, manual module-stop and hauling-return behavior is retained.
 
-**Testing: isolated Grid Check with a real EVE client. Normal fleet gameplay
-validation is still pending.** See [release validation](RELEASE-VALIDATION.md).
+Qualified in isolated GridCheck with a real EVE client: all five gameplay cases
+passed, alongside 521 Node checks, nine native adapter programs and 15 Python
+client suites. Josh also completed a basic in-game check. See
+[release validation](RELEASE-VALIDATION.md) for coverage and limits.
 
 **Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
 
-[**Download AutoMining 1.2.25**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
+[**Download AutoMining 1.2.26**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
 
 [**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
 
@@ -102,7 +103,7 @@ The shared Mods menu comes from the Launcher. AutoMining provides its menu adapt
 
 ## Install or update
 
-1. Download **AutoMining-1.2.25.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
+1. Download **AutoMining-1.2.26.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
 2. Stop the server and close EVE clients before changing the mod. Keep the previous ZIP and back up the existing server configuration and Launcher profile settings.
 3. In the Launcher, open **Mods > Add ZIP**, select the ZIP and enable **AutoMining**. For an existing installation, update the same AutoMining entry; its configured GitHub update channel also points to this repository.
 4. Start the server with that profile and log in again so the client receives the current companion.
