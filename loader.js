@@ -198,6 +198,15 @@ function install(root = path.resolve(__dirname, "../..")) {
     }
     if (target === "scanService" && exports.prototype?.Handle_perform_scan) {
       if (delivery) exports.prototype.Handle_AutoMiningLoginReady = function(args, session) { return delivery.ready(args, session, controller); };
+  // Client companion failures are otherwise silent on the server; report the
+  // Python traceback so a broken client build can be diagnosed from the log.
+  exports.prototype.Handle_AutoMiningClientError = function(args, session) {
+    try {
+      console.error("[AutoMining] client companion error char=" + Number(session?.characterID || session?.charid || 0) +
+        ": " + String(args?.[0] ?? "").slice(0, 4000));
+    } catch (_error) { /* never break the login path */ }
+    return "";
+  };
       exports.prototype.Handle_AutoMiningClientReady = function(args, session) { return controller.clientReady(session, args?.[1]); };
       exports.prototype.Handle_AutoMiningSurveyAck = function(args, session) { return controller.surveyAck(session, args?.[0] === true || args?.[0] === 1, args?.[1]); };
       exports.prototype.Handle_AutoMiningProfile = function(args, session) { return controller.applyProfile(session, args?.[0]); };

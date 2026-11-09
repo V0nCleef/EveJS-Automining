@@ -53,6 +53,22 @@ test("departure requests deferred owned shutdown and remains latched until resum
   assert.equal(f.api.requestDeparture(f.session, f.s, f.scene, f.ship, 80000), true);
   f.api.resume(f.s, f.ship); f.tick(81000); assert.equal(f.calls.length, 6);
 });
+test("emergency retreat stops the core repeat immediately and warps when the cycle ends", () => {
+  const f = fixture(); f.tick(0);
+  assert.equal(f.api.emergencyStop(f.session, f.s, f.scene, f.ship, 1000), false);
+  assert.deepEqual(f.calls.slice(2), [["stop", 1, true], ["stop", 2, true]]);
+  assert.match(f.api.snapshot(f.session, f.s, f.scene, f.ship, 1000).status, /Emergency retreat/);
+  // Departure stays latched: no new cycles start while the ship waits.
+  f.ship.activeModuleEffects.delete(2); f.tick(60000);
+  assert.equal(f.calls.filter(c => c[0] === "start").length, 2);
+  // The current core cycle ends; the warp is clear on the same call.
+  f.ship.activeModuleEffects.clear();
+  assert.equal(f.api.emergencyStop(f.session, f.s, f.scene, f.ship, 76000), true);
+  assert.match(f.api.snapshot(f.session, f.s, f.scene, f.ship, 76000).status, /warp is clear/);
+  f.tick(77000);
+  assert.equal(f.calls.filter(c => c[0] === "start").length, 2);
+});
+
 test("manual or replaced effects are never taken over or stopped", () => {
   const f = fixture(); f.tick(0); const manual = { effectID: 8119, typeID: 62590, moduleID: 1, nextCycleAtMs: 75000 };
   f.ship.activeModuleEffects.set(1, manual);
