@@ -35,7 +35,6 @@ function install(root = path.resolve(__dirname, "../..")) {
     console.error(`[AutoMining] Saved state could not be prepared: ${error.message}. Mod left inactive; existing files preserved.`);
     return { active: false };
   }
-  const handshakePath = path.join(root, "server/src/network/tcp/handshake.js");
   const combatPath = path.join(root, "server/src/space/runtime/targetDamageApplication.js");
   // A late export replacement cannot change functions already destructured by
   // native consumers. Preserve every job and fail closed only for these metrics.
@@ -50,7 +49,11 @@ function install(root = path.resolve(__dirname, "../..")) {
   else if (!fs.existsSync(combatPath)) combatUnavailable("this native build has no supported damage commit hook.");
   let delivery = null;
   try {
-    if (loginDelivery.supportsRoot(root)) delivery = loginDelivery.createDelivery(__dirname);
+    if (loginDelivery.supportsRoot(root)) {
+      const prepared = loginDelivery.createDelivery(__dirname);
+      if (loginDelivery.install(root, prepared)) delivery = prepared;
+      else console.error("[AutoMining] Login companion registration unavailable; HUD remains unready.");
+    }
   } catch (error) {
     console.error("[AutoMining] Login companion could not be prepared; server startup preserved.");
   }
@@ -166,10 +169,6 @@ function install(root = path.resolve(__dirname, "../..")) {
     if (canonical(filename) === canonical(miningPath)) {
       if (supportsMiningSource(content)) content = prepareMiningSource(content) + "\n" + bridge;
       else console.error("[AutoMining] Another mod changed the mining runtime; AutoMining bridge disabled.");
-    }
-    if (delivery && canonical(filename) === canonical(handshakePath)) {
-      if (loginDelivery.supportsSource(content)) content = loginDelivery.extendSource(content);
-      else console.error("[AutoMining] Login source changed by another mod; original handshake preserved.");
     }
     const result = previousCompile.call(this, content, filename);
     // Another loader may compile this service directly and bypass Module._load.

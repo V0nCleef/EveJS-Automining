@@ -19,12 +19,17 @@ ROOT = Path(__file__).resolve().parents[1]
 DELIVERIES = {}
 
 
-def delivery_expression(token):
-    if token not in DELIVERIES:
+def delivery_expression(token, common=False, pinned=False):
+    key = (token, common, pinned)
+    if key not in DELIVERIES:
         # Use the exact bounded, encoded production payload and its native envelope.
         script = "const a=require('./lib/loginDelivery');const b=Buffer.from('None');const h=Buffer.alloc(5);h[0]=0x74;h.writeUInt32LE(b.length,1);process.stdout.write(a.createDelivery(process.cwd(),{token:process.argv[1]}).compose(Buffer.concat([h,b])).subarray(5));"
-        DELIVERIES[token] = subprocess.check_output(['node', '-e', script, token], cwd=ROOT).decode('ascii')
-    return DELIVERIES[token]
+        if common:
+            script = "const f=require('./tests/support/loginFixture.cjs');const a=require('./lib/loginDelivery');const h=f.fixture([{id:'automining',source:a.createDelivery(process.cwd(),{token:process.argv[1]}).source}]);const s=new h.Handshake();s._sendPacket(f.frame('None'));process.stdout.write(f.codec.marshalDecodeExact(s.frames[0].subarray(4))[1][0].subarray(5));"
+        if pinned:
+            script = "const a=require('./lib/loginDelivery'),h=require('./tests/support/nativeLoginHarness.cjs').createHarness({order:['runtime','dcb','haulers'],specs:[{id:'automining',source:a.createDelivery(process.cwd(),{token:process.argv[1]}).source}]});const s=h.session();process.stdout.write(h.decodeFrame(h.login(s).sent)[1][0].subarray(5));"
+        DELIVERIES[key] = subprocess.check_output(['node', '-e', script, token], cwd=ROOT).decode('ascii')
+    return DELIVERIES[key]
 
 
 class Fixture:
@@ -313,6 +318,47 @@ class LoginTests(unittest.TestCase):
         f.drain()
         self.assertTrue(h.usable())
         self.assertIs(h.namespace['session'], replacement)
+
+
+class CommonDeliveryLoginTests(LoginTests):
+    """Run all existing lifecycle assertions through the actual common wire path."""
+    def setUp(self):
+        super().setUp()
+        original = delivery_expression
+        self.common_route = patch(__name__ + '.delivery_expression', lambda token: original(token, common=True))
+        self.common_route.start()
+        self.addCleanup(self.common_route.stop)
+
+
+class PinnedModsLoginTests(unittest.TestCase):
+    def test_joint_released_hook_payload_reaches_real_automining_rpc_readiness_and_reconnect_cleanup(self):
+        with patch.dict(os.environ, {'AUTOMINING_CLIENT_DELIVERY': 'login-v1', 'AUTOMINING_PROFILE_SETTINGS': ''}):
+            expression = delivery_expression('server-A', pinned=True)
+            f = Fixture()
+            f.session.charid = 42
+            namespace = {'__builtins__': f.builtins, 'sm': f.sm, 'session': f.session}
+            with patch.dict(sys.modules, f.modules):
+                eval(compile(expression, '<joint-released-hook-login>', 'eval'), namespace)
+            first = getattr(f.builtins, '_evejs_automining_login_v1')
+            self.assertFalse(first.ready)
+            self.assertEqual(f.requests, [])
+            f.drain()
+            self.assertTrue(first.usable())
+            self.assertIn(('ready', 'server-A', '1.0.8', 1), f.requests)
+            with patch.dict(sys.modules, f.modules):
+                eval(compile(expression, '<joint-reconnect-login>', 'eval'), namespace)
+            second = getattr(f.builtins, '_evejs_automining_login_v1')
+            self.assertIsNot(first, second)
+            self.assertFalse(first.active)
+            f.drain()
+            self.assertTrue(second.usable())
+            self.assertTrue(all(len(handlers) == 1 for handlers in f.listeners.values()))
+            f.change(None)
+            self.assertFalse(second.usable())
+            f.change(43)
+            f.drain()
+            self.assertTrue(second.usable())
+            self.assertEqual(second.character, 43)
 
 
 if __name__ == '__main__':

@@ -1,266 +1,37 @@
-# AutoMining for EveJS
-
-**AutoMining 1.2.26 adds support for EveJS 261108.1.** Existing stacked-drone,
-compression, anomaly-jettison, manual module-stop and hauling-return behavior is retained.
-
-Qualified in isolated GridCheck with a real EVE client: all five gameplay cases
-passed, alongside 521 Node checks, nine native adapter programs and 15 Python
-client suites. Josh also completed a basic in-game check. See
-[release validation](RELEASE-VALIDATION.md) for coverage and limits.
-
-**Mining, Hauling, Boosting and PVE in one in-game window.** Give each pilot a job, choose its settings, and coordinate the fleet without repeating every lock, drone order, pickup or restock by hand.
-
-[**Download AutoMining 1.2.26**](https://github.com/V0nCleef/EveJS-Automining/releases/latest)
-
-[**Watch promo video here:**](https://youtu.be/shNZpuZbaoY)
-
-| Mining | Hauling | Boosting | PVE |
-| --- | --- | --- | --- |
-| ![Hulk — Mining](assets/jobs/mining.png) | ![Miasmos — Hauling](assets/jobs/hauling.png) | ![Orca — Boosting](assets/jobs/boosting.png) | ![Raven — PVE](assets/jobs/pve.png) |
-| Pick resources and manage yield. | Collect fleet ore and deliver it. | Run industrial equipment and receive ore. | Patrol belts, escort pilots or answer calls. |
-
-The ship cards are illustrated job artwork. AutoMining assists the configured jobs using EveJS's native movement, modules, inventory and fleet operations. Fitting, skills, range, capacity and access permissions still matter.
-
-## New in 1.2.25
-
-- Track every drone created when a native inventory stack is launched. All
-  visible members of the selected group receive automatic mining orders.
-- Count drones inside stacks correctly in the ship-specific group dropdown.
-- Add **Automatic compression** to **Boosters** for resources aboard the boosting
-  ship itself, including a Rorqual. This is separate from activating the fitted
-  compressor and continues to use native facility, range and material checks.
-- **Jettison now** works with **Request fleet pickup** or **Put into booster's
-  fleet hangar** selected, including inside ore anomalies. Actual travel, cloak
-  and Defense retreat restrictions remain in place.
-- Manually stop a burst, core or compressor to pause only that module. Other
-  Boosting work continues. **Start / Resume** re-arms paused modules; Apply and
-  automatic travel resumes preserve the pause. The module card shows a notice
-  in the client's language. Native cycle shutdown rules still apply.
-
-The earlier 1.2.24 command aliases, compressor detection and drone-bay fixes are
-retained, including [HalCyonNJ's contribution](https://github.com/V0nCleef/EveJS-Automining/pull/1).
-
-## New in 1.2.24
-
-- Open the window with `!atm` or `!automining`, including when the client readiness report is late. Slash forms retain the native GM requirement.
-- Register ASCII slash aliases and remove entries the client cannot decode, while preserving other mods' printable ASCII command names and localized plain-chat aliases.
-- Detect fitted compressors by their native compression effect, including ice, gas, mercoxit and moon-ore compressor modules. Labels now say **Compressor**.
-- Show drone groups containing drones in the active ship's bay, sorted by count and labelled like **Miners (5)**. Counts refer to drones currently in the bay. Empty, unavailable or unmatched bays retain the full list for preselection.
-- Recognize native singleton drones correctly, and keep the standalone Chinese fallback aligned with all nine client languages.
-
-Restart the game server and log in again after updating so both server and client use this version.
-
-## New in 1.2.20
-
-- Fixed automatic compression being skipped when miners use **Put into booster's fleet hangar**. The miner's effective compression setting, including Fleet Command overrides, also applies when the booster processes intake first.
-- Miners reaching their unload threshold now approach an accessible stationary receiving booster on the same local grid. They brake within the native **2500 m** transfer boundary and keep the delivery pending if compression shrinks the hold along the way.
-- Mining resumes after delivery. Manual navigation takes priority and cancels the owned approach until **Start / Resume**.
-- Mining-drone group selection stays configurable in Mining and Boosting, including while docked and with automatic mining-drone orders off.
-
-**Testing so far: Grid Check only.** Two real clients were used in an isolated test environment; this update has **not yet been validated in normal gameplay**. See [release validation](RELEASE-VALIDATION.md) for the exact coverage.
-
-## New in 1.2.19
-
-- Fixed miners stopping after a station unload and return. Native warp-landing handoffs are waited out instead of treating a temporary movement refusal as a failed trip.
-- Strip miners can work on compatible ore already in range while approaching the saved mining position. The return trip retains movement control until arrival.
-- Return braking starts within **1 km** of the origin. Mining no longer waits for exact coordinates, zero speed or a settling timer, and braking drift does not trigger another correction loop.
-- Capture the origin when mining starts. Automatic ore approaches and unload trips keep it fixed; deliberate pilot movement or a new warp updates it. The normal hold trigger remains **95%** and saved settings stay intact.
-
-## New in 1.2.18
-
-- Keep character settings, saved job profiles, statistics and shared fleet presets in the EveJS data folder, so the bundled server updater preserves them.
-- Install/recover migrates legacy `config/autoMining.*.json` state before the server update; startup provides the same safeguard. Existing canonical state wins, original files remain intact, and migration failures prevent default settings from replacing saved data.
-- Recognize the reviewed EveJS **261018.1** mining/login sources, preserve native crystal durability and AIR mining exclusions, and retain **0.12.9** support. Compatibility checks and isolated bundled-updater preservation passed; see [release validation](RELEASE-VALIDATION.md).
-
-## New in 1.2.17
-
-- Fixed pilot selection and preset editing being disabled in **Manual fleet** mode, even when pilots showed **Ready**.
-- Corrected the fleet-mode explanation in all nine client languages: Manual uses your saved roster preset; Automatic groups participating pilots on the same settled public grid.
-- For Manual fleet, include yourself and the desired pilots, name and save the preset, then enable shared fleet management, choose **Manual fleet**, select that same preset and **Apply settings** on each participating pilot.
-
-## New in 1.2.16
-
-- Empty ore filters now prepare mining crystals for the current grid too. In a Gneiss anomaly, an incompatible Simple crystal is replaced from cargo or unloaded so a modulated strip miner can mine bare.
-- Fleet Command adds **Mining drones**: send target priority and Focus/Spread mode to selected Mining or Boosting pilots. Automatic mining drone orders must already be enabled on each recipient. Launch and recall preferences remain personal.
-- Drone orders show the commander and effective values on the recipient's Mining drones page. Restore them independently of other orders; Stop, leaving the fleet or ending the session restores personal settings.
-- Each Mining Foreman Burst waits for its own native reload to finish and resumes on the next normal tick, avoiding the failed-activation retry delay. Successful activation intervals remain per module.
-
-## New in 1.2.15
-
-- **Fleet Command:** the fleet leader can send mining settings and ore priorities to selected miners from one separate window.
-- **Temporary session orders:** recipient pages show who controls them; personal settings stay saved and return when orders end.
-- **Selected fleet actions:** Start, Stop + recall, Recall, and a readable per-pilot order log.
-- **Mining Foreman Burst intervals:** fitted defaults, native-cycle minimum, and reset controls alongside Core and Compressor.
-- **Nine languages:** new controls, notices, and results follow the client's language.
-
-## Compatibility
-
-- **This update:** 81 focused server checks, drone/group/HUD/login client checks and all nine language checks passed. Real-client Grid Check verifies five stacked mining drones returning ore, anomaly jettison, per-module manual stops, and a Rorqual compressing its own cargo. Normal gameplay and broader hull/backend coverage are pending; see [release validation](RELEASE-VALIDATION.md).
-- **Launcher:** package minimum **1.0.69**, using Launcher API **v1** and client-menu API **v1**. Use an **up-to-date Launcher** for the current Neocom Mods icon and category.
-- **Also declared by the mod:** EveJS **0.12.8** and Launcher-managed **Docker**. This release has no fresh live gameplay coverage on those paths.
-
-The shared Mods menu comes from the Launcher. AutoMining provides its menu adapter and window.
-
-## Install or update
-
-1. Download **AutoMining-1.2.26.zip** from the release. Update the Launcher first, then AutoMining, before running the bundled EveJS server updater.
-2. Stop the server and close EVE clients before changing the mod. Keep the previous ZIP and back up the existing server configuration and Launcher profile settings.
-3. In the Launcher, open **Mods > Add ZIP**, select the ZIP and enable **AutoMining**. For an existing installation, update the same AutoMining entry; its configured GitHub update channel also points to this repository.
-4. Start the server with that profile and log in again so the client receives the current companion.
-5. Open **Neocom > Mods > AutoMining**, **Insider > MODS > AutoMining**, or enter `!automining` in chat.
-
-If the shared menu API is unavailable, the older **Insider > Tools > MODS** entry remains available. GM characters can also use `/automining`.
-
-Preserve these files in the EveJS root when upgrading or moving the installation:
-
-- `_local/automining/autoMining.players.json` — character settings and saved job profiles.
-- `_local/automining/autoMining.statistics.json` — pilot counters and archived runs.
-- `_local/automining/autoMining.fleetGroups.json` — shared fleet presets.
-- The Launcher's AutoMining profile mod-data `preferences.json` — Launcher-side defaults.
-
-When `EVEJS_DATA_ROOT` is configured, `automining/` lives inside that data root instead of `_local/`. Install or recover this mod before running the bundled EveJS updater: the helper copies legacy `config/autoMining.*.json` files into the durable data folder without changing their bytes. Server startup also checks for legacy files as a fallback. Existing canonical files always win; differing legacy files are preserved, never merged or overwritten. A failed migration leaves the sources intact and prevents AutoMining from starting with defaults. Keep those legacy files in your backup when rolling back to an older mod version, since older versions still read `config/`.
-
-**Apply Launcher settings** controls whether changed Launcher settings apply at the next login. In-game settings remain saved until you change those Launcher settings again. Leave that checkbox off when managing the job in game.
-
-To roll back, stop clients/server, restore the previous mod version through the Launcher and retain the backed-up settings. To unload the mod, disable it in the Launcher and restart the server; stopping a job in game does not unload its hooks.
-
-## Choose a job
-
-A stopped pilot opens on **Jobs** and **Statistics**. Choose a ship card to reveal that job's pages and settings. An already-running pilot opens on its active job page.
-
-**Apply settings** saves changes across pages; changing pages keeps your drafts. **Start / Resume** starts the chosen job. Each job remembers its own options and drone groups. Switching a running job asks to stop it, then leaves the new job waiting for Start. Search finds settings available to the selected job. **Show AutoMining action messages** controls the extra activity messages.
-
-Labels follow the client's English, Chinese, German, French, Spanish, Italian, Russian, Japanese or Korean setting. Resource, station and belt searches accept localized names.
-
-## Fleet Command
-
-The fleet leader's first **Fleet Command** tab opens a separate window on demand. It gently pulses until that character has opened it successfully. Its **Mining**, **Mining Filter** and **Mining drones** tabs share a visible pilot list, selected-pilot actions and order log. Set targeting, approach, target priority, automatic survey, compression and survey timing for selected Mining pilots. Build their ore order with the same icon tiles, groups, searches and priority controls as the normal Mining Filter. Drone targeting orders also support Boosting pilots and leave their personal launch/recall controls alone.
-
-Fleet orders temporarily override the selected pilots' current session. Their personal settings stay saved. Affected Mining, Mining Filter and Mining drones pages show **Controlled by fleet commander**, name the commander and display the effective values. Controlled fields are protected, while unrelated personal settings remain editable. Restore mining settings, ore filters and drone targeting independently. Orders end when the recipient or commander stops, a pilot leaves or disconnects, the fleet or its leader changes, the pilot changes jobs, or the server restarts.
-
-Selected **Start**, **Stop + recall**, and **Recall** controls use native operations. The log shows pilot names, local times and per-pilot results. A Recall acknowledgement confirms the order was accepted; check the drones' return before moving away. Every order checks the current native leader and each recipient's actual fleet membership. Fleet Command and its new controls support all nine existing client languages.
-
-**Boosters** now lists each fitted Mining Foreman Burst with its native cycle, a start-to-start activation interval and **Reset to equipment default**. The fitted cycle is the minimum. Longer intervals run one cycle and wait before the next successful start. Timers follow the fitted equipment and remember their settings within the Boosting job profile. Core and Compressor retain their existing controls.
-
-## Mining
-
-Mine compatible **ore, ice or gas** with fitted modules. Optional mining-drone orders target ore alongside the job.
-
-| Setting | What it controls |
-| --- | --- |
-| **Mining Filter** | Click/search resources to include them; move entries up/down to set priority. Empty means all compatible resources. Filter order and highest grade come first. |
-| **Target priority** | Nearest, furthest, largest or smallest remaining volume within a grade. Volume is cubic metres, not ISK value. Volume priorities require an available Mining Surveyor or equivalent; a scan is not required. |
-| **Lock targets automatically** | Turn off to work only with targets you have locked yourself. |
-| **Approach out-of-range ore** | On searches the whole current belt and travels toward the preferred target. Off keeps selection within effective mining range. |
-| **Automatic survey** | Enable/disable and set **6–86400 seconds**, default **60**. Waits outside mining locations and resumes on an eligible mining grid. |
-| **Automatic compression** | Uses an active compressor you can access in range, under native fleet/resource rules. |
-| **Mining drones** | Enable ore-mining orders for drones launched by AutoMining; choose a separate target priority and **focus/spread** mode. Uses the same resource filter. |
-| **Ore handling** | Leave aboard, jettison, unload at station and return, request fleet pickup, or put ore into a booster's fleet hangar. |
-| **Ore hold trigger** | **1–100%**, default **95%**, for modes that use a fullness trigger. |
-| **Pickup style** | Jettison a bin first, or keep ore aboard until the hauler arrives and jettison then. |
-| **Jettison controls** | Reuses a suitable nearby bin. Optional **Abandon jetcan** opens it to other pilots and compatible NPC collectors. **Jettison now** uses saved settings. |
-| **Stacking** | Separate automatic ore-hold and fleet-hangar switches. |
-| **Unload destination** | Choose station/Upwell and accessible storage on Defense; the destination is shared with emergency retreat. |
-
-**Request pickup now** requires a running Mining job, saved fleet-pickup mode, ore available in space and native fleet membership.
-
-Jettison, fleet pickup and booster collection handle **ore, including compressed ore**; they exclude ice and gas. Station unload uses the mining hold. Automatic unload returns to the origin saved when mining starts. Strip miners can work on ore in range during the return approach; the ship brakes once within 1 km. Automatic movement keeps the origin fixed, while deliberate pilot movement or a new warp updates it. Manual travel during an active unload/return trip cancels that trip. Automatic returns from instanced or gated sites are unsupported. The Mining job works on the current grid rather than searching the universe for new sites.
-
-## Hauling
-
-Use a **Miasmos, Porpoise, Orca or Rorqual** to collect ore from the shared request pool. Quafe Miasmos variants are excluded.
-
-| Setting | What it controls |
-| --- | --- |
-| **Enable shared hauling** | Makes this pilot available for fleet pickup assignments. |
-| **Transport station/storage** | A separate station or dockable Upwell destination; choose personal hangar, containers or accessible corporation storage. |
-| **Unload at hold fullness** | **1–100%**, default **95%**. |
-| **Unload partial cargo after idle seconds** | **1–3600 seconds**, default **60**. A finished assigned pickup can proceed directly to delivery. |
-| **Stacking and drones** | Saved hold-stacking preferences plus the shared drone-launch, rat-response and travel-recall controls. |
-
-Pickups can be in another system. Haulers travel through the client, reserve the assigned bin and temporarily join the requesting native fleet when needed. Existing manual fleets are preserved. Ore transfer happens locally with current loot rights; the ship then delivers to its selected storage. The queue and current phase appear on the Hauling page.
-
-Hauling suspends mining, bursts, cores and compressors while retaining their settings. This is **public-space ore transport**; ice/gas and instanced/gated pickups are unsupported. Native permissions and confirmed transfers govern loading/unloading, and the client must remain online.
-
-## Boosting
-
-Run the fleet's mining support with optional mining drones.
-
-| Setting | What it controls |
-| --- | --- |
-| **Mining command bursts** | Automatically activate fitted, online mining bursts with their charges. Boosts begin five seconds after arrival. |
-| **Industrial Core** | Enable automatic supported Core activations. |
-| **Compressor** | Enable automatic supported compressor activations. |
-| **Equipment intervals** | Set an interval for each listed Core, compressor or Mining Foreman Burst type, or reset to its fitted default. Intervals follow successful starts and cannot be shorter than the native cycle. |
-| **Heavy Water restocking** | Enable, choose fuel station/source storage and set reserve/refill targets in Core cycles. Defaults: **2** reserve, **20** refill. The target must exceed the reserve. |
-| **Allow Heavy Water in cargo** | Permit cargo as fuel storage alongside the supported fuel hold. |
-| **Receive fleet ore** | Enable nearby fleet miners to transfer accepted ore into the fleet hangar. |
-| **Ore acceptance** | Independent **compressed** and **uncompressed** switches: both on accepts both; both off accepts none. |
-| **Mining drones/filter** | Optional drone mining with ordered filters, its own target priority and focus/spread mode. |
-| **Compression/stacking** | Accessible automatic compression and separate hold-stacking controls. |
-
-For collection, miners choose **Put into booster's fleet hangar**. When the miner reaches its unload threshold, it approaches an accessible stationary booster on the same local grid and brakes within transfer range. Both ships must share a fleet and have hangar access; transfers still require **2500 m** range. Automatic compression remains available in this delivery mode and follows the miner's own setting. Manual navigation cancels the approach until Start / Resume; it never triggers a warp to chase a booster. Accepted ore can move from the fleet hangar into the booster's mining hold when space permits. Compressed-only reception waits for configured compression, including between timed activations; raw ore stays aboard until acceptable.
-
-Collection stays on grid. The booster does not chase bins or automatically unload received ore. Heavy Water restocking takes **existing accessible stock**; nothing is bought or created. Missing fuel or access can leave the ship docked. An active Core cycle can block travel; Stop prevents future cycles rather than ending the current native cycle instantly.
-
-## PVE
-
-Choose one of three assignments:
-
-| Assignment | Setup and behavior |
-| --- | --- |
-| **Belt patrol** | Find/select an asteroid belt by belt or system name. Travel to that belt and engage eligible native belt rats. |
-| **Fleet escort** | Select the fleet and preferred pilot. Idle orbit defaults to **2500 m**; combat switches to a rat, then returns to a fleet pilot. Another eligible fleetmate on grid can replace a missing anchor. When none remains, the escort stops its own orbit and stays **ON**, waiting. |
-| **Reinforcement standby** | Choose home station and a **0–50 jump** range, default **2**. Respond to valid fleet calls, then return home after **60 seconds** without threats. **0 jumps means the same system**, including other grids. |
-
-| Setting | What it controls |
-| --- | --- |
-| **Weapon fire mode** | Focus fire or spread fire. |
-| **Hostile priority** | Strongest or weakest first. |
-| **Orbit range override** | **0** follows the highest-DPS supported weapon's range, ammunition and skills; enter a distance to override it. |
-| **PVE drones** | Enable and select the combat drone group. |
-| **Restock ammo when docked** | Move compatible ammunition from selected accessible station storage. |
-| **Ammo targets** | Search ammo and set extra rounds to keep in cargo; loaded rounds are shown separately. **0 disables restocking** for that ammunition type. |
-
-Weapons reload through native operations using cargo ammunition. Restocking uses **existing stock and never buys ammo**. This does not provide an ammo-shopping route.
-
-PVE targets public-grid native belt rats/pirate NPCs. Supported direct weapons are laser, hybrid, projectile and precursor turrets plus missile launchers; defender and auto-targeting missile charges are excluded. This is assisted belt/fleet combat, not general mission automation or player/neutral targeting. Fitting, native weapon/drone limits, current fleet participants and an online client still matter.
-
-## Shared Fleet, Defense, Drones and Statistics
-
-**Fleet:** Manual mode uses a selected saved roster preset. Include yourself and the desired pilots, name and save the preset, then enable shared fleet management, choose **Manual fleet**, select the same preset and **Apply settings** on each participating pilot. Selecting a checkbox edits the preset; it does not send an immediate invitation by itself. Automatic mode groups participating pilots on a settled public grid and preserves existing manually formed fleets. Refresh/edit the roster and save/delete shared presets. Call reinforcements manually, or enable calls when attacked; choose **1–8 responders**, default **1**. Only the current native **fleet boss** can confirm **Stop fleet AutoMining**. It stops current online members' jobs and orders their deployed drones home; an order is not guaranteed recovery.
-
-**Defense:** Enable retreat, independently watch shield/armor and set **1–100%** thresholds, default **30%**. Uses the shared retreat/mining-unload destination and storage. Shield retreat initially waits for drones, escalating if shield is lost or armor takes damage. Armor retreat orders recall and departs urgently, so drones may remain outside. Active Core cycles can delay travel. A completed retreat leaves AutoMining **off**.
-
-**Drones:** Choose an existing launch group and optionally launch on arrival at a mining site. For Mining/Boosting, select mining and fighter groups for rat response: recall miners, launch fighters, then restore miners when rats clear. New waves can interrupt that return. **Recall before warp/dock** is on by default, works while the job is off and lets fleet warp wait for members' drones. Stop cancels a pending departure. PVE uses its own combat-drone group controls.
-
-**Statistics:** View pilot current run, today UTC, last seven days UTC or since tracking began, plus the fleet's current operation and roster. Track harvested units/m³, module versus drone yield, residue, docks/unloads, collected/delivered ore and rat kills/damage. Hauling, compression and stacking do not become newly mined yield. **Start new run** archives and resets your own run; other pilots keep theirs. **Sessions** retains the latest **50** archived runs.
-
-## Chat commands
-
-Commands are **case-insensitive**. The examples use `!`; unprefixed commands also work. The slash form follows native permissions and is available to GM characters. Known translated command/action aliases and localized resource names are accepted.
-
-| Example | Action |
-| --- | --- |
-| `!automining` | Open the settings window. |
-| `!automining on` / `!automining off` | Start or stop the selected job. |
-| `!automining status` | Show current status/settings. |
-| `!automining help` | Open the window when the companion is ready, otherwise show help. |
-| `!automining veldspar,scordite` | Replace the filter with this ordered list. |
-| `!automining clear` | Clear the filter; allow all compatible resources. |
-| `!automining nearest` / `furthest` / `largest` / `smallest` | Set target priority; prefix each choice with `!automining`. |
-| `!automining approach on` | Enable approach; use `off` to disable. |
-| `!automining lock off` | Use manual locks; use `on` to enable automatic locking. |
-| `!automining survey on` | Enable automatic survey; use `off` to disable. |
-| `!automining survey 30` | Set a 30-second survey interval; `survey interval 30` also works. |
-| `!automining compress on` | Enable accessible automatic compression; use `off` to disable. |
-
-Configure assignments in the in-game window. Advanced compression commands remain available alongside saved job preferences.
-
-## If a job pauses
-
-Read its status line, correct the destination, stock, permissions or missing group, apply the settings and use **Start / Resume**. Reconnect after an update if the client companion is outdated. Failed unloading stays docked instead of assuming the cargo arrived.
-
-Report the AutoMining version, EveJS/backend version, client build, selected job and exact status message with relevant server/client logs.
-
-[MIT license](LICENSE).
+# AutoMining 1.2.27
+
+Requires EveJS Launcher **1.0.80 or newer**. Qualified release: EveJS
+**261108.1**, with Native and Launcher-managed Docker delivery support.
+
+This update fixes login coexistence with mods that change the login handshake,
+supports Docker login delivery, and keeps the existing legacy companion usable
+for shared clients. Shared Mods opens the existing AutoMining HUD on either path.
+Mining, hauling, boosting, PVE, saved-state formats and languages are unchanged.
+
+## Update
+
+Update the Launcher first. Close EVE clients and stop the game server, update the
+existing AutoMining entry through Launcher > Mods, then restart and log in again.
+
+If the client already has AutoMining's archive companion, normal launch preserves
+that installation. To move to login delivery, use AutoMining's **Install/Recover**
+action with the clients closed. It restores only AutoMining's owned command entry,
+using the existing hash, backup and stopped-client checks. Refresh the server
+profile after the update so Shared Mods captures the current menu entrypoint.
+
+The tested release declaration is 261108.1. Retained older source/codec controls
+passed, but do not establish fresh retail support. Version 0.12.8 is not claimed
+by this update because its adapter was unavailable for qualification. Existing
+Native/legacy guards remain; no new runtime version denylist was added.
+
+## Validation
+
+An independent Docker 261108.1 retail client showed AutoMining and Buyers once
+each in Shared Mods, opened both windows, loaded AutoMining settings, acknowledged
+separate login probe/readiness calls, and repeated this on clean reconnect without
+client archive changes after the explicit migration. These are delivery and UI
+checks, not fresh mining gameplay or soak coverage.
+
+See [release validation](RELEASE-VALIDATION-1.2.27.md) for the focused controls and
+limits. RELEASE-VALIDATION.md records historical 1.2.26 gameplay validation.
+Developer test requirements are documented in tests/LOGIN-QUALIFICATION.md.

@@ -26,6 +26,9 @@ function fixture(nativeRoot) {
     fs.copyFileSync(path.join(nativeRoot, relative), target);
   }
   fs.mkdirSync(path.join(root, "client"));
+  // Availability-only helper fixture. No handshake/codec code is executed here.
+  fs.mkdirSync(path.join(root, "server/src/network/tcp/utils"), { recursive: true });
+  fs.writeFileSync(path.join(root, "server/src/network/tcp/utils/marshal.js"), "// codec availability fixture");
   return root;
 }
 const documents = {

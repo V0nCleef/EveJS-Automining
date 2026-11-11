@@ -11,11 +11,14 @@ const api = require('../lib/loginDelivery');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(process.env.EVEJS_HANDSHAKE_FIXTURE, 'utf8');
 const envelope = expression => { const b = Buffer.from(expression, 'ascii'), h = Buffer.alloc(5); h[0] = 0x74; h.writeUInt32LE(b.length, 1); return Buffer.concat([h, b]); };
-test('known handshake source supports CRLF and LF; unrelated mutation is preserved', () => {
-  assert.equal(api.supportsSource(source), true);
-  assert.equal(api.supportsSource(source.replace(/\r\n/g, '\n')), true);
-  assert.equal(api.supportsSource(source.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n')), true);
-  assert.equal(api.extendSource(source + '\n// other mod'), source + '\n// other mod');
+test('login delivery probes available native files without imposing a source-text allowlist', () => {
+  const nativeRoot = path.resolve(process.env.EVEJS_HANDSHAKE_FIXTURE, '../../../../..');
+  assert.equal(api.supportsRoot(nativeRoot), true);
+  assert.equal(api.supportsRoot(nativeRoot, 'docker'), true, 'Docker uses the same required login files and runtime capability adapter');
+  assert.equal(api.supportsRoot(nativeRoot, 'unknown'), false);
+  assert.equal(api.supportsRoot(path.join(nativeRoot, 'absent')), false);
+  assert.equal('supportsSource' in api, false);
+  assert.equal('extendSource' in api, false, 'Production never rewrites the private native builder');
 });
 test('composition keeps the original login expression and result even when companion imports fail', () => {
   const delivery = api.createDelivery(root);
@@ -75,21 +78,14 @@ test('capability probe does not mark HUD ready; acknowledgement is scoped to thi
   assert.equal(JSON.parse(delivery.ready(['server-A', api.VERSION, 1], session, controller)).success, true);
   assert.equal(calls, 1);
 });
-test('in-memory appended hook calls the existing builder once and falls back on delivery failure', () => {
-  // Execute only the authored payload builders, not server startup or the serializer.
-  const builders = source.slice(source.indexOf('function buildMarshaledString'), source.indexOf('const DEV_CHAT_ROLE'));
-  const suffix = api.extendSource(source).slice(source.length);
-  const context = { Buffer, console: { error() {} }, config: { dev: {} }, SEED_SKILL_EXTRACTOR_ACCESS_TOKEN: false,
-    isSkillExtractorAccessTokenCompatibilityEnabled: () => false };
-  vm.createContext(context);
-  vm.runInContext(builders + '\nthis.originalBuild = buildTidiSignedFunc;', context);
-  const original = context.originalBuild(1);
-  context[api.LOADER_KEY] = { delivery: { compose() { throw Error('fixture'); } } };
-  vm.runInContext(suffix + '\nthis.newBuild = buildTidiSignedFunc;', context);
-  assert.deepEqual(context.newBuild(1), original);
-  context[api.LOADER_KEY].delivery = api.createDelivery(root);
-  const composed = context.newBuild(1).subarray(5).toString('ascii');
-  assert.ok(composed.endsWith('(' + original.subarray(5).toString('ascii') + ')'));
+test('registered initializer receives the common context and preserves exact authored UTF-8 bootstrap bytes', () => {
+  const delivery = api.createDelivery(root, { token: 'server-A' });
+  assert.ok(delivery.source.startsWith('_am_context = _evejs_context\n'));
+  const encoded = delivery.source.match(/b64decode\('([A-Za-z0-9+/=]+)'\)/)[1];
+  const initializer = zlib.inflateSync(Buffer.from(encoded, 'base64')).toString('utf8');
+  assert.ok(initializer.includes('_am_token = "server-A"'));
+  assert.ok(initializer.endsWith(emittedBootstrap(fs.readFileSync(path.join(root, 'client/login.py'), 'utf8'))));
+  assert.doesNotMatch(delivery.source, /buildTidiSignedFunc|__amPreviousLogin/);
 });
 
 test('wire text readiness enables the real controller HUD command; invalid credentials stay rejected', () => {

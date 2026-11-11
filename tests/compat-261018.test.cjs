@@ -14,12 +14,8 @@ test('261018.1 mining is passed through exactly for reviewed LF/CRLF sources and
     assert.throws(()=>compat.prepareMiningSource(source+'\n// unknown change'),/Unsupported/);
   }
 });
-test('261018.1 login supports reviewed LF/CRLF sources and refuses unrelated mutations',()=>{
-  for(const newline of ['\n','\r\n']) {
-    const source=handshake.replace(/\r\n/g,'\n').replace(/\n/g,newline);
-    assert.equal(delivery.supportsSource(source),true);
-    assert.match(delivery.extendSource(source).slice(source.length),/__amPreviousLogin/);
-    const unknown=source+'\n// unknown change';
-    assert.equal(delivery.supportsSource(unknown),false);assert.equal(delivery.extendSource(unknown),unknown);
-  }
+test('261018.1 login uses runtime capabilities without changing or hashing incoming source',()=>{
+  assert.equal(delivery.supportsRoot(root),true);
+  assert.equal('extendSource' in delivery,false);
+  assert.equal('supportsSource' in delivery,false);
 });

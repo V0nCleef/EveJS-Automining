@@ -10,11 +10,13 @@ function makeRoot(name, miningSource, handshakeSource) {
   const root=path.join(fixture,name);
   fs.mkdirSync(path.join(root,'server/src/services/mining'),{recursive:true});
   fs.mkdirSync(path.join(root,'server/src/network/tcp'),{recursive:true});
+  fs.mkdirSync(path.join(root,'server/src/network/tcp/utils'),{recursive:true});
   fs.mkdirSync(path.join(root,'client'),{recursive:true});
   fs.writeFileSync(path.join(root,'server/package.json'),JSON.stringify({version:'991231.99'}));
   fs.writeFileSync(path.join(root,'package.json'),JSON.stringify({version:'991231.99'}));
   fs.writeFileSync(path.join(root,'server/src/services/mining/miningRuntime.js'),miningSource);
   fs.writeFileSync(path.join(root,'server/src/network/tcp/handshake.js'),handshakeSource);
+  fs.writeFileSync(path.join(root,'server/src/network/tcp/utils/marshal.js'),'// availability fixture; no native module executed');
   return root;
 }
 const future=makeRoot('same-reviewed-source',mining,handshake);
@@ -35,12 +37,12 @@ test('unknown future version loads the verified bridge and prepares login delive
   assert.equal(run.status,0,(run.stdout||'')+(run.stderr||''));
   console.log(run.stdout.trim());
 });
-test('a future release with actual mining/login seam drift remains refused',()=>{
+test('a future release with actual mining seam drift remains refused independently of login availability',()=>{
   const compat=require('../lib/miningCompatibility'),delivery=require('../lib/loginDelivery');
   const changedMining=fs.readFileSync(path.join(changed,'server/src/services/mining/miningRuntime.js'),'utf8');
   assert.notEqual(changedMining,mining);assert.equal(compat.supportsMiningSource(changedMining),false);
   assert.throws(()=>compat.prepareMiningSource(changedMining),/Unsupported/);
-  assert.equal(delivery.supportsRoot(changed),false);
+  assert.equal(delivery.supportsRoot(changed),true,'Availability probe does not claim compiled adapter compatibility');
   const run=spawnSync(process.execPath,['-e',`
     const assert=require('node:assert/strict'),path=require('node:path');const [candidate,root]=process.argv.slice(1);
     assert.equal(require(path.join(candidate,'loader.js')).install(root).active,false);

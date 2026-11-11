@@ -18,7 +18,7 @@ sys.modules['evejs_mod_menu'] = framework
 descriptor = json.loads((root / 'evejs-launcher.mod.json').read_text())
 assert descriptor['id'] == 'automining' and descriptor['schemaVersion'] == 3
 assert descriptor['clientMenu'] == {'apiVersion': 1, 'entrypoint': 'client/menu.py'}
-assert descriptor['launcherApi']['minLauncherVersion'] == '1.0.69'
+assert descriptor['launcherApi']['minLauncherVersion'] == '1.0.80'
 source = (root / descriptor['clientMenu']['entrypoint']).read_bytes()
 assert len(source) <= 128 * 1024
 
@@ -99,3 +99,36 @@ registry.close()
 assert not registry.entries and registry.menus.closed
 del builtins._evejs_automining_login_v1
 print('PASS: actual public registry accepts AutoMining; readiness, existing opener, nine labels, duplicate registration, isolated cleanup and character/relogin lifecycle work.')
+
+
+# Headless legacy fallback through the actual public registry; no native UI.
+import os
+os.environ['AUTOMINING_CLIENT_DELIVERY'] = 'legacy'
+legacy_calls = []
+class LegacyCommands:
+    __notifyevents__ = ['OnAutoMiningSurvey', 'OnAutoMiningOpen']
+    def OnAutoMiningSurvey(self):
+        raise AssertionError('menu must not initiate a survey')
+    def OnAutoMiningOpen(self):
+        legacy_calls.append('open')
+commands = LegacyCommands()
+builtins.session = framework.session
+builtins.sm = types.SimpleNamespace(GetService=lambda name: commands if name == 'cmd' else None)
+framework.sm = builtins.sm
+registry = framework.Registry([
+    {'id': 'automining', 'source': base64.b64encode(source)},
+    {'id': 'other.mod', 'source': base64.b64encode(other)},
+], menus_factory=Menus)
+framework._registry = registry
+registry.tick()
+assert {row[1] for row in registry.usable()} == {'automining', 'other.mod'}
+entry = registry.entries['automining']
+registry.open('automining', entry[3])
+assert legacy_calls == ['open']
+framework.session.charid = None
+registry.refresh()
+assert 'automining' not in [row[1] for row in registry.usable()]
+registry.close()
+assert not hasattr(builtins, '_evejs_automining_login_v1')
+del builtins.sm; del builtins.session
+print('PASS: actual public registry accepts qualified legacy fallback without a login owner; logout and cleanup remain isolated.')
