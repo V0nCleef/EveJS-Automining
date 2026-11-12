@@ -461,6 +461,9 @@ def _am_build_window_class():
             self._statsOffset = 0
             self._industrialModules = []
             self._intervalDraft = {'core': {}, 'compressor': {}, 'burst': {}}
+            self._defenseDraft = {}
+            self._defenseModulesRevision = None
+            self._defenseRows = {}
             Window.ApplyAttributes(self, attributes)
             self.SetCaption(_am_tr('AutoMining'))
             main = self.content
@@ -653,6 +656,37 @@ def _am_build_window_class():
                 text='Armor retreat orders drones home and warps immediately. Drones still outside may be left behind.')
             self.defenseStatus = EveLabelMedium(parent=defensePanel, align=C.TOTOP, autoFitToText=True,
                 text='Defense is off.')
+            threatToggleRow = Container(parent=defensePanel, align=C.TOTOP, height=34)
+            threatCell = Container(parent=threatToggleRow, align=C.TOLEFT_PROP, width=0.6)
+            abandonCell = Container(parent=threatToggleRow, align=C.TOLEFT_PROP, width=0.4)
+            self._toggles['defenseThreatEnabled'] = Checkbox(parent=threatCell, align=C.TOPLEFT, height=34,
+                text=_am_tr('Retreat when a hostile capital appears'), checked=False, callback=self.Changed)
+            self._toggles['defenseAbandonDrones'] = Checkbox(parent=abandonCell, align=C.TOPLEFT, height=34,
+                text=_am_tr('Abandon drones and warp immediately'), checked=False, callback=self.Changed)
+            EveLabelSmall(parent=defensePanel, align=C.TOTOP, autoFitToText=True,
+                text=_am_tr('Watches the mining grid while AutoMining is on; no health threshold is needed.'))
+            EveLabelSmall(parent=defensePanel, align=C.TOTOP, autoFitToText=True, padBottom=8,
+                text=_am_tr('With PVE automatic reinforcements enabled, the ship holds for help until a health threshold is breached.'))
+            self._threatClassLabels = (('titan', 'Titan'), ('supercarrier', 'Supercarrier'), ('carrier', 'Carrier'),
+                                       ('dreadnought', 'Dreadnought'), ('battleship', 'Battleship'), ('battlecruiser', 'Battlecruiser'),
+                                       ('cruiser', 'Cruiser'), ('destroyer', 'Destroyer'), ('frigate', 'Frigate'))
+            self._threatChecks = {}
+            for rowIndex in (0, 1, 2):
+                threatRow = Container(parent=defensePanel, align=C.TOTOP, height=30)
+                for kind, label in self._threatClassLabels[rowIndex * 3:rowIndex * 3 + 3]:
+                    cell = Container(parent=threatRow, align=C.TOLEFT_PROP, width=0.3333)
+                    self._threatChecks[kind] = Checkbox(parent=cell, align=C.TOPLEFT, text=_am_tr(label),
+                        checked=kind in ('titan', 'dreadnought'), callback=self.Changed)
+            EveLabelSmall(parent=defensePanel, align=C.TOTOP, autoFitToText=True,
+                text=_am_tr('Skips the drone-recall wait on an emergency retreat; drones still outside are left in space.'))
+            Section(parent=defensePanel, text=_am_tr('Defense modules'))
+            EveLabelSmall(parent=defensePanel, align=C.TOTOP, autoFitToText=True,
+                text=_am_tr('Active fitted hardeners and local repairers only; passive modules are ignored.'))
+            EveLabelSmall(parent=defensePanel, align=C.TOTOP, autoFitToText=True, padBottom=8,
+                text=_am_tr('Manual means the mod never starts or stops that module; you control it.'))
+            self.defenseModulesPanel = ContainerAutoSize(parent=defensePanel, align=C.TOTOP, minHeight=30)
+            self.defenseModuleStatus = EveLabelMedium(parent=defensePanel, align=C.TOTOP, autoFitToText=True,
+                text='Defense modules are manual.')
             Section(parent=boostersPanel, text='Mining fleet boosts')
             self._toggles['autoBoost'] = Checkbox(parent=boostersPanel, align=C.TOTOP, height=34,
                 text='Activate online mining command bursts', checked=False, callback=self.Changed,
@@ -1759,6 +1793,135 @@ def _am_build_window_class():
                            fuel.get('quantity', 0), fuel.get('cycles', 0), fuel.get('targetUnits', 0))
             self.fuelSummary.text = value + ('\n' + text(_am_status(fuel['status'])) if fuel.get('status') else '')
 
+        def LocalizeStatusLine(self, value):
+            value = u'%s' % (value or '')
+            for key in ('Retreat: aligning toward the station while drones return.',
+                        'Emergency retreat: stopping the industrial core repeat cycle; warp starts when the current cycle ends.',
+                        'Emergency retreat: industrial equipment stopped; warp is clear.',
+                        'Recalling drones before departure. Stop cancels departure.'):
+                if value == key:
+                    return _am_tr(key)
+            return value
+
+        def LocalizeDefenseStatus(self, value):
+            value = u'%s' % (value or '')
+            waiting = ''
+            if value.endswith(' Waiting for reinforcements.'):
+                value = value[:-len(' Waiting for reinforcements.')]
+                waiting = ' ' + _am_tr('Waiting for reinforcements.')
+            if value.startswith('Defense retreat: hostile ') and value.endswith(' detected.'):
+                label = value[len('Defense retreat: hostile '):-len(' detected.')]
+                return _am_tr('Defense retreat: hostile %s detected.') % _am_tr(label) + waiting
+            return value + waiting
+
+        def LocalizeModuleStatus(self, value):
+            value = u'%s' % (value or '')
+            if value == 'Defense modules are manual.':
+                return _am_tr('Defense modules are manual.')
+            if value == 'No active defense modules fitted.':
+                return _am_tr('No active defense modules fitted.')
+            if value == 'Defense modules paused during travel.':
+                return _am_tr('Defense modules paused during travel.')
+            if value == 'Defense modules held during warp.':
+                return _am_tr('Defense modules held during warp.')
+            match = _am_re.match(r'^(\d+)/(\d+) defense module\(s\) active\.$', value)
+            if match:
+                return _am_tr('%d/%d defense module(s) active.', int(match.group(1)), int(match.group(2)))
+            match = _am_re.match(r'^(\d+) defense module\(s\) fitted; waiting\.$', value)
+            if match:
+                return _am_tr('%d defense module(s) fitted; waiting.', int(match.group(1)))
+            if value.startswith('Defense module waiting: '):
+                return _am_tr('Defense module waiting: %s') % value[len('Defense module waiting: '):]
+            return value
+
+        def DefenseModeCallback(self, key, holder):
+            return lambda *args: self.DefenseModuleChanged(key, 'mode', holder['widget'])
+
+        def DefensePercentCallback(self, typeID, field, widget):
+            return lambda *args: self.DefenseModuleChanged(typeID, field, widget)
+
+        def DefenseModuleChanged(self, typeID, field, widget, *args):
+            if self._loading:
+                return
+            entry = self._defenseDraft.setdefault(str(typeID), {})
+            entry[field] = widget.GetValue()
+            self.Changed()
+
+        def RenderDefenseModules(self, view, force=False):
+            modules = view.get('modules') or []
+            revision = [(row.get('itemID'), row.get('typeID'), row.get('kind'),
+                         row.get('mode'), row.get('onPct'), row.get('offPct')) for row in modules]
+            if force or revision != self._defenseModulesRevision:
+                self._defenseModulesRevision = revision
+                self.defenseModulesPanel.Flush()
+                self._defenseRows = {}
+                if not modules:
+                    EveLabelSmall(parent=self.defenseModulesPanel, align=C.TOTOP, autoFitToText=True,
+                        text=_am_tr('No active defense modules fitted.'))
+                for module in modules:
+                    typeID = module.get('typeID')
+                    key = str(module.get('itemID'))
+                    draft = self._defenseDraft.setdefault(key, {})
+                    if draft.get('mode') is None:
+                        draft['mode'] = module.get('mode', 'manual')
+                    if draft.get('onPct') is None:
+                        draft['onPct'] = module.get('onPct', 50)
+                    if draft.get('offPct') is None:
+                        draft['offPct'] = module.get('offPct', 90)
+                    draft['kind'] = module.get('kind', draft.get('kind', 'shieldRepair'))
+                    card = ContainerAutoSize(parent=self.defenseModulesPanel, align=C.TOTOP, padBottom=8)
+                    Fill(bgParent=card, state=C.UI_DISABLED, color=(0.055, 0.07, 0.09, 0.8))
+                    title = ContainerAutoSize(parent=card, align=C.TOTOP, alignMode=C.TOTOP, minHeight=30)
+                    Icon(parent=title, align=C.TOPLEFT, width=24, height=24, typeID=typeID)
+                    EveLabelMedium(parent=title, align=C.TOTOP, autoFitToText=True, padLeft=30,
+                        text=self.TypeName(typeID))
+                    if module.get('groupName'):
+                        EveLabelSmall(parent=card, align=C.TOTOP, autoFitToText=True, text=_am_tr(module['groupName']))
+                    options = [(_am_tr('Manual (player)'), 'manual'), (_am_tr('While mining'), 'mining'), (_am_tr('On hostile NPCs'), 'npc')]
+                    if module.get('repair'):
+                        options = [(_am_tr('Manual (player)'), 'manual'), (_am_tr('Health threshold'), 'threshold')]
+                    comboRow = Container(parent=card, align=C.TOTOP, height=34)
+                    comboCell = Container(parent=comboRow, align=C.TOLEFT_PROP, width=1.0)
+                    comboHolder = {}
+                    combo = Combo(parent=comboCell, align=C.TOPLEFT, options=options,
+                        select=draft.get('mode', 'manual'),
+                        callback=self.DefenseModeCallback(key, comboHolder))
+                    comboHolder['widget'] = combo
+                    if module.get('repair'):
+                        # Fixed-width threshold block so the two editors stay
+                        # together on the left instead of stretching across the window.
+                        thresholdRow = Container(parent=card, align=C.TOTOP, height=34)
+                        # Absolute left offsets inside the row: fixed-size child
+                        # containers, no proportional widths, so the editors stay
+                        # next to their labels instead of being clipped.
+                        EveLabelSmall(parent=thresholdRow, align=C.TOPLEFT, autoFitToText=True, text=_am_tr('on %'))
+                        onBox = Container(parent=thresholdRow, align=C.TOPLEFT, left=74, width=70, height=30)
+                        onEdit = SingleLineEditInteger(parent=onBox, align=C.TOPLEFT, width=64,
+                            setvalue=int(draft.get('onPct', 50)), minValue=1, maxValue=100)
+                        onEdit.OnChange = self.DefensePercentCallback(key, 'onPct', onEdit)
+                        EveLabelSmall(parent=thresholdRow, align=C.TOPLEFT, left=158, autoFitToText=True, text=_am_tr('off %'))
+                        offBox = Container(parent=thresholdRow, align=C.TOPLEFT, left=232, width=70, height=30)
+                        offEdit = SingleLineEditInteger(parent=offBox, align=C.TOPLEFT, width=64,
+                            setvalue=int(draft.get('offPct', 90)), minValue=1, maxValue=100)
+                        offEdit.OnChange = self.DefensePercentCallback(key, 'offPct', offEdit)
+                        EveLabelSmall(parent=card, align=C.TOTOP, autoFitToText=True, padTop=4,
+                            text=_am_tr('Start at or below the low %, release at or above the high %.'))
+                    state = EveLabelSmall(parent=card, align=C.TOTOP, autoFitToText=True, text='')
+                    self._defenseRows[module.get('itemID')] = state
+            for module in modules:
+                label = self._defenseRows.get(module.get('itemID'))
+                if label:
+                    draft = self._defenseDraft.get(str(module.get('itemID'))) or {}
+                    if draft.get('mode', module.get('mode')) == 'manual':
+                        value = _am_tr('Manual (player)')
+                    else:
+                        value = _am_tr('Active') if module.get('active') else _am_tr('Waiting')
+                    if module.get('manualPaused'):
+                        value = _am_tr('Paused manually. Use Start / Resume.')
+                    if label.text != value:
+                        label.text = value
+            self.defenseModuleStatus.text = text(_am_status(self.LocalizeModuleStatus(view.get('status', ''))))
+
         def IntervalCallback(self, typeID, kind, widget):
             return lambda *args: self.IntervalChanged(typeID, kind, widget)
 
@@ -2040,6 +2203,7 @@ def _am_build_window_class():
             self._settingIndex = []
             pages = {'mineDrones': 1, 'launchDrones': 3, 'recallDrones': 3, 'ratDefenseEnabled': 3,
                      'defenseEnabled': 4, 'defenseShieldEnabled': 4, 'defenseArmorEnabled': 4,
+                     'defenseThreatEnabled': 4, 'defenseAbandonDrones': 4,
                      'autoBoost': 5, 'inviteFleet': 5, 'actionNotifications': 9}
             for key, widget in self._toggles.items():
                 if key == 'inviteFleet':
@@ -2078,6 +2242,8 @@ def _am_build_window_class():
                 (11, 'Enable shared fleet management', self.fleetEnabled), (11, 'Fleet mode', self.fleetMode),
                 (11, 'Fleet preset', self.fleetPreset), (8, 'Unload at hold fullness (%)', self.transportThreshold), (8, 'Unload partial cargo after idle seconds', self.transportIdle)]:
                 self._settingIndex.append((page, _am_tr(label), widget))
+            for kind, label in self._threatClassLabels:
+                self._settingIndex.append((4, _am_tr('Watch %s') % _am_tr(label), self._threatChecks[kind]))
 
         def FindSetting(self, *args):
             if not hasattr(self, '_settingIndex'):
@@ -2466,7 +2632,7 @@ def _am_build_window_class():
                 self._lastResponse = response
                 if replaceDraft and not preserveJobDrafts:
                     self._jobDrafts = {}
-            status = ('<b>%s</b> - ' % _am_tr('ON' if response['enabled'] else 'OFF')) + text(_am_status(response['status']))
+            status = ('<b>%s</b> - ' % _am_tr('ON' if response['enabled'] else 'OFF')) + text(_am_status(self.LocalizeStatusLine(response['status'])))
             if self.statusLabel.text != status:
                 self.statusLabel.text = status
                 self.statusLabel.hint = status
@@ -2482,7 +2648,8 @@ def _am_build_window_class():
             self.droneStatus.text = text(_am_status(response.get('droneStatus', 'Automatic launch is off.')))
             self.mineDroneStatus.text = text(_am_status(response.get('mineDroneStatus', 'Automatic mining orders are off.')))
             self.ratStatus.text = text(_am_status(response.get('ratStatus', 'Rat response is off.')))
-            self.defenseStatus.text = text(_am_status(response.get('defenseStatus', 'Defense is off.')))
+            self.defenseStatus.text = text(_am_status(self.LocalizeDefenseStatus(response.get('defenseStatus', 'Defense is off.'))))
+            self.RenderDefenseModules(response.get('defenseModules') or {})
             self.boostStatus.text = text(_am_status(response.get('boostStatus', 'Automatic mining boosts are off.')))
             self.cancelReturn.state = C.UI_NORMAL if trip.get('id') else C.UI_HIDDEN
             hold = response.get('hold')
@@ -2621,6 +2788,13 @@ def _am_build_window_class():
                 self.haulThresholdEdit.SetValue(prefs.get('haulThreshold', 95), docallback=False)
                 self.defenseShieldEdit.SetValue(prefs.get('defenseShieldThreshold', 30), docallback=False)
                 self.defenseArmorEdit.SetValue(prefs.get('defenseArmorThreshold', 30), docallback=False)
+                self._toggles['defenseThreatEnabled'].SetChecked(prefs.get('defenseThreatEnabled', False), report=False)
+                classes = prefs.get('defenseThreatClasses') or ['titan', 'dreadnought']
+                for kind, widget in self._threatChecks.items():
+                    widget.SetChecked(kind in classes, report=False)
+                self._toggles['defenseAbandonDrones'].SetChecked(prefs.get('defenseAbandonDrones', False), report=False)
+                self._defenseDraft = dict(prefs.get('defenseModuleSettings') or {})
+                self.RenderDefenseModules(response.get('defenseModules') or {}, True)
                 self._stationID = prefs.get('stationID', 0)
                 self._stationResult = self.LocalizeStationRow(response.get('destination'))
                 self._destinationSerial += 1
@@ -2889,6 +3063,11 @@ def _am_build_window_class():
                          fuelStationID=self._fuelStationID, fuelStorageKey=self.fuelStorageEdit.GetValue() or 'personal',
                          defenseShieldThreshold=self.defenseShieldEdit.GetValue(),
                          defenseArmorThreshold=self.defenseArmorEdit.GetValue(),
+                         defenseThreatEnabled=bool(self._toggles['defenseThreatEnabled'].GetValue()),
+                         defenseThreatClasses=[kind for kind, widget in self._threatChecks.items()
+                             if widget.GetValue()],
+                         defenseAbandonDrones=bool(self._toggles['defenseAbandonDrones'].GetValue()),
+                         defenseModules=dict(self._defenseDraft),
                          stationID=self._stationID, storageKey=self.storageEdit.GetValue() or 'personal')
             return prefs
 

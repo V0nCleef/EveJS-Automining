@@ -314,6 +314,38 @@ _AM_ZH.update({
     'Defense retreat cancelled after a ship or location change.': u'舰船或位置变化后，防御撤离已取消。',
 })
 
+# Hostile capitals, defense retreat latch and fitted defense module automation.
+_AM_ZH.update({
+    'Retreat when a hostile capital appears': u'出现敌对旗舰时撤退',
+    'Watches the mining grid while AutoMining is on; no health threshold is needed.': u'自动采矿开启时监视采矿网格；无需血量阈值。',
+    'Titan': u'泰坦',
+    'Dreadnought': u'无畏舰',
+    'Titan watch': u'监控泰坦',
+    'Dreadnought watch': u'监控无畏舰',
+    'Abandon drones and warp immediately': u'放弃无人机并立即跃迁',
+    'Skips the drone-recall wait on an emergency retreat; drones still outside are left in space.': u'紧急撤退时跳过等待无人机返航；仍在外的无人机将被留在太空。',
+    'Defense modules': u'防御装备',
+    'Active fitted hardeners and local repairers only; passive modules are ignored.': u'仅显示已装配的主动抗性增强与本地维修装备；被动装备不参与。',
+    'Defense modules are manual.': u'防御装备均为手动。',
+    'No active defense modules fitted.': u'没有装配主动防御装备。',
+    'Off': u'关闭',
+    'While mining': u'采矿时',
+    'On hostile NPCs': u'出现敌对 NPC 时',
+    'Health threshold': u'血量阈值',
+    'Manual (player)': u'手动（mod 不参与）',
+    'Manual means the mod never starts or stops that module; you control it.': u'“手动”表示 mod 不参与该装备的开关，由玩家自行控制。',
+    'Start at or below the low %, release at or above the high %.': u'低于或等于“启动 %”时开启；高于或等于“关闭 %”时关闭。',
+    'on %': u'启动 %',
+    'off %': u'关闭 %',
+    'Active': u'运行中',
+    'Waiting': u'等待中',
+    'Paused manually. Use Start / Resume.': u'已被手动暂停。请用 开始/继续。',
+    'Defense retreat: hostile Titan detected.': u'防御撤离：发现敌对泰坦。',
+    'Defense retreat: hostile Dreadnought detected.': u'防御撤离：发现敌对无畏舰。',
+    'Defense retreat in progress.': u'防御撤离进行中。',
+    'Defense modules paused during travel.': u'航行期间防御装备已暂停。',
+})
+
 # Statistics, ore handling, industrial operations and action notifications.
 _AM_ZH.update({
     'Ore handling': u'矿石处理',
@@ -1011,3 +1043,24 @@ _AM_ZH.update({
 })
 
 _AM_ZH.update({'Paused manually. Use Start / Resume.': u'已手动暂停。请点击“开始 / 继续”。'})
+
+_AM_ZH.update({
+    'Supercarrier': u'超级航母',
+    'Carrier': u'航母',
+    'Battleship': u'战列舰',
+    'Battlecruiser': u'战列巡洋舰',
+    'Cruiser': u'巡洋舰',
+    'Destroyer': u'驱逐舰',
+    'Frigate': u'护卫舰',
+    'Watch %s': u'监控%s',
+    'With PVE automatic reinforcements enabled, the ship holds for help until a health threshold is breached.': u'开启 PVE 自动增援时，舰船会等待增援；但血量触发撤离阈值时仍会立即撤离。',
+    'Defense retreat: hostile Supercarrier detected.': u'防御撤离：发现敌对超级航母。',
+    'Defense retreat: hostile Carrier detected.': u'防御撤离：发现敌对航母。',
+    'Defense retreat: hostile Battleship detected.': u'防御撤离：发现敌对战列舰。',
+    'Defense retreat: hostile Battlecruiser detected.': u'防御撤离：发现敌对战列巡洋舰。',
+    'Defense retreat: hostile Cruiser detected.': u'防御撤离：发现敌对巡洋舰。',
+    'Defense retreat: hostile Destroyer detected.': u'防御撤离：发现敌对驱逐舰。',
+    'Defense retreat: hostile Frigate detected.': u'防御撤离：发现敌对护卫舰。',
+})
+
+_AM_ZH['AutoMining client is not ready yet. Wait for the HUD to finish loading, or restart the client.'] = u'\u81ea\u52a8\u91c7\u77ff\u5ba2\u6237\u7aef\u8fd8\u6ca1\u5c31\u7eea\u3002\u8bf7\u7b49\u5f85 HUD \u52a0\u8f7d\u5b8c\u6210\uff0c\u6216\u91cd\u65b0\u542f\u52a8\u5ba2\u6237\u7aef\u3002'

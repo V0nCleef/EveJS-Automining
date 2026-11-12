@@ -136,7 +136,15 @@ try:
                                 pass
                         namespace = {'__builtins__': _am_builtins, '__name__': 'evejs_automining_companion', 'EveCommandService': _Adapter,
                                      'sm': self.sm, 'session': self.session, '_am_is_active': self.usable}
-                        eval(compile(_am_zlib.decompress(_am_base64.b64decode(_am_source64)), '<automining-companion>', 'exec'), namespace)
+                        try:
+                            eval(compile(_am_zlib.decompress(_am_base64.b64decode(_am_source64)), '<automining-companion>', 'exec'), namespace)
+                        except Exception:
+                            try:
+                                import traceback as _am_tb
+                                remote.AutoMiningClientError(_am_tb.format_exc()[:4000])
+                            except Exception:
+                                pass
+                            raise
                         self.namespace = namespace
                     profile = _am_os.environ.get('AUTOMINING_PROFILE_SETTINGS', '')
                     if profile and getattr(self, '_profile_character', None) != self.character:
