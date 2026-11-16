@@ -48,13 +48,14 @@ checks supplement the final user acceptance; they are not a new broad soak run.
 
 ## Artifact and source identity
 
-Public ZIP:
-7e87a043c95dab368a4528f69e562345cc2d7832fded06e3b7345a48ac3865de.
+The release's SHA256SUMS and ZIP checksum asset record the final public ZIP
+digest. A ZIP cannot embed its own final checksum; these external assets are
+the artifact identity record.
 Corrected sidecar:
 fb097ef31b1d9e68c1c5e1594ac3df52a5f2599a7c95ab9acf95b91decffdbae.
-Privacy-only packaging changes two documentation entries and substitutes
+Privacy-only packaging changes three documentation entries and substitutes
 synthetic character/ship IDs in one test fixture. All71runtime members and the
-corrected sidecar remain byte-identical to the accepted package;195of198ZIP
+corrected sidecar remain byte-identical to the accepted package;194of198ZIP
 members are unchanged. Their canonical runtime-member inventory SHA-256 is
 a37dac448e8d5a4cad0b6c17325acf18cfe39d3aa48829891296fc386b0b6c74.
 The public ZIP passes CRC, privacy scanning and actual Launcher1.0.86 package

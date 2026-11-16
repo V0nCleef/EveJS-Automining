@@ -40,7 +40,7 @@ characters after generic group recovery. Offline checks cover ownership, group
 identity, all four selectors, login delivery, localisation and package updates.
 See [release validation](RELEASE-VALIDATION-1.2.30.md) for precise coverage/limits.
 The public ZIP preserves the accepted runtime byte-for-byte. Public packaging
-only removes private references from two documents and substitutes synthetic
+only removes private references from three documents and substitutes synthetic
 IDs in one test fixture. This repository's current validation record supersedes
 the ZIP's earlier candidate-status wording.
 
