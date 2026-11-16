@@ -12,7 +12,7 @@ fs.createWriteStream = deny("createWriteStream");
 const readOnly = flags => typeof flags === "number" ? !(flags & (fs.constants.O_WRONLY | fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_TRUNC | fs.constants.O_APPEND)) : ["r", "rs", "sr"].includes(flags || "r");
 for (const name of ["open", "openSync"]) { const original = fs[name]; fs[name] = function(file, flags, ...args) { if (!readOnly(flags)) return deny(name)(); return original.call(this, file, flags, ...args); }; }
 const open = fs.promises.open; fs.promises.open = function(file, flags, ...args) { if (!readOnly(flags)) return deny("promises.open")(); return open.call(this, file, flags, ...args); };
-const loggerPath = path.resolve(root, "server/src/utils/logger.js").toLowerCase(), originalLoad = Module._load;
+const loggerPath = require.resolve(path.join(root, "server/src/utils/logger")).toLowerCase(), originalLoad = Module._load;
 const logger = new Proxy({}, { get: (_, key) => key === "isVerboseDebugEnabled" ? () => false : () => {} });
 Module._load = function(request, parent, isMain) {
   if (!Module.isBuiltin(request) && path.resolve(Module._resolveFilename(request, parent, isMain)).toLowerCase() === loggerPath) return logger;

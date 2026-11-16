@@ -77,6 +77,9 @@ function fixture({npc=false,air=false,grantFails=false,persistent=true,duplicate
     scene.removeTarget=(_,id)=>ship.lockedTargets.delete(id);
     scene.cancelAddTarget=()=>true;scene.stop=()=>true;
     scene.isGlobalBall=()=>false;
+    // Other scene mixins supply this authority in 261115.2. These authored
+    // ordinary ship/rock Balls are client-visible; no native scene is replaced.
+    scene.isClientVisibleEntity=entity=>Boolean(entity&&entity.dungeonServerOnlyAnchor!==true);
   }
   const effect={effectID:67,name:'miningLaser'};
   const grant=(...args)=>{calls.push(['grant',...args]);return grantFails?{success:false}:{success:true,data:{changes:[]}};};

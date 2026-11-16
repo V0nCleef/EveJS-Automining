@@ -1,7 +1,7 @@
 # AutoMining 1.2.26: EveJS 261108.1 compatibility
 
 Validated on 9 November 2026 using the actual EveJS 261108.1 release and isolated
-GridCheck with an existing real EVE client. Josh also reported a successful basic
+GridCheck with an existing real EVE client. The user also reported a successful basic
 in-game check before approving publication.
 
 - One stack launched five mining drones; all five mined and delivered ore.

@@ -13,12 +13,12 @@ assert.equal(fit.isChargeCompatibleWithModule(rail.typeID,ammo.typeID),true);ass
 assert.ok(fit.getModuleChargeGroupIDs(rail.typeID).has(ammo.groupID));assert.ok(fit.getModuleChargeCapacity(rail.typeID,ammo.typeID)>1);
 assert.equal(typeof Dogma._testing.getPendingModuleReloads,'function');assert.equal(typeof Dogma.prototype.Handle_LoadAmmo,'function');
 const noop=()=>{},log=new Proxy({},{get:()=>noop}),session={characterID:900000001,shipID:900000010,stationID:900000020};
-const custody={incursionCargo:load('services/incursion/incursionCargo.js'),fracturedLegacyCargo:load('services/inventory/fracturedLegacyCargo.js'),incursionFactoryCustody:load('services/inventory/incursionFactoryCustody.js')};
+const custody={incursionCargo:load('services/incursion/incursionCargo.js'),fracturedLegacyCargo:load('services/inventory/fracturedLegacyCargo.js'),incursionFactoryCustody:load('services/inventory/incursionFactoryCustody.js'),bloodStainedStarsCargo:load('services/dungeon/bloodStainedStarsRemainingRuntime.js')};
 // Exercise the exact factory binding shim with the real native bind/capacity
 // bodies, supplying only isolated ship lookup and capacity inputs.
 let bound=null;
 const record={itemID:session.shipID,locationID:session.stationID,ownerID:session.characterID};
-const bindGlobals={...custody,log,Number,Boolean,ITEM_FLAGS:items.ITEM_FLAGS,findCharacterShip:()=>record,findShipItemById:()=>record,findItemById:()=>record,
+const bindGlobals={...custody,runtime:{getSceneForSession:()=>null},require:id=>{assert.equal(id,'../observatoryFlashpoint/flashpointHooks');return load('services/observatoryFlashpoint/flashpointHooks.js');},log,Number,Boolean,ITEM_FLAGS:items.ITEM_FLAGS,findCharacterShip:()=>record,findShipItemById:()=>record,findItemById:()=>record,
   describeSessionHydrationState:()=> 'isolated',throwWrappedUserError:key=>{throw Error(key);}};
 const bind=vm.runInNewContext('({'+Broker.prototype.Handle_GetInventoryFromId.toString()+'}).Handle_GetInventoryFromId',bindGlobals);
 const shim=Object.create(Broker.prototype);shim._boundContexts=new Map();shim._getBoundContext=()=>bound;shim._makeBoundSubstruct=value=>{bound=value;return value;};

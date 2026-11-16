@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "id": "automining",
   "displayName": "AutoMining",
-  "version": "1.2.27",
+  "version": "1.2.30",
   "description": "Mining, hauling, boosting and PVE jobs with Fleet Command, temporary mining orders, equipment timers, fleet ore handling and pilot/fleet statistics.",
   "kind": "loader",
   "supportedBackends": [
@@ -15,12 +15,13 @@
   "restart": "game_server",
   "compatibility": {
     "evejsVersions": [
-      "261108.1"
+      "261108.1",
+      "261115.2"
     ]
   },
   "launcherApi": {
     "version": 1,
-    "minLauncherVersion": "1.0.80",
+    "minLauncherVersion": "1.0.86",
     "helper": {
       "runtime": "node",
       "path": "helper.js"

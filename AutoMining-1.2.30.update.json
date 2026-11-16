@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "automining",
+  "version": "1.2.30",
+  "asset": "AutoMining-1.2.30.zip",
+  "evejsVersions": [
+    "261108.1",
+    "261115.2"
+  ]
+}

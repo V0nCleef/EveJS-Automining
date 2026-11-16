@@ -1,70 +1,39 @@
-"""Run the actual client group reader against native-shaped bay/group data."""
-import ast
+"""Actual reader; native identity and bay/deployed availability."""
+import copy
 import json
-from pathlib import Path
 import sys
-from types import ModuleType, SimpleNamespace
 import unittest
-
-root = Path(__file__).resolve().parents[1]
-
+from unittest.mock import patch
+from test_drone_protection import Fixture, item
 
 class DroneGroupsTests(unittest.TestCase):
     def setUp(self):
-        self.groups = {
-            'Miners': {'id': ['Miners', '1'], 'droneIDs': [11, 12, 13, 14, 15]},
-            'Fighters': {'id': ['Fighters', '2'], 'droneIDs': [21, 22]},
-            'Other ship': {'id': ['Other ship', '3'], 'droneIDs': [99]},
-        }
-        self.bay = {'shipID': 100, 'itemIDs': [11, 12, 13, 14, 15, 21, 22]}
-        self.calls = []
-        name = 'eve.client.script.ui.inflight.drones.droneGroupsController'
-        self.saved_modules = dict(sys.modules)
-        for size in range(1, len(name.split('.')) + 1):
-            key = '.'.join(name.split('.')[:size])
-            sys.modules[key] = ModuleType(key)
-        sys.modules[name].GetDroneGroupsController = lambda: SimpleNamespace(GetGroupsByName=lambda: self.groups)
-        self.scope = {'unicode': str, '_am_json': json, 'sm': SimpleNamespace(RemoteSvc=self.remote)}
-        tree = ast.parse((root / 'client/drones.py').read_text(encoding='utf-8'))
-        methods = ast.Module(body=[n for n in tree.body if isinstance(n, ast.FunctionDef)
-                                  and n.name in ('_am_drone_bay', '_am_drone_groups')], type_ignores=[])
-        exec(compile(methods, 'actual-client-drone-groups', 'exec'), self.scope)
-
-    def tearDown(self):
-        for name in list(sys.modules):
-            if name.startswith('eve'):
-                if name in self.saved_modules:
-                    sys.modules[name] = self.saved_modules[name]
-                else:
-                    del sys.modules[name]
-
-    def remote(self, service):
-        self.calls.append(service)
-        return SimpleNamespace(AutoMiningDroneBay=lambda: json.dumps({'success': True, 'bay': self.bay}))
-
-    def test_rpc_filters_by_active_bay_and_counts_each_group(self):
-        bay = self.scope['_am_drone_bay']()
-        self.assertEqual(self.calls, ['miningScanMgr'])
-        rows = self.scope['_am_drone_groups'](bay)
-        self.assertEqual([(name, count) for _, name, count in rows], [('Miners', 5), ('Fighters', 2)])
-        self.assertEqual(json.loads(rows[0][0]), ['Miners', '1'])
-
-    def test_ship_change_updates_membership_and_count(self):
-        rows = self.scope['_am_drone_groups']({'shipID': 200, 'itemIDs': [99]})
-        self.assertEqual([(name, count) for _, name, count in rows], [('Other ship', 1)])
-
-    def test_stacked_drones_count_units_instead_of_inventory_rows(self):
-        rows = self.scope['_am_drone_groups']({'shipID': 100, 'itemIDs': [11, 12, 21],
-                                              'quantities': {'11': 5, '12': 1, '21': 10}})
-        self.assertEqual([(name, count) for _, name, count in rows], [('Fighters', 10), ('Miners', 6)])
-
-    def test_empty_unknown_and_unmatched_bays_preserve_preselection(self):
-        for bay in (None, {'itemIDs': []}, {'itemIDs': [555]}):
+        self.f=Fixture((5,2));self.f.group['droneIDs']={100}
+        self.f.named['Fighters']['droneIDs']={101}
+        self.f.named['Other ship']={'id':['Other ship','3'],'droneIDs':{99}}
+    def rows(self,bay=None):
+        with patch.dict(sys.modules,self.f.modules):
+            return self.f.scope['_am_drone_groups'](self.f.scope['_am_drone_bay']()if bay is None else bay)
+    def test_native_read_counts_active_bay_without_mod_rpc_or_hiding_groups(self):
+        rows=self.rows()
+        self.assertEqual([(name,info['bay'])for _,name,info in rows],[('Miners',5),('Fighters',2),('Other ship',0)])
+        self.assertEqual(json.loads(rows[0][0]),['Miners','group']);self.assertEqual(self.f.claims,[])
+    def test_ship_change_updates_counts_without_discarding_groups(self):
+        self.f.session.shipid=200;self.f.bay=[item(99,ship=200)]
+        self.assertEqual([(name,info['bay'])for _,name,info in self.rows()],[('Other ship',1),('Fighters',0),('Miners',0)])
+    def test_stacks_count_units_instead_of_inventory_rows(self):
+        self.f.group['droneIDs']={100,102};self.f.bay=[item(100,5),item(102,1),item(101,10)]
+        self.assertEqual([(name,info['bay'])for _,name,info in self.rows()],[('Fighters',10),('Miners',6),('Other ship',0)])
+    def test_deployed_fighters_stay_selectable_while_miners_are_in_bay(self):
+        before=copy.deepcopy(self.f.named);self.f.bay=[item(100,5)];self.f.add(101)
+        row=next(row for row in self.rows()if row[1]=='Fighters')
+        self.assertEqual(row[2],{'bay':0,'deployed':1,'state':'deployed'});self.assertEqual(self.f.named,before)
+    def test_empty_unknown_unmatched_cross_context_bays_preserve_groups(self):
+        for bay in ({'characterID':42,'shipID':10,'itemIDs':[]},{'characterID':42,'shipID':10,'itemIDs':[555]},
+                    {'characterID':42,'shipID':999,'itemIDs':[100]},{}):
             with self.subTest(bay=bay):
-                rows = self.scope['_am_drone_groups'](bay)
-                self.assertEqual([name for _, name, _ in rows], ['Fighters', 'Miners', 'Other ship'])
-                self.assertTrue(all(count is None for _, _, count in rows))
-
-
-if __name__ == '__main__':
-    unittest.main()
+                rows=self.rows(bay)
+                self.assertEqual({name for _,name,_ in rows},{'Fighters','Miners','Other ship'})
+                expected='unmatched'if bay.get('shipID')==10 else 'unknown'
+                self.assertTrue(all(info['state']==expected for _,_,info in rows))
+if __name__=='__main__':unittest.main()

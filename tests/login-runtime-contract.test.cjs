@@ -118,7 +118,7 @@ test("late native preload is refused before changing the existing compile chain"
 
 for (const version of ["EveJS-v0.12.9", "EveJS-261018.1", "EveJS-261028.1", "EveJS-261108.1"]) {
   test("native codec compatibility: " + version, () => {
-    const selected = require(path.resolve(nativeRoot, "..", version, "server/src/network/tcp/utils/marshal.js"));
+    const selected = require(path.resolve(process.env.EVEJS_LOGIN_CODEC_ROOT || path.resolve(nativeRoot, ".."), version, "server/src/network/tcp/utils/marshal.js"));
     const f = fixture([{ id: "a", source: "print('VERSION_OK')\n" }], selected);
     const session = new f.Handshake(); session._sendPacket(frame("77", version.includes("261108") ? 0 : false));
     assert.match(execute(session), /VERSION_OK/);

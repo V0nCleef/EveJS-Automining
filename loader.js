@@ -215,7 +215,9 @@ function install(root = path.resolve(__dirname, "../..")) {
         return result;
       };
     } else if (target === "commands" && typeof exports.executeChatCommand === "function") {
-      commands.installChat(exports, controller);
+      const policy = typeof exports.executeClientChatCommand === "function"
+        ? loadNative("services/chat/commands/commandAccess.js") : null;
+      commands.installChat(exports, controller, { mayRunClientCommand: policy?.mayRunChatCommand });
     } else if (target === "plain" && typeof exports.broadcastLocalMessage === "function") {
       commands.installPlainChat(exports, controller);
     } else return exports; // Defer partial exports from circular requires.

@@ -11,7 +11,7 @@ from unittest.mock import patch
 class Fixture:
     def __init__(self, quantities=(5,), delayed=False, partial=False):
         self.session = types.SimpleNamespace(charid=42, shipid=10, solarsystemid=20, stationid=None)
-        self.bay = [types.SimpleNamespace(itemID=100 + i, stacksize=n) for i, n in enumerate(quantities)]
+        self.bay = [types.SimpleNamespace(itemID=100 + i, stacksize=n, ownerID=42, locationID=10, flagID=87, categoryID=18, groupID=101, quantity=-1 if n == 1 else n, singleton=1 if n == 1 else 0) for i, n in enumerate(quantities)]
         self.group = {'droneIDs': set(i.itemID for i in self.bay)}
         self.groups = {('Miners', 'group'): self.group}
         self.space = {}
@@ -28,8 +28,8 @@ class Fixture:
         self.controller = types.SimpleNamespace(GetGroupByID=lambda key: self.groups.get(key))
         self.remote = types.SimpleNamespace(AutoMiningDroneClaim=self.claim, AutoMiningDroneSync=self.sync,
                                            AutoMiningDroneResult=self.receipt)
-        michelle = types.SimpleNamespace(InWarp=lambda: self.in_warp, GetDrones=lambda: self.space)
-        self.scope = {'_am_json': json, 'unicode': str, 'session': self.session,
+        michelle = types.SimpleNamespace(InWarp=lambda: self.in_warp, GetDrones=lambda: self.space, GetBallpark=lambda: object())
+        self.scope = {'_am_tr': lambda s, *a: s % a if a else s, '_am_json': json, 'unicode': str, 'session': self.session,
                       '_am_is_active': lambda: self.active,
                       '_am_blue': types.SimpleNamespace(pyos=types.SimpleNamespace(synchro=types.SimpleNamespace(SleepWallclock=self.sleep))),
                       'sm': types.SimpleNamespace(GetService=lambda _: michelle, RemoteSvc=lambda _: self.remote),

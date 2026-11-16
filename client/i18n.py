@@ -930,6 +930,21 @@ _AM_ZH['Automatic range follows your highest-DPS weapon, ammunition and skills.'
 _AM_ZH['Automatic range: %.0f m | Orbit setting: %.0f m | Weapons: %d'] = u'自动距离：%.0f米 | 环绕设置：%.0f米 | 武器：%d'
 _AM_ZH['Escorting the selected pilot.'] = u'正在护航所选驾驶员。'
 
+# Generic drone availability catalogue additions.
+_AM_ZH.update({
+    u"%s (%s in bay, %s deployed)": u"%s\uff08\u8231\u5185 %s\uff0c\u5df2\u90e8\u7f72 %s\uff09",
+    u"%s (%s in bay)": u"%s\uff08\u8231\u5185 %s\uff09",
+    u"%s (%s deployed)": u"%s\uff08\u5df2\u90e8\u7f72 %s\uff09",
+    u"%s (no matching drones here)": u"%s\uff08\u6b64\u5904\u6ca1\u6709\u5339\u914d\u7684\u65e0\u4eba\u673a\uff09",
+    u"%s (membership not checked)": u"%s\uff08\u5c1a\u672a\u68c0\u67e5\u6210\u5458\uff09",
+    u"Drone bay is not ready. Wait for ship inventory, then refresh groups.": u"\u65e0\u4eba\u673a\u8231\u5c1a\u672a\u5c31\u7eea\u3002\u8bf7\u7b49\u5f85\u8230\u8239\u5e93\u5b58\u52a0\u8f7d\u540e\u5237\u65b0\u7ec4\u3002",
+    u"The selected group is already deployed; no additional drones were launched.": u"\u6240\u9009\u7ec4\u5df2\u90e8\u7f72\uff1b\u672a\u53d1\u5c04\u989d\u5916\u7684\u65e0\u4eba\u673a\u3002",
+    u"Drone launch: %s": u"\u65e0\u4eba\u673a\u53d1\u5c04\uff1a%s",
+    u"Refresh checks your drones in this ship's bay and under its control. If a saved group has no matches, close EVE and use Launcher Settings > Recover drone groups. Reopen EVE and refresh groups. If recovery cannot verify membership, regroup your drones in EVE.": u"\u5237\u65b0\u4f1a\u68c0\u67e5\u6b64\u8230\u65e0\u4eba\u673a\u8231\u5185\u548c\u7531\u5176\u63a7\u5236\u7684\u5df1\u65b9\u65e0\u4eba\u673a\u3002\u5982\u679c\u5df2\u4fdd\u5b58\u7684\u7ec4\u6ca1\u6709\u5339\u914d\u9879\uff0c\u8bf7\u5173\u95ed EVE\uff0c\u7136\u540e\u5728 Launcher \u4e2d\u9009\u62e9 Settings > Recover drone groups\u3002\u91cd\u65b0\u6253\u5f00 EVE \u5e76\u5237\u65b0\u7ec4\u3002\u5982\u679c\u65e0\u6cd5\u9a8c\u8bc1\u6210\u5458\u5f52\u5c5e\uff0c\u8bf7\u5728 EVE \u4e2d\u91cd\u65b0\u5206\u7ec4\u3002",
+    u"Selected native drone group is unavailable. Refresh groups. If it is still missing, close EVE and use Launcher Settings > Recover drone groups.": u"\u6240\u9009\u539f\u751f\u65e0\u4eba\u673a\u7ec4\u4e0d\u53ef\u7528\u3002\u8bf7\u5237\u65b0\u7ec4\uff1b\u5982\u679c\u4ecd\u7136\u7f3a\u5931\uff0c\u8bf7\u5173\u95ed EVE\uff0c\u7136\u540e\u5728 Launcher \u4e2d\u9009\u62e9 Settings > Recover drone groups\u3002",
+    u"The selected group has no owned drones in this ship's bay. Refresh groups. If it still has no matches, close EVE and use Launcher Settings > Recover drone groups. If recovery cannot verify membership, regroup your drones in EVE.": u"\u6240\u9009\u7ec4\u4e2d\u6ca1\u6709\u6b64\u8230\u65e0\u4eba\u673a\u8231\u5185\u7684\u5df1\u65b9\u65e0\u4eba\u673a\u3002\u8bf7\u5237\u65b0\u7ec4\uff1b\u5982\u679c\u4ecd\u65e0\u5339\u914d\u9879\uff0c\u8bf7\u5173\u95ed EVE\uff0c\u7136\u540e\u5728 Launcher \u4e2d\u9009\u62e9 Settings > Recover drone groups\u3002\u5982\u679c\u65e0\u6cd5\u9a8c\u8bc1\u6210\u5458\u5f52\u5c5e\uff0c\u8bf7\u5728 EVE \u4e2d\u91cd\u65b0\u5206\u7ec4\u3002",
+})
+
 _AM_ZH_PATTERNS = [
     (r'Armed - waiting for ore hold to reach (\d+)%.', u'已就绪：等待矿石舱达到 %s%%。'),
     (r'(\d+) mining drone\(s\) have orders\.', u'%s 架采矿无人机已收到指令。'),

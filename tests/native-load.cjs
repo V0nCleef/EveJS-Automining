@@ -98,6 +98,20 @@ try {
     "Statistics hook must attach before native consumers capture ledger exports");
   const ClientSession = require(path.join(root, "server/src/network/clientSession.js"));
   assert.match(ClientSession.prototype.sendSessionChange.toString(), /statistics\.observeDock/);
+  const chatCommands = require(path.join(root, "server/src/services/chat/chatCommands.js"));
+  if (typeof chatCommands.executeClientChatCommand === "function") {
+    const roles = require(path.join(root, "server/src/services/account/accountRoleProfiles.js"));
+    const staff = { characterID: 900009917, accountRole: roles.MAX_ACCOUNT_ROLE };
+    const player = { characterID: 900009918, accountRole: 0n };
+    const options = { emitChatFeedback: false };
+    const status = chatCommands.executeClientChatCommand(staff, "/automining status", null, options);
+    assert.equal(status.handled, true); assert.match(status.message, /AutoMining/);
+    assert.doesNotMatch(status.message, /Unknown command/);
+    const denied = chatCommands.executeClientChatCommand(player, "/automining status", null, options);
+    assert.match(denied.message, /requires a staff\/admin role/);
+    assert.match(chatCommands.executeClientChatCommand(player, "/giveitem me", null, options).message,
+      /requires a staff\/admin role/);
+  }
   const ScanService = require(path.join(root, "server/src/services/mining/miningScanMgrService.js"));
   const DogmaService = require(path.join(root, "server/src/services/dogma/dogmaService.js"));
   assert.equal(DogmaService.prototype.Handle_Deactivate[Symbol.for("evejs.automining.manualModuleStops.v1")],automining.controller,

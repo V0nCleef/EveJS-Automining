@@ -606,7 +606,7 @@ def _am_build_window_class():
                 text='Launch drones on arrival', checked=False, callback=self.Changed,
                 hint='Launch the selected group on arrival at a mining location while AutoMining is on, or when you click Start / Resume there.')
             EveLabelSmall(parent=self._droneArrivalPanel, align=C.TOTOP, autoFitToText=True, padBottom=14,
-                text='Choose an existing drone group, such as Fighters or Miners.')
+                text='Refresh checks your drones in this ship\'s bay and under its control. If a saved group has no matches, close EVE and use Launcher Settings > Recover drone groups. Reopen EVE and refresh groups. If recovery cannot verify membership, regroup your drones in EVE.')
             EveLabelMedium(parent=self._droneArrivalPanel, align=C.TOTOP, height=26, text='Drone group to launch')
             self.droneGroupEdit = Combo(parent=self._droneArrivalPanel, align=C.TOTOP, options=[('Choose a drone group', '')], select='', callback=self.Changed)
             droneButtons = Container(parent=self._droneArrivalPanel, align=C.TOTOP, height=42, padTop=8)
@@ -1281,14 +1281,29 @@ def _am_build_window_class():
             self.Changed()
 
         def DroneGroupLabel(self, name, count):
+            if isinstance(count, dict):
+                bay, deployed = count.get('bay'), count.get('deployed')
+                if bay and deployed:
+                    return _am_tr('%s (%s in bay, %s deployed)', name, bay, deployed)
+                if bay:
+                    return _am_tr('%s (%s in bay)', name, bay)
+                if deployed:
+                    return _am_tr('%s (%s deployed)', name, deployed)
+                return _am_tr('%s (no matching drones here)' if count.get('state') == 'unmatched' else
+                              '%s (membership not checked)', name)
             return name if count is None else u'%s (%s)' % (name, count)
 
+        def DroneGroupHint(self):
+            return _am_tr('Refresh checks your drones in this ship\'s bay and under its control. If a saved group has no matches, close EVE and use Launcher Settings > Recover drone groups. Reopen EVE and refresh groups. If recovery cannot verify membership, regroup your drones in EVE.')
+
         def LoadPVEDroneGroups(self, value=None):
+            self.pveDroneGroup.hint = self.DroneGroupHint()
             value = self.pveDroneGroup.GetValue() if value is None else value
             options = [(text(self.DroneGroupLabel(name, count)), key) for key, name, count in self._droneGroups]
             if value and value not in [key for label, key in options]:
                 options.insert(0, (_am_tr('Saved group unavailable - refresh or choose again'), value))
-            self.pveDroneGroup.LoadOptions(options or [(_am_tr('No groups found - refresh'), '')], select=value or '')
+            choices = [(_am_tr('Choose a drone group'), '')] + options if options else [(_am_tr('No groups found - refresh'), '')]
+            self.pveDroneGroup.LoadOptions(choices, select=value or '')
 
         def RenderPVE(self, view):
             self.pveStatus.text = text(_am_status(view.get('status', 'PVE is off.')))
@@ -2156,6 +2171,7 @@ def _am_build_window_class():
                 fighterSelected = self.ratFighterGroupEdit.GetValue() or ''
             options = [(text(self.DroneGroupLabel(name, count)), key) for key, name, count in self._droneGroups]
             def load(widget, value):
+                widget.hint = self.DroneGroupHint()
                 choices = list(options)
                 if value and value not in [key for label, key in choices]:
                     choices.insert(0, (_am_tr('Saved group unavailable - refresh or choose again'), value))

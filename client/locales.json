@@ -835,7 +835,18 @@
     "Next activation: %s s",
     "Fleet order active: %s. Your personal filter stays saved.",
     "Approaching fleet booster for ore delivery.",
-    "Paused manually. Use Start / Resume."
+    "Paused manually. Use Start / Resume.",
+    "%s (%s in bay, %s deployed)",
+    "%s (%s in bay)",
+    "%s (%s deployed)",
+    "%s (no matching drones here)",
+    "%s (membership not checked)",
+    "Refresh checks your drones in this ship's bay and under its control. If a saved group has no matches, close EVE and use Launcher Settings > Recover drone groups. Reopen EVE and refresh groups. If recovery cannot verify membership, regroup your drones in EVE.",
+    "Selected native drone group is unavailable. Refresh groups. If it is still missing, close EVE and use Launcher Settings > Recover drone groups.",
+    "Drone bay is not ready. Wait for ship inventory, then refresh groups.",
+    "The selected group has no owned drones in this ship's bay. Refresh groups. If it still has no matches, close EVE and use Launcher Settings > Recover drone groups. If recovery cannot verify membership, regroup your drones in EVE.",
+    "The selected group is already deployed; no additional drones were launched.",
+    "Drone launch: %s"
   ],
   "translations": {
     "de": [
@@ -1674,7 +1685,18 @@
       "Nächste Aktivierung: %s s",
       "Flottenbefehl aktiv: %s. Dein persönlicher Filter bleibt gespeichert.",
       "Flottenbooster zur Erzabgabe wird angeflogen.",
-      "Manuell pausiert. Mit Start / Fortsetzen fortfahren."
+      "Manuell pausiert. Mit Start / Fortsetzen fortfahren.",
+      "%s (%s im Hangar, %s im Einsatz)",
+      "%s (%s im Hangar)",
+      "%s (%s im Einsatz)",
+      "%s (hier keine passenden Drohnen)",
+      "%s (Gruppenzugehörigkeit nicht geprüft)",
+      "Aktualisieren prüft deine Drohnen im Hangar und unter Kontrolle dieses Schiffs. Ohne passende Gruppenmitglieder: EVE schließen und im Launcher unter Settings > Recover drone groups ausführen. EVE neu öffnen und Gruppen aktualisieren. Ohne bestätigte Zuordnung die Drohnen in EVE neu gruppieren.",
+      "Die gewählte native Drohnengruppe fehlt. Aktualisiere die Gruppen. Fehlt sie weiterhin, schließe EVE und nutze im Launcher Settings > Recover drone groups.",
+      "Der Drohnenhangar ist noch nicht bereit. Warte auf das Schiffsinventar und aktualisiere dann die Gruppen.",
+      "Die gewählte Gruppe enthält keine eigenen Drohnen im Hangar dieses Schiffs. Aktualisiere die Gruppen. Ohne Treffer: EVE schließen und im Launcher Settings > Recover drone groups nutzen. Ohne bestätigte Zuordnung die Drohnen in EVE neu gruppieren.",
+      "Die gewählte Gruppe ist bereits im Einsatz; es wurden keine weiteren Drohnen gestartet.",
+      "Drohnenstart: %s"
     ],
     "fr": [
       "Connexion à Minage automatique...",
@@ -2512,7 +2534,18 @@
       "Prochaine activation : %s s",
       "Ordre de flotte actif : %s. Votre filtre personnel reste enregistré.",
       "Approche du vaisseau de soutien de flotte pour livrer le minerai.",
-      "En pause manuelle. Utilisez Démarrer / Reprendre."
+      "En pause manuelle. Utilisez Démarrer / Reprendre.",
+      "%s (%s en soute, %s déployés)",
+      "%s (%s en soute)",
+      "%s (%s déployés)",
+      "%s (aucun drone correspondant ici)",
+      "%s (appartenance non vérifiée)",
+      "Actualiser vérifie vos drones en soute et sous le contrôle de ce vaisseau. Si aucun ne correspond, fermez EVE et utilisez Settings > Recover drone groups dans le Launcher. Rouvrez EVE et actualisez les groupes. Sans appartenance vérifiée, regroupez vos drones dans EVE.",
+      "Le groupe de drones natif sélectionné est indisponible. Actualisez les groupes. S’il manque encore, fermez EVE et utilisez Settings > Recover drone groups dans le Launcher.",
+      "La soute à drones n'est pas prête. Attendez l'inventaire du vaisseau, puis actualisez les groupes.",
+      "Le groupe sélectionné ne contient aucun de vos drones en soute. Actualisez les groupes. Sans correspondance, fermez EVE et utilisez Settings > Recover drone groups dans le Launcher. Sans appartenance vérifiée, regroupez les drones dans EVE.",
+      "Le groupe sélectionné est déjà déployé ; aucun drone supplémentaire n'a été lancé.",
+      "Lancement des drones : %s"
     ],
     "es": [
       "Conectando a Minería automática...",
@@ -3350,7 +3383,18 @@
       "Próxima activación: %s s",
       "Orden de flota activa: %s. Tu filtro personal permanece guardado.",
       "Acercándose a la nave de apoyo de flota para entregar mineral.",
-      "En pausa manual. Usa Iniciar / Reanudar."
+      "En pausa manual. Usa Iniciar / Reanudar.",
+      "%s (%s en bahía, %s desplegados)",
+      "%s (%s en bahía)",
+      "%s (%s desplegados)",
+      "%s (sin drones coincidentes aquí)",
+      "%s (pertenencia sin comprobar)",
+      "Actualizar comprueba tus drones en la bahía y bajo el control de esta nave. Si no hay coincidencias, cierra EVE y usa Settings > Recover drone groups en el Launcher. Abre EVE y actualiza los grupos. Si no se verifica la pertenencia, vuelve a agrupar tus drones en EVE.",
+      "El grupo nativo de drones seleccionado no está disponible. Actualiza los grupos. Si sigue faltando, cierra EVE y usa Settings > Recover drone groups en el Launcher.",
+      "La bahía de drones no está lista. Espera al inventario de la nave y luego actualiza los grupos.",
+      "El grupo seleccionado no contiene drones tuyos en esta bahía. Actualiza los grupos. Si sigue sin haber coincidencias, cierra EVE y usa Settings > Recover drone groups en el Launcher. Si no se verifica la pertenencia, vuelve a agrupar los drones en EVE.",
+      "El grupo seleccionado ya está desplegado; no se han lanzado drones adicionales.",
+      "Lanzamiento de drones: %s"
     ],
     "it": [
       "Connessione a Estrazione automatica...",
@@ -4188,7 +4232,18 @@
       "Prossima attivazione: %s s",
       "Ordine di flotta attivo: %s. Il filtro personale resta salvato.",
       "Avvicinamento alla nave di supporto della flotta per consegnare il minerale.",
-      "In pausa manuale. Usa Avvia / Riprendi."
+      "In pausa manuale. Usa Avvia / Riprendi.",
+      "%s (%s nella stiva, %s schierati)",
+      "%s (%s nella stiva)",
+      "%s (%s schierati)",
+      "%s (nessun drone corrispondente qui)",
+      "%s (appartenenza non verificata)",
+      "Aggiorna controlla i tuoi droni nella stiva e sotto il controllo di questa nave. Se non ci sono corrispondenze, chiudi EVE e usa Settings > Recover drone groups nel Launcher. Riapri EVE e aggiorna i gruppi. Senza appartenenza verificata, raggruppa di nuovo i droni in EVE.",
+      "Il gruppo di droni nativo selezionato non è disponibile. Aggiorna i gruppi. Se manca ancora, chiudi EVE e usa Settings > Recover drone groups nel Launcher.",
+      "La stiva dei droni non è pronta. Attendi l'inventario della nave, poi aggiorna i gruppi.",
+      "Il gruppo selezionato non contiene tuoi droni in questa stiva. Aggiorna i gruppi. Se non ci sono corrispondenze, chiudi EVE e usa Settings > Recover drone groups nel Launcher. Senza appartenenza verificata, raggruppa di nuovo i droni in EVE.",
+      "Il gruppo selezionato è già schierato; non sono stati lanciati altri droni.",
+      "Lancio dei droni: %s"
     ],
     "ru": [
       "Подключение к Автодобыче...",
@@ -5026,7 +5081,18 @@
       "Следующая активация: %s с",
       "Действует приказ флота: %s. Личный фильтр сохранён.",
       "Сближение с кораблём поддержки флота для передачи руды.",
-      "Приостановлено вручную. Нажмите «Старт / Продолжить»."
+      "Приостановлено вручную. Нажмите «Старт / Продолжить».",
+      "%s (%s в отсеке, %s запущено)",
+      "%s (%s в отсеке)",
+      "%s (%s запущено)",
+      "%s (здесь нет соответствующих дронов)",
+      "%s (состав группы не проверен)",
+      "Обновление проверяет ваших дронов в отсеке и под управлением этого корабля. Если совпадений нет, закройте EVE и выберите Settings > Recover drone groups в Launcher. Откройте EVE и обновите группы. Если состав не подтверждён, заново сгруппируйте дронов в EVE.",
+      "Выбранная штатная группа дронов недоступна. Обновите группы. Если она всё ещё отсутствует, закройте EVE и выберите Settings > Recover drone groups в Launcher.",
+      "Отсек дронов ещё не готов. Дождитесь загрузки инвентаря корабля и обновите группы.",
+      "В выбранной группе нет ваших дронов из отсека этого корабля. Обновите группы. Если совпадений нет, закройте EVE и выберите Settings > Recover drone groups в Launcher. Если состав не подтверждён, заново сгруппируйте дронов в EVE.",
+      "Выбранная группа уже запущена; дополнительные дроны не запускались.",
+      "Запуск дронов: %s"
     ],
     "ja": [
       "AutoMiningに接続中...",
@@ -5864,7 +5930,18 @@
       "次の起動まで：%s 秒",
       "艦隊指示が有効：%s。個人フィルターは保存されています。",
       "鉱石を引き渡すため艦隊支援艦に接近中。",
-      "手動で一時停止中。「開始 / 再開」を押してください。"
+      "手動で一時停止中。「開始 / 再開」を押してください。",
+      "%s（ベイ内 %s、展開中 %s）",
+      "%s（ベイ内 %s）",
+      "%s（展開中 %s）",
+      "%s（ここに一致するドローンはありません）",
+      "%s（所属を未確認）",
+      "更新では、この艦船のベイ内と操作下の自分のドローンを確認します。一致する機体がなければ EVE を終了し、Launcher の Settings > Recover drone groups を使用してください。EVE を再起動してグループを更新します。所属を確認できなければ EVE でグループを作り直してください。",
+      "選択した標準ドローングループを利用できません。グループを更新し、まだ見つからなければ EVE を終了して Launcher の Settings > Recover drone groups を使用してください。",
+      "ドローンベイの準備ができていません。艦船のインベントリを待ってからグループを更新してください。",
+      "選択したグループには、この艦船のベイ内に自分のドローンがありません。更新しても一致しなければ EVE を終了し、Launcher の Settings > Recover drone groups を使用してください。所属を確認できなければ EVE でグループを作り直してください。",
+      "選択したグループはすでに展開中です。追加のドローンは発進していません。",
+      "ドローン発進：%s"
     ],
     "ko": [
       "AutoMining에 연결 중...",
@@ -6702,7 +6779,18 @@
       "다음 활성화: %s초",
       "함대 명령 적용 중: %s. 개인 필터는 저장된 상태로 유지됩니다.",
       "광석을 전달하기 위해 함대 지원함에 접근 중입니다.",
-      "수동 일시 정지 상태입니다. 시작 / 재개를 누르세요."
+      "수동 일시 정지 상태입니다. 시작 / 재개를 누르세요.",
+      "%s (베이 %s, 배치 %s)",
+      "%s (베이 %s)",
+      "%s (배치 %s)",
+      "%s (현재 일치하는 드론 없음)",
+      "%s (소속 확인 안 됨)",
+      "새로 고침은 이 함선의 베이와 제어 중인 내 드론을 확인합니다. 일치하는 드론이 없으면 EVE를 닫고 Launcher의 Settings > Recover drone groups를 사용하세요. EVE를 다시 열고 그룹을 새로 고침하세요. 소속을 확인할 수 없으면 EVE에서 드론을 다시 그룹화하세요.",
+      "선택한 기본 드론 그룹을 사용할 수 없습니다. 그룹을 새로 고침해도 없으면 EVE를 닫고 Launcher의 Settings > Recover drone groups를 사용하세요.",
+      "드론 베이가 준비되지 않았습니다. 함선 인벤토리가 로드되면 그룹을 새로 고침하세요.",
+      "선택한 그룹에 이 함선의 베이에 있는 내 드론이 없습니다. 새로 고침해도 일치하지 않으면 EVE를 닫고 Launcher의 Settings > Recover drone groups를 사용하세요. 소속을 확인할 수 없으면 EVE에서 드론을 다시 그룹화하세요.",
+      "선택한 그룹이 이미 배치되어 있어 추가 드론을 발사하지 않았습니다.",
+      "드론 발사: %s"
     ],
     "zh": [
       "正在连接 AutoMining…",
@@ -7540,7 +7628,18 @@
       "下次激活：%s 秒",
       "舰队指令生效：%s。您的个人筛选已保留。",
       "正在接近舰队加成舰以交付矿石。",
-      "已手动暂停。请点击“开始 / 继续”。"
+      "已手动暂停。请点击“开始 / 继续”。",
+      "%s（舱内 %s，已部署 %s）",
+      "%s（舱内 %s）",
+      "%s（已部署 %s）",
+      "%s（此处没有匹配的无人机）",
+      "%s（尚未检查成员）",
+      "刷新会检查此舰无人机舱内和由其控制的己方无人机。如果已保存的组没有匹配项，请关闭 EVE，然后在 Launcher 中选择 Settings > Recover drone groups。重新打开 EVE 并刷新组。如果无法验证成员归属，请在 EVE 中重新分组。",
+      "所选原生无人机组不可用。请刷新组；如果仍然缺失，请关闭 EVE，然后在 Launcher 中选择 Settings > Recover drone groups。",
+      "无人机舱尚未就绪。请等待舰船库存加载后刷新组。",
+      "所选组中没有此舰无人机舱内的己方无人机。请刷新组；如果仍无匹配项，请关闭 EVE，然后在 Launcher 中选择 Settings > Recover drone groups。如果无法验证成员归属，请在 EVE 中重新分组。",
+      "所选组已部署；未发射额外的无人机。",
+      "无人机发射：%s"
     ]
   }
 }
