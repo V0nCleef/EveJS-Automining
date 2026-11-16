@@ -39,8 +39,10 @@ The user accepted the final Launcher1.0.86 + AutoMining1.2.30 pair with two real
 characters after generic group recovery. Offline checks cover ownership, group
 identity, all four selectors, login delivery, localisation and package updates.
 See [release validation](RELEASE-VALIDATION-1.2.30.md) for precise coverage/limits.
-The frozen tested ZIP retains notes written before final user acceptance; this
-repository's current validation record supersedes that earlier status wording.
+The public ZIP preserves the accepted runtime byte-for-byte. Public packaging
+only removes private references from two documents and substitutes synthetic
+IDs in one test fixture. This repository's current validation record supersedes
+the ZIP's earlier candidate-status wording.
 
 No fresh Docker gameplay or broad fleet/hauling/rat-response soak is claimed.
 Historical validation records remain available. Developer fixture requirements

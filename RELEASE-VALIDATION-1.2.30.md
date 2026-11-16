@@ -48,14 +48,19 @@ checks supplement the final user acceptance; they are not a new broad soak run.
 
 ## Artifact and source identity
 
-The tested ZIP is preserved byte-for-byte:
-74d854dcf73e5dedba4891ee6f8de73dba72c62efef1e49f2ee9277895722213.
+Public ZIP:
+7e87a043c95dab368a4528f69e562345cc2d7832fded06e3b7345a48ac3865de.
 Corrected sidecar:
 fb097ef31b1d9e68c1c5e1594ac3df52a5f2599a7c95ab9acf95b91decffdbae.
-Public source preparation changes documentation and substitutes synthetic
-character/ship IDs in one test fixture. Runtime product files match the tested
-package exactly. Bundled pre-acceptance status notes are historical; this record
-states final qualification.
+Privacy-only packaging changes two documentation entries and substitutes
+synthetic character/ship IDs in one test fixture. All71runtime members and the
+corrected sidecar remain byte-identical to the accepted package;195of198ZIP
+members are unchanged. Their canonical runtime-member inventory SHA-256 is
+a37dac448e8d5a4cad0b6c17325acf18cfe39d3aa48829891296fc386b0b6c74.
+The public ZIP passes CRC, privacy scanning and actual Launcher1.0.86 package
+inspection; its extracted emitted companion matches the accepted bundle exactly.
+Public source documentation records final acceptance. Bundled pre-acceptance
+status notes remain historical; this record states current qualification.
 
 ## Limits
 
