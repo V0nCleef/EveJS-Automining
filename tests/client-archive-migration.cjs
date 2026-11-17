@@ -2,7 +2,7 @@
 // Real helper/legacy ZIP + journal operations, only against authored owned fixtures.
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
 const assert = require("node:assert/strict"), { spawnSync } = require("node:child_process");
-const task = path.resolve(__dirname, "../.."), root = path.join(task, "test-work/client-delivery-migration");
+const task = path.resolve(__dirname, "../.."), root = path.join(task, "test-work/client-delivery-migration-"+process.platform);
 assert.ok(root.startsWith(task + path.sep));
 let cursor = task;
 for (const part of path.relative(task, root).split(path.sep)) {
@@ -85,6 +85,6 @@ assert.equal(sha(fs.readFileSync(archive)), active); assert.equal(fs.existsSync(
 fs.writeFileSync(path.join(state, "original.pyj"), original);
 cases.push({ name: "invalid original backup refuses restoration without archive mutation", passed: true });
 const report = { cases, clientRoot: client, noClientLaunched: true, unrelatedEntryPreserved: true,
-  actualLegacyHelperUnchanged: true, serverFixture: "exact mining source plus authored login-availability marker files; no server started" };
-fs.writeFileSync(path.join(task, "evidence/client-archive-migration.json"), JSON.stringify(report, null, 2) + "\n");
+  actualLegacyHelperExercised: true, serverFixture: "exact mining source plus authored login-availability marker files; no server started" };
+fs.writeFileSync(path.join(task, "evidence/client-archive-migration-"+process.platform+".json"), JSON.stringify(report, null, 2) + "\n");
 console.log(JSON.stringify(report, null, 2));

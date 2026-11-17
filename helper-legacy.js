@@ -11,18 +11,27 @@ function powershell(script,env={}) {
   if(result.error || result.status!==0)throw Error((result.stderr||result.error?.message||"Client archive operation failed").trim());
   return result.stdout.trim();
 }
+function linuxOperation(action,...args) {
+  const result=spawnSync("python3",["-I",path.join(__dirname,"lib/legacy_linux.py"),action,...args],{
+    encoding:"utf8",maxBuffer:1024*1024,timeout:60000,
+  });
+  if(result.error || result.status!==0)throw Error((result.stderr||result.error?.message||"Linux client archive operation failed").trim());
+}
 function readEntry(archive,out) {
+  if(process.platform==="linux") { linuxOperation("read",archive,out); return fs.readFileSync(out); }
   powershell("Add-Type -AssemblyName System.IO.Compression; Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead($env:AUTOMINING_ARCHIVE); try { $e=$z.GetEntry($env:AUTOMINING_ENTRY); if (!$e) { throw 'EVE command module not found' }; $s=$e.Open(); $f=[IO.File]::Create($env:AUTOMINING_DATA); try {$s.CopyTo($f)} finally {$f.Dispose();$s.Dispose()} } finally {$z.Dispose()}",{
     AUTOMINING_ARCHIVE:archive,AUTOMINING_ENTRY:ENTRY,AUTOMINING_DATA:out,
   });
   return fs.readFileSync(out);
 }
 function replaceEntry(archive,input) {
+  if(process.platform==="linux") { linuxOperation("replace",archive,input); return; }
   powershell("Add-Type -AssemblyName System.IO.Compression; Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::Open($env:AUTOMINING_ARCHIVE,[IO.Compression.ZipArchiveMode]::Update); try {$old=$z.GetEntry($env:AUTOMINING_ENTRY); if (!$old) {throw 'EVE command module not found'}; $old.Delete(); [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($z,$env:AUTOMINING_DATA,$env:AUTOMINING_ENTRY,[IO.Compression.CompressionLevel]::Optimal) | Out-Null} finally {$z.Dispose()}",{
     AUTOMINING_ARCHIVE:archive,AUTOMINING_ENTRY:ENTRY,AUTOMINING_DATA:input,
   });
 }
 function ensureStopped(clientRoot) {
+  if(process.platform==="linux") { linuxOperation("stopped",clientRoot); return; }
   powershell("$p=@(Get-CimInstance Win32_Process | Where-Object {$_.Name -eq 'exefile.exe' -and (!$_.ExecutablePath -or $_.ExecutablePath.StartsWith($env:AUTOMINING_CLIENT,[StringComparison]::OrdinalIgnoreCase))}); if($p.Count){throw 'Close EVE clients using this client installation before applying AutoMining client changes.'}",{AUTOMINING_CLIENT:clientRoot+path.sep});
 }
 function writeJSON(file,value) {
@@ -143,4 +152,4 @@ if(require.main===module) {
   fs.writeFileSync(arg("--result"),JSON.stringify(result));
   if(!result.success)process.exitCode=1;
 }
-module.exports={execute,readEntry,replaceEntry,recoverSwap};
+module.exports={execute,readEntry,replaceEntry,recoverSwap,ensureStopped};
