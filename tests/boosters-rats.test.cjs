@@ -251,7 +251,7 @@ test("automatic fleet join lets native clients accept and initialize their Fleet
 });
 
 test("manual fighter recall does not cause repeated rat launches in one encounter", () => {
-  const ship = { kind: "ship", itemID: 10, grid: "belt" }, rat = { kind: "ship", nativeNpc: true, bounty: 100, grid: "belt" };
+  const ship = { kind: "ship", itemID: 10, grid: "belt" }, rat = { kind: "ship", nativeNpc: true, operatorKind: "asteroidBeltRat", bounty: 100, grid: "belt" };
   const entities = new Map([[300, rat]]), calls = [];
   const scene = { dynamicEntities: entities, getPublicGridClusterKeyForEntity: entity => entity.grid,
     getEntityByID: id => entities.get(id) };
@@ -265,4 +265,39 @@ test("manual fighter recall does not cause repeated rat launches in one encounte
   defense.tick(session, state, scene, ship, 2000);
   defense.tick(session, state, scene, ship, 20_000);
   assert.deepEqual(calls, ["launch"]);
+});
+
+
+test("drone defense ignores neutral ships with bounties and engages actual belt rats", () => {
+  const ship = { kind: "ship", itemID: 10, grid: "belt" };
+  const neutral = { kind: "ship", itemID: 300, nativeNpc: true, operatorKind: "ambientTraffic",
+    bounty: 9000, grid: "belt" };
+  const fighter = { itemID: 200, ownerID: 1, controllerID: 10, droneCommand: "IDLE" };
+  const entities = new Map([[300, neutral], [200, fighter]]);
+  const attacks = [];
+  const state = { enabled: true, droneClientReady: true, ratDefenseEnabled: true, characterID: 1,
+    shipID: 10, ratMiningGroupKey: "miners", ratFighterGroupKey: "fighters" };
+  const session = { characterID: 1, sendNotification() {} };
+  const scene = { dynamicEntities: entities, getPublicGridClusterKeyForEntity: entity => entity.grid,
+    getEntityByID: id => entities.get(id) };
+  const defense = createRatDefense("ignored", { drones: {}, native: {
+    isDroneEntity: entity => entity === fighter, DRONE_COMMAND_ENGAGE: "ENGAGE",
+    DRONE_COMMAND_RETURN_BAY: "RETURN_BAY",
+    commandEngage: (_, ids, target) => { attacks.push([ids, target]); return { type: "dict", entries: [] }; },
+  } });
+  assert.equal(defense.tick(session, state, scene, ship, 1000), false);
+  assert.deepEqual(attacks, []);
+
+  const rat = { ...neutral, itemID: 301, operatorKind: "asteroidBeltRat" };
+  entities.set(301, rat);
+  assert.equal(defense.tick(session, state, scene, ship, 2000), true);
+  state.ratMiningIDs = new Set();
+  state.ratFighterIDs = new Set([200]);
+  assert.equal(defense.tick(session, state, scene, ship, 3000), true);
+  assert.deepEqual(attacks, [[[200], 301]]);
+
+  // Re-check a cached target because the native runtime may change affiliation.
+  rat.operatorKind = "ambientTraffic";
+  defense.tick(session, state, scene, ship, 9000);
+  assert.deepEqual(attacks, [[[200], 301]]);
 });
