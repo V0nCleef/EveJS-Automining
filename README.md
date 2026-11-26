@@ -1,10 +1,21 @@
-# AutoMining 1.2.30
+# AutoMining 1.2.35
+
+Adds declared compatibility with EveJS **261126.2** and **261125.3** / EVE
+**24.02 build 3724492**, retaining **261108.1** and **261115.2**. This resolves
+the Launcher's compatibility warning on the reviewed 261126.2 server.
+
+The native mining bridge preserves receipt settlement, residue policy and
+cycle-keyed ledger entries. Unknown source edits remain refused. Client delivery,
+drone targeting, job logic and saved-state formats are unchanged.
+
+See [release validation](RELEASE-VALIDATION-1.2.35.md) for tested scope and limits.
+The older acceptance notes below describe 1.2.30 and its original client build.
 
 Requires EveJS Launcher **1.0.86 or newer**. AutoMining supports mining, hauling,
 boosting and PVE jobs with Fleet Command, temporary orders, automatic drone
 handling, ore transport and pilot/fleet statistics.
 
-This update adds EveJS **261115.2** compatibility and keeps native drone groups
+The retained EveJS **261115.2** behavior keeps native drone groups
 visible in arrival, rat-mining, rat-fighter and PVE selectors. Labels distinguish
 owned drones in your current ship, deployed drones, unmatched saved membership
 and membership that has not been checked. Refresh keeps your saved and unsaved

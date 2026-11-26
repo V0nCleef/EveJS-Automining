@@ -146,8 +146,8 @@ test("rat fighters receive one batched attack and retarget after the rat disappe
   const ship = { kind: "ship", itemID: 10, grid: "belt" };
   const session = { characterID: 7 };
   const fighter = { itemID: 21, ownerID: 7, controllerID: 10, droneCommand: "IDLE" };
-  const ratA = { kind: "ship", itemID: 31, nativeNpc: true, bounty: 100, grid: "belt" };
-  const ratB = { kind: "ship", itemID: 32, nativeNpc: true, bounty: 100, grid: "belt" };
+  const ratA = { kind: "ship", itemID: 31, nativeNpc: true, operatorKind: "asteroidBeltRat", bounty: 100, grid: "belt" };
+  const ratB = { kind: "ship", itemID: 32, nativeNpc: true, operatorKind: "asteroidBeltRat", bounty: 100, grid: "belt" };
   const entities = new Map([[21, fighter], [31, ratA], [32, ratB]]);
   const scene = { dynamicEntities: entities, getPublicGridClusterKeyForEntity: entity => entity.grid || "belt",
     getEntityByID: id => entities.get(id) };
@@ -170,7 +170,7 @@ test("rat fighters receive one batched attack and retarget after the rat disappe
 });
 
 test("same-grid fleet mates reuse rat discovery while removals remain immediate", () => {
-  const rats = new Map([[31, { kind: "ship", itemID: 31, nativeNpc: true, bounty: 100, grid: "belt" }]]);
+  const rats = new Map([[31, { kind: "ship", itemID: 31, nativeNpc: true, operatorKind: "asteroidBeltRat", bounty: 100, grid: "belt" }]]);
   let enumerations = 0;
   const dynamicEntities = new Proxy(rats, { get(target, key) {
     if (key === "entries") return () => { enumerations++; return target.entries(); };

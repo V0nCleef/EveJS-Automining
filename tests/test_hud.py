@@ -61,6 +61,7 @@ module('eve.client.script.ui.control.eveScroll',Scroll=Widget)
 module('eve.client.script.ui.control.entries.generic',Generic=object)
 module('eve.client.script.ui.control.entries.util',GetFromClass=lambda cls,d:ns(**d))
 module('threadutils',BeNice=lambda _:None)
+module('localization',GetLanguageID=lambda:session.languageID)
 module('carbon.common.script.util.commonutils',StripTags=lambda value:value)
 station_names={'EN':'Penirgman V - Moon 3 - Ishukone Corporation Factory',
                'ZH':'佩尼尔格曼 V - 卫星 3 - 异株湖集团 工厂',

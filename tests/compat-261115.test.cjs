@@ -3,6 +3,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=process.env.AUTOMINING_NATIVE_ROOT;
 if(!root)throw Error('Set AUTOMINING_NATIVE_ROOT to an attested 261115.2 fixture');
+const version=JSON.parse(fs.readFileSync(path.join(root,'config/version.json'))).evejsVersion;
 const {installChat}=require('../lib/commands');
 const policy=require(path.join(root,'server/src/services/chat/commands/commandAccess.js'));
 const roles=require(path.join(root,'server/src/services/account/accountRoleProfiles.js'));
@@ -19,8 +20,8 @@ function fixture(){
  const controller={command:(session,command)=>{calls.push({session,command});return 'AutoMining handled';}};
  return {exports,originalClient,calls,controller,nativeResult,denied};
 }
-test('261115.2 client dispatcher reaches AutoMining exactly once for staff and retains native player denial',()=>{
- assert.equal(JSON.parse(fs.readFileSync(path.join(root,'config/version.json'))).evejsVersion,'261115.2');
+test(`${version} client dispatcher reaches AutoMining exactly once for staff and retains native player denial`,()=>{
+ assert.ok(['261115.2','261125.3','261126.2'].includes(version));
  const f=fixture(),staff={accountRole:roles.MAX_ACCOUNT_ROLE},player={accountRole:0n};
  // The old internal-export-only hook cannot affect this native lexical call.
  assert.equal(f.originalClient(staff,'/automining on'),f.nativeResult);

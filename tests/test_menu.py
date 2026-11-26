@@ -18,7 +18,7 @@ sys.modules['evejs_mod_menu'] = framework
 descriptor = json.loads((root / 'evejs-launcher.mod.json').read_text())
 assert descriptor['id'] == 'automining' and descriptor['schemaVersion'] == 3
 assert descriptor['clientMenu'] == {'apiVersion': 1, 'entrypoint': 'client/menu.py'}
-assert descriptor['launcherApi']['minLauncherVersion'] == '1.0.80'
+assert descriptor['launcherApi']['minLauncherVersion'] == '1.0.86'
 source = (root / descriptor['clientMenu']['entrypoint']).read_bytes()
 assert len(source) <= 128 * 1024
 

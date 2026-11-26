@@ -5,9 +5,10 @@ const root=process.env.AUTOMINING_NATIVE_ROOT;
 if(!root)throw Error('Set AUTOMINING_NATIVE_ROOT to an isolated 261108.1 source fixture');
 const file=path.join(root,'server/src/services/mining/miningRuntime.js');
 const source=fs.readFileSync(file,'utf8');
+const version=JSON.parse(fs.readFileSync(path.join(root,'config/version.json'),'utf8')).evejsVersion;
 const compat=require('../lib/miningCompatibility'),bridge=require('../lib/bridge');
 
-test('261108.1 retains native receipts and cache for both line endings; unknown edits fail closed',()=>{
+test(`${version} retains native receipts and cache for both line endings; unknown edits fail closed`,()=>{
   for(const newline of ['\n','\r\n']) {
     const text=source.replace(/\r\n/g,'\n').replace(/\n/g,newline);
     assert.equal(compat.supportsMiningSource(text),true);
@@ -35,7 +36,7 @@ test('Launcher preparation refuses a broken mining bridge before reporting login
 
 // Execute the actual native function with in-memory authorities. The bridge is
 // appended exactly as the loader does; no player DB, world, client or timer runs.
-function fixture({npc=false,air=false,grantFails=false,persistent=true,duplicate=false,deltaFails=false,nativeGrid=false,mission=false,reconcileFails=false,extractThrows=false}={}) {
+function fixture({npc=false,air=false,grantFails=false,persistent=true,duplicate=false,deltaFails=false,nativeGrid=false,mission=false,reconcileFails=false,extractThrows=false,ignoreWaste=false}={}) {
   const calls=[],items=[],ledger=[],character={boosters:[],implants:[]};
   const ship={kind:'ship',itemID:10,typeID:100,characterID:42,systemID:300,npc,position:{x:0,y:0,z:0}};
   const rock={kind:'asteroid',itemID:50,typeID:123,position:{x:10,y:0,z:0}};
@@ -44,7 +45,7 @@ function fixture({npc=false,air=false,grantFails=false,persistent=true,duplicate
   const moduleItem={itemID:20,typeID:200,online:true,flagID:27};
   const skillMap=new Map();
   const snapshot={family:'ore',chargeTypeID:0,miningAmountM3:10,maxRangeMeters:100,
-    wasteVolumeMultiplier:1,wasteProbability:0,critChance:0,critQuantityMultiplier:0};
+    wasteVolumeMultiplier:1,wasteProbability:0.25,critChance:0.1,critQuantityMultiplier:0};
   const scene={systemID:300,staticEntities:[rock],getEntityByID:id=>id===50?rock:null,
     getTargetsForEntity:()=>[50],getEntitySurfaceDistance:()=>10,getPublicGridClusterKeyForEntity:()=> 'belt'};
   if(nativeGrid){
@@ -94,14 +95,15 @@ function fixture({npc=false,air=false,grantFails=false,persistent=true,duplicate
     itemStore:{ITEM_FLAGS:{CARGO_HOLD:5},grantItemsToCharacterLocation:grant},
     simulationInventoryProjection:{findShipItemById:()=>ship,listContainerItems:()=>items},
     liveFittingState:{getFittedModuleItems:()=>[moduleItem],getLoadedChargeByFlag:()=>null,
+      getTypeAttributeValue:(id,name)=>{calls.push(['attribute',id,name]);return id===123&&name==='ignoreMiningWaste'&&ignoreWaste?1:0;},
       isModuleOnline:item=>item.online,listHiddenModifierItems:()=>[],
       buildShipResourceState:()=>({cargoCapacity:100,generalMiningHoldCapacity:100}),
       getTypeEffectRecords:()=>[effect],getEffectTypeRecord:()=>effect,getTypeAttributeMap:()=>({})},
     itemTypeRegistry:{resolveItemByTypeID:()=>({name:'Veldspar'})},
     shipResourceStateCache:cache,
     miningInventory:{getPreferredMiningHoldFlagForType:()=>134,getShipHoldCapacityByFlag:(_,flag)=>flag===134?100:0},
-    miningMath:{computeMiningResult:()=>({normalQuantity:10,wastedQuantity:2,criticalHitQuantity:0,
-      rewardedQuantity:10,getTotalTransferredQuantity(){return this.normalQuantity+this.criticalHitQuantity;}})},
+    miningMath:{computeMiningResult:args=>{calls.push(['math',args]);return {normalQuantity:10,wastedQuantity:2,criticalHitQuantity:0,
+      rewardedQuantity:10,getTotalTransferredQuantity(){return this.normalQuantity+this.criticalHitQuantity;}};}},
     miningDogma:{isMiningEffectRecord:e=>e===effect,resolveMiningFamily:()=> 'ore',buildMiningModuleSnapshot:()=>snapshot},
     commandBurstRuntime:{collectModifierEntriesForItem:()=>[]},wormholeEnvironmentRuntime:{getLocationModifierSourcesForSystem:()=>[]},
     miningRuntimeState:{getMineableState:()=>state,ensureSceneMiningState(){},isMineableStaticEntity:e=>e.kind==='asteroid',
@@ -170,7 +172,7 @@ test('bridge observes fresh cargo occupancy across cached fitting reads after tr
   assert.equal(f.cache._testing.getStats().builds,1);assert.ok(f.cache._testing.getStats().hits>=4);
 });
 
-test('Start with a blank filter survives a real 261108.1 grid lookup and activates mining through the controller',()=>{
+test(`Start with a blank filter survives a real ${version} grid lookup and activates mining through the controller`,()=>{
   const f=fixture({nativeGrid:true}),errors=[],session=f.scene.sessions.get(42);
   assert.equal(typeof f.scene.getPublicGridClusterKeyForEntity,'undefined');
   const controller=require('../lib/controller').createController(()=>f.api,()=>({getSceneForSession:()=>f.scene}),e=>errors.push(e),
@@ -256,4 +258,22 @@ test('mission refusal and replay preserve native fail-closed custody',()=>{
   }
   const replay=fixture({mission:true,duplicate:true});assert.equal(replay.run().data.duplicate,true);
   assert.equal(replay.calls.some(c=>c[0]==='deplete'),false);assert.equal(replay.ledger.length,0);
+});
+
+test(`${version} residue policy follows the yielded ore, retaining normal ore and AIR behavior`, {skip:!['261125.3','261126.2'].includes(version)},()=>{
+  const normal=fixture();assert.equal(normal.run().success,true);
+  assert.ok(normal.calls.some(c=>c[0]==='attribute'&&c[1]===123&&c[2]==='ignoreMiningWaste'));
+  const protectedOre=fixture({ignoreWaste:true});assert.equal(protectedOre.run().success,true);
+  const air=fixture({air:true});assert.equal(air.run().success,true);
+  const options=f=>f.calls.find(c=>c[0]==='math')[1];
+  assert.equal(options(normal).wasteProbability,0.25);assert.equal(options(normal).critProbability,0.1);
+  assert.equal(options(protectedOre).wasteProbability,0);assert.equal(options(air).wasteProbability,0);
+  assert.equal(options(normal).critProbability,options(protectedOre).critProbability);
+  assert.equal(options(air).critProbability,0);
+});
+
+test(`${version} module extraction carries the native cycle identity into the ledger`, {skip:!['261125.3','261126.2'].includes(version)},()=>{
+  const f=fixture();assert.equal(f.run().success,true);
+  assert.equal(f.ledger[0].extractionID,'module:10:20:50:1000');
+  const replay=fixture({duplicate:true});assert.equal(replay.run().data.duplicate,true);assert.equal(replay.ledger.length,0);
 });
